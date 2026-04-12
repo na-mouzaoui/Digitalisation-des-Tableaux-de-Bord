@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "name": "🎨 Frontend (Next.js)",
+      "path": "frontend"
+    },
+    {
+      "name": "⚙️ Backend (ASP.NET)",
+      "path": "backend"
+    },
+    {
+      "name": "📁 Root",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "typescript.tsdk": "frontend/node_modules/typescript/lib",
+    "files.exclude": {
+      "frontend/node_modules": true,
+      "frontend/.next": true,
+      "backend/bin": true,
+      "backend/obj": true
+    }
+  }
+}
