@@ -166,10 +166,7 @@ builder.Services.AddAuthentication(options =>
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IBankService, BankService>();
-builder.Services.AddScoped<ICheckService, CheckService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
-builder.Services.AddScoped<ISupplierService, SupplierService>();
 
 var app = builder.Build();
 
@@ -232,6 +229,79 @@ ELSE IF NOT EXISTS (SELECT 1 FROM [dbo].[AdminFiscalSettings] WHERE [Id] = 1)
 BEGIN
     INSERT INTO [dbo].[AdminFiscalSettings] ([Id], [IsTable6Enabled], [UpdatedAt])
     VALUES (1, 1, GETUTCDATE());
+END
+
+-- Safety net: keep fiscal declaration table aligned with EF mapping (Declaration).
+IF OBJECT_ID(N'[dbo].[Declaration]', N'U') IS NULL
+BEGIN
+    IF OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+    BEGIN
+        EXEC sp_rename N'[dbo].[FiscalDeclarations]', N'Declaration';
+    END
+    ELSE
+    BEGIN
+        CREATE TABLE [dbo].[Declaration] (
+            [Id] INT IDENTITY(1,1) NOT NULL,
+            [UserId] INT NOT NULL,
+            [TabKey] NVARCHAR(50) NOT NULL,
+            [Mois] NVARCHAR(10) NULL,
+            [Annee] NVARCHAR(10) NULL,
+            [Direction] NVARCHAR(200) NULL,
+            [DataJson] NVARCHAR(MAX) NOT NULL,
+            [IsApproved] BIT NOT NULL CONSTRAINT [DF_Declaration_IsApproved] DEFAULT(0),
+            [ApprovedByUserId] INT NULL,
+            [ApprovedAt] DATETIME2 NULL,
+            [CreatedAt] DATETIME2 NOT NULL,
+            [UpdatedAt] DATETIME2 NOT NULL,
+            CONSTRAINT [PK_Declaration] PRIMARY KEY ([Id])
+        );
+
+        ALTER TABLE [dbo].[Declaration] WITH CHECK
+        ADD CONSTRAINT [FK_Declaration_Users_UserId]
+            FOREIGN KEY([UserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE CASCADE;
+
+        ALTER TABLE [dbo].[Declaration] WITH CHECK
+        ADD CONSTRAINT [FK_Declaration_Users_ApprovedByUserId]
+            FOREIGN KEY([ApprovedByUserId]) REFERENCES [dbo].[Users]([Id]);
+    END
+END
+
+IF OBJECT_ID(N'[dbo].[Declaration]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Declaration_UserId' AND [object_id] = OBJECT_ID(N'[dbo].[Declaration]'))
+        CREATE INDEX [IX_Declaration_UserId] ON [dbo].[Declaration]([UserId]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Declaration_UserId_TabKey_Mois_Annee' AND [object_id] = OBJECT_ID(N'[dbo].[Declaration]'))
+        CREATE INDEX [IX_Declaration_UserId_TabKey_Mois_Annee] ON [dbo].[Declaration]([UserId], [TabKey], [Mois], [Annee]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Declaration_IsApproved' AND [object_id] = OBJECT_ID(N'[dbo].[Declaration]'))
+        CREATE INDEX [IX_Declaration_IsApproved] ON [dbo].[Declaration]([IsApproved]);
+
+    IF COL_LENGTH(N'[dbo].[Declaration]', N'ApprovedByUserId') IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Declaration_ApprovedByUserId' AND [object_id] = OBJECT_ID(N'[dbo].[Declaration]'))
+        CREATE INDEX [IX_Declaration_ApprovedByUserId] ON [dbo].[Declaration]([ApprovedByUserId]);
+END
+
+-- Safety net: keep recap table aligned with EF mapping (EtatsDeSortie).
+IF OBJECT_ID(N'[dbo].[EtatsDeSortie]', N'U') IS NULL
+BEGIN
+    IF OBJECT_ID(N'[dbo].[FiscalRecaps]', N'U') IS NOT NULL
+    BEGIN
+        EXEC sp_rename N'[dbo].[FiscalRecaps]', N'EtatsDeSortie';
+    END
+END
+
+IF OBJECT_ID(N'[dbo].[EtatsDeSortie]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_EtatsDeSortie_UserId' AND [object_id] = OBJECT_ID(N'[dbo].[EtatsDeSortie]'))
+       AND COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'UserId') IS NOT NULL
+        CREATE INDEX [IX_EtatsDeSortie_UserId] ON [dbo].[EtatsDeSortie]([UserId]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_EtatsDeSortie_Key_Mois_Annee' AND [object_id] = OBJECT_ID(N'[dbo].[EtatsDeSortie]'))
+       AND COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'Key') IS NOT NULL
+       AND COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'Mois') IS NOT NULL
+       AND COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'Annee') IS NOT NULL
+        CREATE UNIQUE INDEX [IX_EtatsDeSortie_Key_Mois_Annee] ON [dbo].[EtatsDeSortie]([Key], [Mois], [Annee]);
 END
 ");
 }

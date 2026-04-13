@@ -11,81 +11,176 @@ namespace CheckFillingAPI.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<bool>(
-                name: "IsRegionalApprover",
-                table: "Users",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
+            migrationBuilder.Sql(@"
+IF COL_LENGTH(N'[dbo].[Users]', N'IsRegionalApprover') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[Users]
+    ADD [IsRegionalApprover] bit NOT NULL CONSTRAINT [DF_Users_IsRegionalApprover] DEFAULT CAST(0 AS bit);
+END
+");
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "ApprovedAt",
-                table: "FiscalDeclarations",
-                type: "datetime2",
-                nullable: true);
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'ApprovedAt') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[FiscalDeclarations] ADD [ApprovedAt] datetime2 NULL;
+END
+");
 
-            migrationBuilder.AddColumn<int>(
-                name: "ApprovedByUserId",
-                table: "FiscalDeclarations",
-                type: "int",
-                nullable: true);
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'ApprovedByUserId') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[FiscalDeclarations] ADD [ApprovedByUserId] int NULL;
+END
+");
 
-            migrationBuilder.AddColumn<bool>(
-                name: "IsApproved",
-                table: "FiscalDeclarations",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'IsApproved') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[FiscalDeclarations]
+    ADD [IsApproved] bit NOT NULL CONSTRAINT [DF_FiscalDeclarations_IsApproved] DEFAULT CAST(0 AS bit);
+END
+");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_FiscalDeclarations_ApprovedByUserId",
-                table: "FiscalDeclarations",
-                column: "ApprovedByUserId");
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE [name] = N'IX_FiscalDeclarations_ApprovedByUserId'
+      AND [object_id] = OBJECT_ID(N'[dbo].[FiscalDeclarations]')
+)
+AND OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'ApprovedByUserId') IS NOT NULL
+BEGIN
+    CREATE INDEX [IX_FiscalDeclarations_ApprovedByUserId] ON [dbo].[FiscalDeclarations] ([ApprovedByUserId]);
+END
+");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_FiscalDeclarations_IsApproved",
-                table: "FiscalDeclarations",
-                column: "IsApproved");
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE [name] = N'IX_FiscalDeclarations_IsApproved'
+      AND [object_id] = OBJECT_ID(N'[dbo].[FiscalDeclarations]')
+)
+AND OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'IsApproved') IS NOT NULL
+BEGIN
+    CREATE INDEX [IX_FiscalDeclarations_IsApproved] ON [dbo].[FiscalDeclarations] ([IsApproved]);
+END
+");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_FiscalDeclarations_Users_ApprovedByUserId",
-                table: "FiscalDeclarations",
-                column: "ApprovedByUserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE [name] = N'FK_FiscalDeclarations_Users_ApprovedByUserId'
+)
+AND OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[dbo].[Users]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'ApprovedByUserId') IS NOT NULL
+BEGIN
+    ALTER TABLE [dbo].[FiscalDeclarations] WITH CHECK
+    ADD CONSTRAINT [FK_FiscalDeclarations_Users_ApprovedByUserId]
+        FOREIGN KEY([ApprovedByUserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE NO ACTION;
+END
+");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_FiscalDeclarations_Users_ApprovedByUserId",
-                table: "FiscalDeclarations");
+            migrationBuilder.Sql(@"
+IF EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE [name] = N'FK_FiscalDeclarations_Users_ApprovedByUserId'
+)
+BEGIN
+    ALTER TABLE [dbo].[FiscalDeclarations] DROP CONSTRAINT [FK_FiscalDeclarations_Users_ApprovedByUserId];
+END
+");
 
-            migrationBuilder.DropIndex(
-                name: "IX_FiscalDeclarations_ApprovedByUserId",
-                table: "FiscalDeclarations");
+            migrationBuilder.Sql(@"
+IF EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE [name] = N'IX_FiscalDeclarations_ApprovedByUserId'
+      AND [object_id] = OBJECT_ID(N'[dbo].[FiscalDeclarations]')
+)
+BEGIN
+    DROP INDEX [IX_FiscalDeclarations_ApprovedByUserId] ON [dbo].[FiscalDeclarations];
+END
+");
 
-            migrationBuilder.DropIndex(
-                name: "IX_FiscalDeclarations_IsApproved",
-                table: "FiscalDeclarations");
+            migrationBuilder.Sql(@"
+IF EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE [name] = N'IX_FiscalDeclarations_IsApproved'
+      AND [object_id] = OBJECT_ID(N'[dbo].[FiscalDeclarations]')
+)
+BEGIN
+    DROP INDEX [IX_FiscalDeclarations_IsApproved] ON [dbo].[FiscalDeclarations];
+END
+");
 
-            migrationBuilder.DropColumn(
-                name: "IsRegionalApprover",
-                table: "Users");
+            migrationBuilder.Sql(@"
+IF COL_LENGTH(N'[dbo].[Users]', N'IsRegionalApprover') IS NOT NULL
+BEGIN
+    DECLARE @dfUsersIsRegionalApprover nvarchar(128);
 
-            migrationBuilder.DropColumn(
-                name: "ApprovedAt",
-                table: "FiscalDeclarations");
+    SELECT @dfUsersIsRegionalApprover = dc.[name]
+    FROM sys.default_constraints dc
+    INNER JOIN sys.columns c
+        ON c.default_object_id = dc.object_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[Users]')
+      AND c.[name] = N'IsRegionalApprover';
 
-            migrationBuilder.DropColumn(
-                name: "ApprovedByUserId",
-                table: "FiscalDeclarations");
+    IF @dfUsersIsRegionalApprover IS NOT NULL
+        EXEC(N'ALTER TABLE [dbo].[Users] DROP CONSTRAINT [' + @dfUsersIsRegionalApprover + N']');
 
-            migrationBuilder.DropColumn(
-                name: "IsApproved",
-                table: "FiscalDeclarations");
+    ALTER TABLE [dbo].[Users] DROP COLUMN [IsRegionalApprover];
+END
+");
+
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'ApprovedAt') IS NOT NULL
+BEGIN
+    ALTER TABLE [dbo].[FiscalDeclarations] DROP COLUMN [ApprovedAt];
+END
+");
+
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'ApprovedByUserId') IS NOT NULL
+BEGIN
+    ALTER TABLE [dbo].[FiscalDeclarations] DROP COLUMN [ApprovedByUserId];
+END
+");
+
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+    AND COL_LENGTH(N'[dbo].[FiscalDeclarations]', N'IsApproved') IS NOT NULL
+BEGIN
+    DECLARE @dfFiscalIsApproved nvarchar(128);
+
+    SELECT @dfFiscalIsApproved = dc.[name]
+    FROM sys.default_constraints dc
+    INNER JOIN sys.columns c
+        ON c.default_object_id = dc.object_id
+    WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[FiscalDeclarations]')
+      AND c.[name] = N'IsApproved';
+
+    IF @dfFiscalIsApproved IS NOT NULL
+        EXEC(N'ALTER TABLE [dbo].[FiscalDeclarations] DROP CONSTRAINT [' + @dfFiscalIsApproved + N']');
+
+    ALTER TABLE [dbo].[FiscalDeclarations] DROP COLUMN [IsApproved];
+END
+");
         }
     }
 }

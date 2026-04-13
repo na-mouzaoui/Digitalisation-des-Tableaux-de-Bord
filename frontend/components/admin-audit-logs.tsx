@@ -47,28 +47,10 @@ const actionLabels: Record<string, string> = {
   UPDATE_BANK: "Modification d'une banque",
   DELETE_BANK: "Suppression d'une banque",
   
-  // Chéquiers
-  CREATE_CHECKBOOK: "Ajout d'un chéquier",
-  UPDATE_CHECKBOOK: "Modification d'un chéquier",
-  DELETE_CHECKBOOK: "Suppression d'un chéquier",
-  
-  // Fournisseurs
-  CREATE_SUPPLIER: "Ajout d'un fournisseur",
-  UPDATE_SUPPLIER: "Modification d'un fournisseur",
-  DELETE_SUPPLIER: "Suppression d'un fournisseur",
-  FISCAL_FOURNISSEUR_CREATE: "Ajout d'un fournisseur fiscal",
-  FISCAL_FOURNISSEUR_UPDATE: "Modification d'un fournisseur fiscal",
-  FISCAL_FOURNISSEUR_DELETE: "Suppression d'un fournisseur fiscal",
-  FISCAL_FOURNISSEUR_IMPORT: "Importer des fournisseurs fiscaux",
-  
   // Régions
   CREATE_REGION: "Ajout d'une région",
   UPDATE_REGION: "Modification d'une région",
   DELETE_REGION: "Suppression d'une région",
-  
-  // Chèques
-  UPDATE_CHECK_STATUS: "Changer le statut d'un chèque",
-  PRINT_CHECK: "Imprimer un chèque",
   
   // Utilisateurs
   CREATE_USER: "Ajout d'un utilisateur",
@@ -116,11 +98,7 @@ const actionLabels: Record<string, string> = {
 
 const actionGroups: Record<string, string[]> = {
   "Banques": ["CREATE_BANK", "UPDATE_BANK", "DELETE_BANK"],
-  "Chéquiers": ["CREATE_CHECKBOOK", "UPDATE_CHECKBOOK", "DELETE_CHECKBOOK"],
-  "Fournisseurs": ["CREATE_SUPPLIER", "UPDATE_SUPPLIER", "DELETE_SUPPLIER"],
-  "Fournisseurs fiscaux": ["FISCAL_FOURNISSEUR_CREATE", "FISCAL_FOURNISSEUR_UPDATE", "FISCAL_FOURNISSEUR_DELETE", "FISCAL_FOURNISSEUR_IMPORT"],
   "Régions": ["CREATE_REGION", "UPDATE_REGION", "DELETE_REGION"],
-  "Chèques": ["UPDATE_CHECK_STATUS", "PRINT_CHECK"],
   "Utilisateurs": ["CREATE_USER", "UPDATE_USER", "DELETE_USER", "RESET_PASSWORD"],
   "Déclarations": ["FISCAL_SAVE", "FISCAL_APPROVE", "FISCAL_DELETE", "FISCAL_PRINT"],
   "États de sortie": ["ETATS_SORTIE_SAVE", "ETATS_SORTIE_DELETE", "ETATS_SORTIE_PRINT"],
@@ -149,44 +127,6 @@ const fieldLabels: Record<string, string> = {
   wilayaCode: "Code Wilaya",
   ville: "Ville",
   
-  // Fournisseurs
-  supplierId: "Fournisseur",
-  supplierName: "Nom du fournisseur",
-  address: "Adresse",
-  phone: "Téléphone",
-  email: "Email",
-  nif: "NIF",
-  nis: "NIS",
-  rc: "RC",
-  article: "Article",
-  
-  // Carnets de chèques / Chéquiers
-  checkbookId: "Chéquier",
-  agencyName: "Nom de l'agence",
-  agencyCode: "Code de l'agence",
-  serie: "Série",
-  startNumber: "Numéro de début",
-  endNumber: "Numéro de fin",
-  capacity: "Capacité",
-  accountNumber: "Numéro de compte",
-  rib: "RIB",
-  
-  // Chèques
-  checkId: "Chèque",
-  checkNumber: "Numéro de chèque",
-  reference: "Référence du chèque",
-  amount: "Montant",
-  amountInWords: "Montant en lettres",
-  status: "Statut",
-  oldStatus: "Ancien statut",
-  newStatus: "Nouveau statut",
-  motif: "Motif",
-  payee: "Bénéficiaire",
-  city: "Ville",
-  date: "Date",
-  issuedDate: "Date d'émission",
-  printedDate: "Date d'impression",
-  
   // Déclarations
   declarationId: "Déclaration",
   direction: "Direction",
@@ -208,10 +148,6 @@ const fieldLabels: Record<string, string> = {
   fiscalDeclarationId: "Déclaration fiscale",
   fiscalYear: "Année fiscale",
   fiscalStatus: "Statut fiscal",
-  
-  // Fournisseurs fiscaux
-  fiscalSupplierId: "Fournisseur fiscal",
-  fiscalSupplierName: "Nom du fournisseur fiscal",
   
   // Calibrage
   x: "Position X",

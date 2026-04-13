@@ -164,7 +164,7 @@ public class AdminController : ControllerBase
         var region = string.IsNullOrWhiteSpace(request.Region) ? null : request.Region.Trim();
         var isRegionalApprover = role == "regionale" && request.IsRegionalApprover;
         var isFinanceApprover = (role == "finance" || role == "comptabilite") && request.IsFinanceApprover;
-        var accessModules = string.IsNullOrWhiteSpace(request.AccessModules) ? "cheque,fisca" : request.AccessModules.Trim();
+        var accessModules = string.IsNullOrWhiteSpace(request.AccessModules) ? "fisca" : request.AccessModules.Trim();
         var normalizedPhoneNumber = (request.PhoneNumber ?? string.Empty).Trim();
 
         // Validation
@@ -284,7 +284,7 @@ public class AdminController : ControllerBase
         }
 
         if (request.AccessModules != null)
-            user.AccessModules = string.IsNullOrWhiteSpace(request.AccessModules) ? "cheque,fisca" : request.AccessModules;
+            user.AccessModules = string.IsNullOrWhiteSpace(request.AccessModules) ? "fisca" : request.AccessModules;
 
         if (!string.IsNullOrWhiteSpace(request.Password))
         {

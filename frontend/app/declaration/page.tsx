@@ -13,14 +13,24 @@ import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
-import WILAYAS_COMMUNES, { type WilayaCommuneEntry } from "@/lib/wilayas-communes"
-import { getCurrentFiscalPeriod, getFiscalPeriodLockMessage, isFiscalPeriodLocked } from "@/lib/fiscal-period-deadline"
-import { getManageableFiscalTabKeysForDirection, isAdminFiscalRole, isFinanceFiscalRole, isRegionalFiscalRole, isFiscalTabDisabledByPolicy } from "@/lib/fiscal-tab-access"
-import { syncFiscalPolicy } from "@/lib/fiscal-policy"
 import { API_BASE } from "@/lib/config"
 
 // primary colour used by all tables/buttons
 const PRIMARY_COLOR = "#2db34b"
+
+const getCurrentFiscalPeriod = (now: Date = new Date()) => ({
+  mois: String(now.getMonth() + 1).padStart(2, "0"),
+  annee: String(now.getFullYear()),
+})
+
+const getFiscalPeriodLockMessage = (mois: string, annee: string) => `Période ${mois}/${annee}.`
+const isFiscalPeriodLocked = () => false
+const syncFiscalPolicy = async (_direction?: string | null) => null
+const isAdminFiscalRole = () => false
+const isRegionalFiscalRole = () => false
+const isFinanceFiscalRole = () => false
+const getManageableFiscalTabKeysForDirection = () => TABS.map((tab) => tab.key)
+const isFiscalTabDisabledByPolicy = () => false
 
 // 
 // HELPERS
@@ -98,6 +108,228 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
       value={formatAmountInput(value)}
       onChange={handleChange}
     />
+  )
+}
+
+type ReclamationRow = {
+  category: "recues" | "traitees"
+  type: "GP" | "B2B"
+  mGp: string
+  mB2b: string
+  m1Gp: string
+  m1B2b: string
+}
+
+const DEFAULT_RECLAMATION_ROWS: ReclamationRow[] = [
+  { category: "recues", type: "GP", mGp: "", mB2b: "", m1Gp: "", m1B2b: "" },
+  { category: "recues", type: "B2B", mGp: "", mB2b: "", m1Gp: "", m1B2b: "" },
+  { category: "traitees", type: "GP", mGp: "", mB2b: "", m1Gp: "", m1B2b: "" },
+  { category: "traitees", type: "B2B", mGp: "", mB2b: "", m1Gp: "", m1B2b: "" },
+]
+
+type ReclamationGpRow = {
+  label: string
+  recues: string
+  traitees: string
+}
+
+const RECLAMATION_GP_LABELS = ["Appels", "Couverture", "Offres", "Data", "SMS", "Autres"] as const
+const CUSTOM_FISCAL_TAB_KEYS = new Set([
+  "reclamation",
+  "reclamation_gp",
+  "e_payement_pop",
+  "e_payement_prp",
+  "total_encaissement",
+  "recouvrement",
+  "realisation_technique_reseau",
+  "situation_reseau",
+  "trafic_data",
+  "amelioration_qualite",
+  "couverture_reseau",
+  "action_notable_reseau",
+  "disponibilite_reseau",
+  "desactivation_resiliation",
+  "parc_abonnes_b2b",
+  "mttr",
+  "creances_contentieuses",
+  "frais_personnel",
+  "effectif_gsp",
+  "absenteisme",
+  "mouvement_effectifs",
+  "mouvement_effectifs_domaine",
+  "compte_resultat",
+  "effectifs_formes_gsp",
+  "formations_domaines",
+  "parc_abonnes_gp",
+  "total_parc_abonnes",
+  "total_parc_abonnes_technologie",
+  "activation",
+  "chiffre_affaires_mda",
+])
+
+const DEFAULT_RECLAMATION_GP_ROWS: ReclamationGpRow[] = RECLAMATION_GP_LABELS.map((label) => ({
+  label,
+  recues: "",
+  traitees: "",
+}))
+
+const toPercent = (numerator: number, denominator: number) => {
+  if (!denominator) return 0
+  return (numerator / denominator) * 100
+}
+
+interface TabReclamationProps {
+  rows: ReclamationRow[]
+  setRows: React.Dispatch<React.SetStateAction<ReclamationRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationProps) {
+  const update = (index: number, field: keyof Pick<ReclamationRow, "mGp" | "mB2b" | "m1Gp" | "m1B2b">, value: string) => {
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+  }
+
+  const recuesRows = rows.filter((row) => row.category === "recues")
+  const traiteesRows = rows.filter((row) => row.category === "traitees")
+
+  const recuesTotals = {
+    mGp: recuesRows.reduce((sum, row) => sum + num(row.mGp), 0),
+    mB2b: recuesRows.reduce((sum, row) => sum + num(row.mB2b), 0),
+    m1Gp: recuesRows.reduce((sum, row) => sum + num(row.m1Gp), 0),
+    m1B2b: recuesRows.reduce((sum, row) => sum + num(row.m1B2b), 0),
+  }
+
+  const traiteesTotals = {
+    mGp: traiteesRows.reduce((sum, row) => sum + num(row.mGp), 0),
+    mB2b: traiteesRows.reduce((sum, row) => sum + num(row.mB2b), 0),
+    m1Gp: traiteesRows.reduce((sum, row) => sum + num(row.m1Gp), 0),
+    m1B2b: traiteesRows.reduce((sum, row) => sum + num(row.m1B2b), 0),
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Reclamations</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Type</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M GP</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M B2B</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M+1 GP</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M+1 B2B</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => {
+              const showCategoryCell = index % 2 === 0
+              const categoryLabel = row.category === "recues" ? "Recues" : "Traitees"
+              return (
+                <tr key={`${row.category}-${row.type}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  {showCategoryCell && (
+                    <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">
+                      {categoryLabel}
+                    </td>
+                  )}
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-700">{row.type}</td>
+                  <td className="px-2 py-1 border-b"><AmountInput value={row.mGp} onChange={(e) => update(index, "mGp", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-2 py-1 border-b"><AmountInput value={row.mB2b} onChange={(e) => update(index, "mB2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-2 py-1 border-b"><AmountInput value={row.m1Gp} onChange={(e) => update(index, "m1Gp", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-2 py-1 border-b"><AmountInput value={row.m1B2b} onChange={(e) => update(index, "m1B2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                </tr>
+              )
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="bg-green-100 font-semibold">
+              <td colSpan={2} className="px-3 py-2 text-xs text-right border-t">Taux de traitement (%)</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(traiteesTotals.mGp, recuesTotals.mGp))}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(traiteesTotals.mB2b, recuesTotals.mB2b))}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(traiteesTotals.m1Gp, recuesTotals.m1Gp))}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(traiteesTotals.m1B2b, recuesTotals.m1B2b))}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabReclamationGpProps {
+  rows: ReclamationGpRow[]
+  setRows: React.Dispatch<React.SetStateAction<ReclamationGpRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabReclamationGp({ rows, setRows, onSave, isSubmitting }: TabReclamationGpProps) {
+  const update = (index: number, field: "recues" | "traitees", value: string) => {
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+  }
+
+  const totalRecues = rows.reduce((sum, row) => sum + num(row.recues), 0)
+  const totalTraitees = rows.reduce((sum, row) => sum + num(row.traitees), 0)
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Type de Reclamation GP</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Taux (%)</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Part (%)</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b"></th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Recues</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Traitees</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b"></th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => {
+              const recues = num(row.recues)
+              const traitees = num(row.traitees)
+              const taux = toPercent(traitees, recues)
+              const part = toPercent(recues, totalRecues)
+
+              return (
+                <tr key={`${row.label}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                  <td className="px-2 py-1 border-b"><AmountInput value={row.recues} onChange={(e) => update(index, "recues", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-2 py-1 border-b"><AmountInput value={row.traitees} onChange={(e) => update(index, "traitees", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-3 py-2 border-b text-xs text-right font-semibold text-gray-700">{fmt(taux)}</td>
+                  <td className="px-3 py-2 border-b text-xs text-right font-semibold text-gray-700">{fmt(part)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-3 py-2 text-xs text-right border-t">Total</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(totalRecues)}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(totalTraitees)}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(totalTraitees, totalRecues))}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{totalRecues > 0 ? "100,00" : ""}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -197,24 +429,12 @@ function TabEncaissement({ rows, setRows, onSave, isSubmitting }: Tab1Props) {
 // 
 // TAB 2 & 3 - TVA/IMMO  and  TVA/BIENS & SERV (controlled, same structure)
 // 
-type FiscalFournisseurOption = {
-  id: number
-  raisonSociale: string
-  adresse: string
-  nif: string
-  authNif: string
-  rc: string
-  authRc: string
-}
-
 type TvaRow = {
-  fournisseurId?: string
   nomRaisonSociale: string; adresse: string; nif: string; authNif: string
   numRC: string; authRC: string; numFacture: string; dateFacture: string
   montantHT: string; tva: string; tauxTVA?: TvaRate | ""
 }
 const EMPTY_TVA: TvaRow = {
-  fournisseurId: "",
   nomRaisonSociale: "", adresse: "", nif: "", authNif: "",
   numRC: "", authRC: "", numFacture: "", dateFacture: "",
   montantHT: "", tva: "", tauxTVA: "",
@@ -261,48 +481,15 @@ const safeString = (value: unknown) => {
   return String(value)
 }
 
-const asArrayPayload = (value: unknown): unknown[] => {
-  if (Array.isArray(value)) return value
-  if (!value || typeof value !== "object") return []
-
-  const raw = value as Record<string, unknown>
-  if (Array.isArray(raw.$values)) return raw.$values
-  if (Array.isArray(raw.items)) return raw.items
-  if (Array.isArray(raw.data)) return raw.data
-  return []
-}
-
-const normalizeFiscalFournisseurOption = (value: unknown): FiscalFournisseurOption | null => {
-  if (!value || typeof value !== "object") return null
-  const raw = value as Record<string, unknown>
-  const id = Number(raw.id)
-  if (!Number.isFinite(id)) return null
-
-  return {
-    id,
-    raisonSociale: safeString(raw.raisonSociale),
-    adresse: safeString(raw.adresse),
-    nif: safeString(raw.nif),
-    authNif: safeString(raw.authNif),
-    rc: safeString(raw.rc),
-    authRc: safeString(raw.authRc),
-  }
-}
-
 interface Tab23Props { rows: TvaRow[]; setRows: React.Dispatch<React.SetStateAction<TvaRow[]>>;
   onSave: () => void;
   isSubmitting: boolean;
-  fournisseurs: FiscalFournisseurOption[];
   withSelectableRate?: boolean;
 }
 
-function TabTVAEtat({ rows, setRows, onSave, isSubmitting, fournisseurs, withSelectableRate = false }: Tab23Props) {
+function TabTVAEtat({ rows, setRows, onSave, isSubmitting, withSelectableRate = false }: Tab23Props) {
   const addRow    = () => setRows((p) => [...p, { ...EMPTY_TVA }])
   const removeRow = (i: number) => setRows((p) => p.filter((_, idx) => idx !== i))
-  const toSupplierValue = (value: string | undefined | null) => {
-    const normalized = safeString(value).trim()
-    return normalized ? normalized : "0"
-  }
   const update    = (i: number, field: keyof TvaRow, val: string) =>
     setRows((p) =>
       p.map((r, idx) => {
@@ -313,36 +500,6 @@ function TabTVAEtat({ rows, setRows, onSave, isSubmitting, fournisseurs, withSel
           next.tva = next.montantHT && rate ? calculateTvaFromRate(next.montantHT, rate).toFixed(2) : ""
         }
         return next
-      }),
-    )
-
-  const selectFournisseur = (i: number, fournisseurId: string) =>
-    setRows((p) =>
-      p.map((r, idx) => {
-        if (idx !== i) return r
-        const selected = fournisseurs.find((f) => String(f.id) === fournisseurId)
-        if (!selected) {
-          return {
-            ...r,
-            fournisseurId: "",
-            nomRaisonSociale: "",
-            adresse: "",
-            nif: "",
-            authNif: "",
-            numRC: "",
-            authRC: "",
-          }
-        }
-        return {
-          ...r,
-          fournisseurId,
-          nomRaisonSociale: toSupplierValue(selected.raisonSociale),
-          adresse: toSupplierValue(selected.adresse),
-          nif: toSupplierValue(selected.nif),
-          authNif: toSupplierValue(selected.authNif),
-          numRC: toSupplierValue(selected.rc),
-          authRC: toSupplierValue(selected.authRc),
-        }
       }),
     )
 
@@ -371,31 +528,18 @@ function TabTVAEtat({ rows, setRows, onSave, isSubmitting, fournisseurs, withSel
           </thead>
           <tbody>
             {rows.map((row, i) => {
-              const currentRow: TvaRow = { ...EMPTY_TVA, ...row, fournisseurId: row.fournisseurId ?? "" }
+              const currentRow: TvaRow = { ...EMPTY_TVA, ...row }
               const rowTva = getTvaAmount(currentRow, withSelectableRate)
               const ttc = num(currentRow.montantHT) + rowTva
-              const supplierPlaceholder = currentRow.nomRaisonSociale?.trim() || "Selectionner"
               return (
                 <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                   <td className="px-2 py-1 text-center text-xs text-gray-400 border-b">{i + 1}</td>
-                  <td className="px-1 py-1 border-b">
-                    <select
-                      value={currentRow.fournisseurId ?? ""}
-                      onChange={(e) => selectFournisseur(i, e.target.value)}
-                      className="h-7 rounded border border-gray-200 bg-white px-2 text-xs focus:outline-none focus:ring-2 focus:ring-green-300"
-                      style={{ minWidth: 220 }}
-                    >
-                      <option value="">{supplierPlaceholder}</option>
-                      {fournisseurs.map((f) => (
-                        <option key={f.id} value={String(f.id)}>{f.raisonSociale || "-"}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-1 py-1 border-b"><Input value={currentRow.adresse ?? ""} readOnly className="h-7 px-2 text-xs bg-gray-50" style={{ minWidth: 150 }} placeholder="Auto" /></td>
-                  <td className="px-1 py-1 border-b"><Input value={currentRow.nif ?? ""} readOnly className="h-7 px-2 text-xs bg-gray-50" style={{ minWidth: 110 }} placeholder="Auto" /></td>
-                  <td className="px-1 py-1 border-b"><Input value={currentRow.authNif ?? ""} readOnly className="h-7 px-2 text-xs bg-gray-50" style={{ minWidth: 110 }} placeholder="Auto" /></td>
-                  <td className="px-1 py-1 border-b"><Input value={currentRow.numRC ?? ""} readOnly className="h-7 px-2 text-xs bg-gray-50" style={{ minWidth: 110 }} placeholder="Auto" /></td>
-                  <td className="px-1 py-1 border-b"><Input value={currentRow.authRC ?? ""} readOnly className="h-7 px-2 text-xs bg-gray-50" style={{ minWidth: 110 }} placeholder="Auto" /></td>
+                  <td className="px-1 py-1 border-b"><Input value={currentRow.nomRaisonSociale ?? ""} onChange={(e) => update(i, "nomRaisonSociale", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 220 }} placeholder="Nom / Raison sociale" /></td>
+                  <td className="px-1 py-1 border-b"><Input value={currentRow.adresse ?? ""} onChange={(e) => update(i, "adresse", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 150 }} placeholder="Adresse" /></td>
+                  <td className="px-1 py-1 border-b"><Input value={currentRow.nif ?? ""} onChange={(e) => update(i, "nif", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 110 }} placeholder="NIF" /></td>
+                  <td className="px-1 py-1 border-b"><Input value={currentRow.authNif ?? ""} onChange={(e) => update(i, "authNif", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 110 }} placeholder="Auth. NIF" /></td>
+                  <td className="px-1 py-1 border-b"><Input value={currentRow.numRC ?? ""} onChange={(e) => update(i, "numRC", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 110 }} placeholder="N° RC" /></td>
+                  <td className="px-1 py-1 border-b"><Input value={currentRow.authRC ?? ""} onChange={(e) => update(i, "authRC", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 110 }} placeholder="Auth. N° RC" /></td>
                   <td className="px-1 py-1 border-b"><Input value={currentRow.numFacture ?? ""} onChange={(e) => update(i, "numFacture", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 110 }} placeholder="N° Facture" /></td>
                   <td className="px-1 py-1 border-b"><Input type="date" value={currentRow.dateFacture ?? ""} onChange={(e) => update(i, "dateFacture", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 130 }} /></td>
                   <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={currentRow.montantHT ?? ""} onChange={(e) => update(i, "montantHT", e.target.value)} className="h-7 px-2 text-xs" style={{ minWidth: 110 }} placeholder="0.00" /></td>
@@ -602,13 +746,11 @@ function TabCA({ b12, setB12, b13, setB13, onSave, isSubmitting }: Tab5Props) {
 // 
 // TAB 6 - ETAT TAP (controlled)
 // Periode : mois + annee (page-level)
-// Tableau : Code (auto), Wilaya (dropdown), Commune (dropdown), Montant imposable (saisie), TAP 1,5% (auto)
+// Tableau : Code Wilaya + Montant imposable, TAP 1,5% (auto)
 // MONTANT TAP = Total(TAP 1,5%)
 // 
-type TAPRow = { wilayaCode: string; commune: string; tap2: string }
+type TAPRow = { wilayaCode: string; tap2: string }
 type SiegeEncRow = { ttc: string; ht: string }
-
-const WILAYA_COMMUNE_DATA: WilayaCommuneEntry[] = WILAYAS_COMMUNES
 
 const SIEGE_G1_LABELS = ["Encaissement", "Encaissement Exon\u00e9r\u00e9e"]
 const SIEGE_G2_LABELS = [
@@ -638,14 +780,13 @@ interface Tab6Props {
 }
 
 function TabTAP({ rows, setRows, mois, setMois, annee, setAnnee, onSave, isSubmitting }: Tab6Props) {
-  const addRow    = () => setRows((p) => [...p, { wilayaCode: "", commune: "", tap2: "" }])
+  const addRow    = () => setRows((p) => [...p, { wilayaCode: "", tap2: "" }])
   const removeRow = (i: number) => setRows((p) => p.filter((_, idx) => idx !== i))
   const updateRow = useCallback((i: number, field: keyof TAPRow, val: string) =>
     setRows((p) => p.map((r, idx) => (idx === i ? { ...r, [field]: val } : r))), [setRows])
 
   const totalImposable = rows.reduce((s, r) => s + num(r.tap2), 0)
   const totalTAP = totalImposable * 0.015
-  const getWilaya = (code: string) => WILAYA_COMMUNE_DATA.find((w) => w.code === code)
 
   return (
     <div className="space-y-5">
@@ -656,77 +797,42 @@ function TabTAP({ rows, setRows, mois, setMois, annee, setAnnee, onSave, isSubmi
             <tr className="bg-gray-50">
               <th className="px-2 py-2 text-center text-xs font-semibold text-gray-400 border-b w-8">#</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Code Wilaya</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Wilaya</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Commune</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Montant Imposable</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">TAP 1,5%</th>
               <th className="px-2 py-2 border-b w-8" />
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => {
-              const wilaya = getWilaya(row.wilayaCode)
-              return (
-                <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  <td className="px-2 py-1 text-center text-xs text-gray-400 border-b">{i + 1}</td>
-
-                  {/* Code - automatique depuis wilaya */}
-                  <td className="px-3 py-1 border-b">
-                    <span className="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">
-                      {row.wilayaCode || "-"}
-                    </span>
-                  </td>
-
-                  {/* Wilaya dropdown */}
-                  <td className="px-1 py-1 border-b">
-                    <select value={row.wilayaCode}
-                      onChange={(e) => { updateRow(i, "wilayaCode", e.target.value); updateRow(i, "commune", "") }}
-                      className="h-7 rounded border border-gray-200 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-green-300"
-                      style={{ minWidth: 190 }}>
-                      <option value="">- Wilaya -</option>
-                      {WILAYA_COMMUNE_DATA.map((w) => (
-                        <option key={w.code} value={w.code}>{w.code} - {w.wilaya}</option>
-                      ))}
-                    </select>
-                  </td>
-
-                  {/* Commune dropdown - depend de la wilaya selectionnee */}
-                  <td className="px-1 py-1 border-b">
-                    <select value={row.commune} onChange={(e) => updateRow(i, "commune", e.target.value)}
-                      disabled={!row.wilayaCode}
-                      className="h-7 rounded border border-gray-200 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-green-300 disabled:opacity-40"
-                      style={{ minWidth: 165 }}>
-                      <option value="">- Commune -</option>
-                      {(wilaya?.communes ?? []).map((c) => {
-                        const communeCode = String(c)
-                        return <option key={communeCode} value={communeCode}>{communeCode}</option>
-                      })}
-                    </select>
-                  </td>
-
-                  {/* Montant imposable */}
-                  <td className="px-1 py-1 border-b">
-                    <AmountInput min={0} step="0.01" value={row.tap2}
-                      onChange={(e) => updateRow(i, "tap2", e.target.value)}
-                      className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} />
-                  </td>
-
-                  {/* TAP 1,5% (calcule) */}
-                  <td className="px-3 py-1 border-b text-xs text-gray-700 font-semibold bg-gray-50/50 text-right [direction:rtl]">
-                    {row.tap2 ? fmt(num(row.tap2) * 0.015) : "-"}
-                  </td>
-
-                  <td className="px-2 py-1 text-center border-b">
-                    <button type="button" onClick={() => removeRow(i)} disabled={rows.length === 1}
-                      className="text-emerald-400 hover:text-emerald-600 disabled:opacity-30"><Trash2 size={13} /></button>
-                  </td>
-                </tr>
-              )
-            })}
+            {rows.map((row, i) => (
+              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-2 py-1 text-center text-xs text-gray-400 border-b">{i + 1}</td>
+                <td className="px-1 py-1 border-b">
+                  <Input
+                    value={row.wilayaCode}
+                    onChange={(e) => updateRow(i, "wilayaCode", e.target.value)}
+                    className="h-7 px-2 text-xs"
+                    placeholder="Code Wilaya"
+                    style={{ minWidth: 160 }}
+                  />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput min={0} step="0.01" value={row.tap2}
+                    onChange={(e) => updateRow(i, "tap2", e.target.value)}
+                    className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} />
+                </td>
+                <td className="px-3 py-1 border-b text-xs text-gray-700 font-semibold bg-gray-50/50 text-right [direction:rtl]">
+                  {row.tap2 ? fmt(num(row.tap2) * 0.015) : "-"}
+                </td>
+                <td className="px-2 py-1 text-center border-b">
+                  <button type="button" onClick={() => removeRow(i)} disabled={rows.length === 1}
+                    className="text-emerald-400 hover:text-emerald-600 disabled:opacity-30"><Trash2 size={13} /></button>
+                </td>
+              </tr>
+            ))}
           </tbody>
           <tfoot>
             <tr className="bg-green-100 font-semibold">
-              <td colSpan={3} className="px-3 py-2 text-xs text-right border-t">TOTAL</td>
+              <td colSpan={2} className="px-3 py-2 text-xs text-right border-t">TOTAL</td>
               <td className="px-3 py-2 text-sm font-bold text-green-700 border-t text-right [direction:rtl]">{fmt(totalImposable)} DZD</td>
               <td className="px-3 py-2 text-sm font-bold text-green-700 border-t text-right [direction:rtl]">{fmt(totalTAP)} DZD</td>
               <td className="border-t" />
@@ -1361,28 +1467,2011 @@ function TabTvaAutoLiq({ rows, setRows, onSave, isSubmitting }: Tab16Props) {
 }
 
 // 
+// TAB 17 - E-PAYEMENT POP/PRP (MDA)
+// 
+type EPayementRow = { rechargement: string; m: string; m1: string; evol: string }
+const EPAYEMENT_CHANNELS = ["Baridimob", "webportail", "GAB-Alg Poste", "WINPAY (BNA)"] as const
+const createDefaultEPayementRows = (): EPayementRow[] =>
+  EPAYEMENT_CHANNELS.map((rechargement) => ({ rechargement, m: "", m1: "", evol: "" }))
+
+interface EPayementBlockProps {
+  title: string
+  rows: EPayementRow[]
+  setRows: React.Dispatch<React.SetStateAction<EPayementRow[]>>
+}
+
+function EPayementBlock({ title, rows, setRows }: EPayementBlockProps) {
+  const update = (index: number, field: "m" | "m1" | "evol", value: string) => {
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${title}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">
+                  {(EPAYEMENT_CHANNELS[index] ?? row.rechargement) || `Ligne ${index + 1}`}
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput
+                    min={0}
+                    step="0.01"
+                    value={row.m}
+                    onChange={(event) => update(index, "m", event.target.value)}
+                    className="h-7 px-2 text-xs"
+                    placeholder="0.00"
+                    style={{ minWidth: 130 }}
+                  />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput
+                    min={0}
+                    step="0.01"
+                    value={row.m1}
+                    onChange={(event) => update(index, "m1", event.target.value)}
+                    className="h-7 px-2 text-xs"
+                    placeholder="0.00"
+                    style={{ minWidth: 130 }}
+                  />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput
+                    min={0}
+                    step="0.01"
+                    value={row.evol}
+                    onChange={(event) => update(index, "evol", event.target.value)}
+                    className="h-7 px-2 text-xs"
+                    placeholder="0.00"
+                    style={{ minWidth: 130 }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+interface TabEPayementSingleProps {
+  title: string
+  rows: EPayementRow[]
+  setRows: React.Dispatch<React.SetStateAction<EPayementRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabEPayementSingle({ title, rows, setRows, onSave, isSubmitting }: TabEPayementSingleProps) {
+  return (
+    <div className="space-y-4">
+      <EPayementBlock title={title} rows={rows} setRows={setRows} />
+
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          onClick={onSave}
+          disabled={isSubmitting}
+          className="gap-1.5"
+          style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}
+        >
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// 
+// TAB 19 - TOTALE DES ENCAISSMENT
+// 
+type TotalEncaissementRow = { mGp: string; mB2b: string; m1Gp: string; m1B2b: string; evol: string }
+const EMPTY_TOTAL_ENCAISSEMENT_ROW: TotalEncaissementRow = { mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "-" }
+type RecouvrementRow = { label: string; mGp: string; mB2b: string; m1Gp: string; m1B2b: string }
+const RECOUVREMENT_LABELS = ["Montant Mis en Recouvrement", "Montant Recouvre", "Total"] as const
+const DEFAULT_RECOUVREMENT_ROWS: RecouvrementRow[] = RECOUVREMENT_LABELS.map((label) => ({
+  label,
+  mGp: "",
+  mB2b: "",
+  m1Gp: "",
+  m1B2b: "",
+}))
+
+type RealisationTechniqueReseauRow = { label: string; m: string; m1: string }
+const REALISATION_TECHNIQUE_RESEAU_LABELS = [
+  "sites acquis",
+  "site en cours de construction",
+  "sites construits",
+] as const
+const DEFAULT_REALISATION_TECHNIQUE_RESEAU_ROWS: RealisationTechniqueReseauRow[] = REALISATION_TECHNIQUE_RESEAU_LABELS.map((label) => ({
+  label,
+  m: "",
+  m1: "",
+}))
+
+type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
+const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
+  { situation: "Reseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
+  { situation: "Reseau 3G", equipements: "NodeB", m: "", m1: "" },
+  {
+    situation: "Reseau 4G",
+    equipements: "eNodeB (Evolved NodeB) (FDD+TDD)\neNodeB (Evolved NodeB) (FDD)",
+    m: "",
+    m1: "",
+  },
+]
+
+type TraficDataRow = { label: string; m: string; m1: string }
+const TRAFIC_DATA_LABELS = [
+  "2G-3G Traffic Volume per day",
+  "4G Traffic Volume per day",
+  "Total daily traffic volume",
+] as const
+const DEFAULT_TRAFIC_DATA_ROWS: TraficDataRow[] = TRAFIC_DATA_LABELS.map((label) => ({
+  label,
+  m: "",
+  m1: "",
+}))
+
+type AmeliorationQualiteRow = {
+  wilaya: string
+  mObjectif: string
+  mRealise: string
+  m1Objectif: string
+  m1Realise: string
+  ecart: string
+}
+const EMPTY_AMELIORATION_QUALITE_ROW: AmeliorationQualiteRow = {
+  wilaya: "",
+  mObjectif: "",
+  mRealise: "",
+  m1Objectif: "",
+  m1Realise: "",
+  ecart: "",
+}
+
+type CouvertureReseauRow = {
+  wilaya: string
+  mObjectif: string
+  mRealise: string
+  m1Objectif: string
+  m1Realise: string
+  ecart: string
+}
+const EMPTY_COUVERTURE_RESEAU_ROW: CouvertureReseauRow = {
+  wilaya: "",
+  mObjectif: "",
+  mRealise: "",
+  m1Objectif: "",
+  m1Realise: "",
+  ecart: "",
+}
+
+type ActionNotableReseauRow = {
+  action: string
+  objectif2025: string
+  mObjectif: string
+  mRealise: string
+  mTaux: string
+  m1Objectif: string
+  m1Realise: string
+  m1Taux: string
+}
+const DEFAULT_ACTION_NOTABLE_RESEAU_ROWS: ActionNotableReseauRow[] = [
+  {
+    action: "Densification de couverture par des nouveaux sites",
+    objectif2025: "Acquisition et Integration de 2000 nouveaux sites",
+    mObjectif: "",
+    mRealise: "",
+    mTaux: "",
+    m1Objectif: "",
+    m1Realise: "",
+    m1Taux: "",
+  },
+  {
+    action: "Densification du LTE_30Mhz (1800_15+2100_15)",
+    objectif2025: "La mise a niveau de 1000 sites avec la technologie 4G",
+    mObjectif: "",
+    mRealise: "",
+    mTaux: "",
+    m1Objectif: "",
+    m1Realise: "",
+    m1Taux: "",
+  },
+  {
+    action: "Usage de la neutralite technologique sur la bande 2100Mhz en faveur de la LTE (0-15Mhz)",
+    objectif2025: "Implementation et integration de 15Mhz de la bande passante 2100Mhz avec la technologie 4G sur 600 Sites",
+    mObjectif: "",
+    mRealise: "",
+    mTaux: "",
+    m1Objectif: "",
+    m1Realise: "",
+    m1Taux: "",
+  },
+  {
+    action: "Implementation de la couche LTE TDD 2300",
+    objectif2025: "Implementation et integration de 3000 Sites LTE TDD (Massive MIMO & 8T8R) pour les Sites 4G (1800/2100) sur les 58 wilaya",
+    mObjectif: "",
+    mRealise: "",
+    mTaux: "",
+    m1Objectif: "",
+    m1Realise: "",
+    m1Taux: "",
+  },
+]
+
+type DisponibiliteReseauRow = {
+  designation: string
+  mObjectif: string
+  mRealise: string
+  mTaux: string
+  m1Objectif: string
+  m1Realise: string
+  m1Taux: string
+}
+const DISPONIBILITE_RESEAU_LABELS = [
+  "Disponibilite des Services",
+  "Disponibilite Coeur Reseau",
+  "Disponibilite Acces Radio 2G",
+  "Disponibilite Acces Radio 3G",
+  "Disponibilite Acces Radio 4G",
+  "Drop call 2G",
+  "RAB Voice Drop 3G",
+  "ERAB Drop 4G",
+  "MTTR",
+  "2G Congestion Rate",
+  "Disponibilite Globale reseau",
+] as const
+const DEFAULT_DISPONIBILITE_RESEAU_ROWS: DisponibiliteReseauRow[] = DISPONIBILITE_RESEAU_LABELS.map((designation) => ({
+  designation,
+  mObjectif: "",
+  mRealise: "",
+  mTaux: "",
+  m1Objectif: "",
+  m1Realise: "",
+  m1Taux: "",
+}))
+
+type DesactivationResiliationRow = { designation: string; m: string; m1: string; evol: string }
+const DESACTIVATION_RESILIATION_LABELS = ["Postpaid GP", "Prepaid GP", "Postpaid B2B", "Prepaid B2B", "Total"] as const
+const DEFAULT_DESACTIVATION_RESILIATION_ROWS: DesactivationResiliationRow[] = DESACTIVATION_RESILIATION_LABELS.map((designation) => ({
+  designation,
+  m: "",
+  m1: "",
+  evol: "",
+}))
+
+type ParcAbonnesB2BRow = { designation: string; m: string; m1: string; evol: string }
+const PARC_ABONNES_B2B_LABELS = ["Postpaid B2B", "Prepaid B2B", "TOTAL"] as const
+const DEFAULT_PARC_ABONNES_B2B_ROWS: ParcAbonnesB2BRow[] = PARC_ABONNES_B2B_LABELS.map((designation) => ({
+  designation,
+  m: "",
+  m1: "",
+  evol: "",
+}))
+
+type ParcAbonnesGpRow = { designation: string; m: string; m1: string; evol: string }
+const PARC_ABONNES_GP_LABELS = ["Postpaid GP", "Prepaid GP", "TOTAL"] as const
+const DEFAULT_PARC_ABONNES_GP_ROWS: ParcAbonnesGpRow[] = PARC_ABONNES_GP_LABELS.map((designation) => ({
+  designation,
+  m: "",
+  m1: "",
+  evol: "",
+}))
+
+type TotalParcAbonnesRow = { designation: string; m: string; m1: string; evol: string }
+const TOTAL_PARC_ABONNES_LABELS = ["Parc Postpaid", "Parc Prepaid", "TOTAL"] as const
+const DEFAULT_TOTAL_PARC_ABONNES_ROWS: TotalParcAbonnesRow[] = TOTAL_PARC_ABONNES_LABELS.map((designation) => ({
+  designation,
+  m: "",
+  m1: "",
+  evol: "",
+}))
+
+type TotalParcAbonnesTechnologieRow = { designation: string; m: string; m1: string; evol: string }
+const TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS = ["2G", "3G", "4G", "TOTAL"] as const
+const DEFAULT_TOTAL_PARC_ABONNES_TECHNOLOGIE_ROWS: TotalParcAbonnesTechnologieRow[] = TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS.map((designation) => ({
+  designation,
+  m: "",
+  m1: "",
+  evol: "",
+}))
+
+type ActivationRow = { designation: string; m: string; m1: string; evol: string }
+const ACTIVATION_LABELS = ["Postpaid GP", "Prepaid GP", "Postpaid B2B", "Prepaid B2B", "Total"] as const
+const DEFAULT_ACTIVATION_ROWS: ActivationRow[] = ACTIVATION_LABELS.map((designation) => ({
+  designation,
+  m: "",
+  m1: "",
+  evol: "",
+}))
+
+type ChiffreAffairesMdaRow = {
+  designation: string
+  mObjectif: string
+  mRealise: string
+  mTaux: string
+  m1Objectif: string
+  m1Realise: string
+  m1Taux: string
+}
+const CHIFFRE_AFFAIRES_MDA_LABELS = ["Grand Public", "B2B", "Interco & Roaming"] as const
+const DEFAULT_CHIFFRE_AFFAIRES_MDA_ROWS: ChiffreAffairesMdaRow[] = CHIFFRE_AFFAIRES_MDA_LABELS.map((designation) => ({
+  designation,
+  mObjectif: "",
+  mRealise: "",
+  mTaux: "",
+  m1Objectif: "",
+  m1Realise: "",
+  m1Taux: "",
+}))
+
+type CreancesContentieusesRow = { designation: string; m: string; m1: string; evol: string }
+const CREANCES_CONTENTIEUSES_LABELS = ["Objectif", "Montant recouvre", "Taux de recouvrement"] as const
+const DEFAULT_CREANCES_CONTENTIEUSES_ROWS: CreancesContentieusesRow[] = CREANCES_CONTENTIEUSES_LABELS.map((designation) => ({
+  designation,
+  m: "",
+  m1: "",
+  evol: "",
+}))
+
+type FraisPersonnelRow = { designation: string; m: string; m1: string }
+const FRAIS_PERSONNEL_LABELS = ["Objectif", "Realisation", "Taux d'atteinte", "Salaire Moyen"] as const
+const DEFAULT_FRAIS_PERSONNEL_ROWS: FraisPersonnelRow[] = FRAIS_PERSONNEL_LABELS.map((designation) => ({
+  designation,
+  m: "",
+  m1: "",
+}))
+
+type EffectifGspRow = { gsp: string; m: string; m1: string; part: string }
+const EFFECTIF_GSP_LABELS = ["Cadres Sup", "Cadres", "Maitrise", "Execution", "Total"] as const
+const DEFAULT_EFFECTIF_GSP_ROWS: EffectifGspRow[] = EFFECTIF_GSP_LABELS.map((gsp) => ({
+  gsp,
+  m: "",
+  m1: "",
+  part: "",
+}))
+
+type AbsenteismeRow = { motif: string; m: string; m1: string; part: string }
+const ABSENTEISME_LABELS = ["Irregulieres", "Cadre Disciplinaire", "Cadre Medical", "Autorisees", "TOTAL"] as const
+const DEFAULT_ABSENTEISME_ROWS: AbsenteismeRow[] = ABSENTEISME_LABELS.map((motif) => ({
+  motif,
+  m: "",
+  m1: "",
+  part: "",
+}))
+
+type MouvementEffectifsRow = {
+  bloc: "arrives" | "departs"
+  operation: string
+  mCadresSup: string
+  mCadres: string
+  mMaitrise: string
+  mExecution: string
+  m1CadresSup: string
+  m1Cadres: string
+  m1Maitrise: string
+  m1Execution: string
+}
+const MOUVEMENT_EFFECTIFS_TEMPLATE: Array<{ bloc: MouvementEffectifsRow["bloc"]; operation: string }> = [
+  { bloc: "arrives", operation: "Detachement" },
+  { bloc: "arrives", operation: "Recrutement" },
+  { bloc: "arrives", operation: "Reintegration" },
+  { bloc: "arrives", operation: "Stagiaires" },
+  { bloc: "arrives", operation: "Personnes a besoins specifiques" },
+  { bloc: "arrives", operation: "TOTAL" },
+  { bloc: "departs", operation: "Abandon de poste" },
+  { bloc: "departs", operation: "Deces" },
+  { bloc: "departs", operation: "Demission" },
+  { bloc: "departs", operation: "Detachement" },
+  { bloc: "departs", operation: "Fin de contrat" },
+  { bloc: "departs", operation: "Licenciement" },
+  { bloc: "departs", operation: "Retraite" },
+  { bloc: "departs", operation: "Stagiaires" },
+  { bloc: "departs", operation: "Personnes a besoins specifiques" },
+  { bloc: "departs", operation: "TOTAL" },
+]
+const DEFAULT_MOUVEMENT_EFFECTIFS_ROWS: MouvementEffectifsRow[] = MOUVEMENT_EFFECTIFS_TEMPLATE.map((item) => ({
+  bloc: item.bloc,
+  operation: item.operation,
+  mCadresSup: "",
+  mCadres: "",
+  mMaitrise: "",
+  mExecution: "",
+  m1CadresSup: "",
+  m1Cadres: "",
+  m1Maitrise: "",
+  m1Execution: "",
+}))
+
+type MouvementEffectifsDomaineRow = {
+  bloc: "recrutement" | "sortant"
+  domaine: string
+  mCdi: string
+  mCdd: string
+  mCta: string
+  m1Cdi: string
+  m1Cdd: string
+  m1Cta: string
+}
+const MOUVEMENT_EFFECTIFS_DOMAINE_TEMPLATE: Array<{ bloc: MouvementEffectifsDomaineRow["bloc"]; domaine: string }> = [
+  { bloc: "recrutement", domaine: "COMMERCIAL" },
+  { bloc: "recrutement", domaine: "MANAGEMENT" },
+  { bloc: "recrutement", domaine: "SUPPORT" },
+  { bloc: "recrutement", domaine: "TECHNIQUE" },
+  { bloc: "recrutement", domaine: "TOTAL" },
+  { bloc: "sortant", domaine: "COMMERCIAL" },
+  { bloc: "sortant", domaine: "MANAGEMENT" },
+  { bloc: "sortant", domaine: "SUPPORT" },
+  { bloc: "sortant", domaine: "TECHNIQUE" },
+  { bloc: "sortant", domaine: "TOTAL" },
+]
+const DEFAULT_MOUVEMENT_EFFECTIFS_DOMAINE_ROWS: MouvementEffectifsDomaineRow[] = MOUVEMENT_EFFECTIFS_DOMAINE_TEMPLATE.map((item) => ({
+  bloc: item.bloc,
+  domaine: item.domaine,
+  mCdi: "",
+  mCdd: "",
+  mCta: "",
+  m1Cdi: "",
+  m1Cdd: "",
+  m1Cta: "",
+}))
+
+type CompteResultatRow = {
+  designation: string
+  mBudget: string
+  mRealise: string
+  mTaux: string
+  m1Budget: string
+  m1Realise: string
+  m1Taux: string
+}
+const COMPTE_RESULTAT_LABELS = [
+  "Chiffre d'affaire GP",
+  "Chiffre d'affair ME",
+  "Chiffre d'affairs Interco -roming",
+  "Total CA",
+  "Consommation de l'exercice",
+  "Service Exterieurs et autres consommations",
+  "VALEUR AJOUTEE D'EXPLOITATION",
+  "Charge du Personnel",
+  "Impots, Taxes et versement assimile",
+  "EBE",
+  "Autres produits Operasionnels",
+  "Autres charges Operationnelles",
+  "Dotations aux amortissements",
+  "Reprises sur pertes de valeur et provisions",
+  "Resultat Operationnel",
+] as const
+const DEFAULT_COMPTE_RESULTAT_ROWS: CompteResultatRow[] = COMPTE_RESULTAT_LABELS.map((designation) => ({
+  designation,
+  mBudget: "",
+  mRealise: "",
+  mTaux: "",
+  m1Budget: "",
+  m1Realise: "",
+  m1Taux: "",
+}))
+
+type EffectifsFormesGspRow = {
+  gsp: string
+  mObjectif: string
+  mRealise: string
+  mTaux: string
+  m1Objectif: string
+  m1Realise: string
+  m1Taux: string
+}
+const EFFECTIFS_FORMES_GSP_LABELS = ["Cadres & cadres Superieures", "Execution", "Maitrise", "Total Personnes Formees"] as const
+const DEFAULT_EFFECTIFS_FORMES_GSP_ROWS: EffectifsFormesGspRow[] = EFFECTIFS_FORMES_GSP_LABELS.map((gsp) => ({
+  gsp,
+  mObjectif: "",
+  mRealise: "",
+  mTaux: "",
+  m1Objectif: "",
+  m1Realise: "",
+  m1Taux: "",
+}))
+
+type FormationsDomainesRow = {
+  domaine: string
+  mObjectif: string
+  mRealise: string
+  mTaux: string
+  m1Objectif: string
+  m1Realise: string
+  m1Taux: string
+}
+const FORMATIONS_DOMAINES_LABELS = ["Commercial", "Technique", "Management", "Divers (Langue Anglaise)", "Total Formations effectuees"] as const
+const DEFAULT_FORMATIONS_DOMAINES_ROWS: FormationsDomainesRow[] = FORMATIONS_DOMAINES_LABELS.map((domaine) => ({
+  domaine,
+  mObjectif: "",
+  mRealise: "",
+  mTaux: "",
+  m1Objectif: "",
+  m1Realise: "",
+  m1Taux: "",
+}))
+
+type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; wilayaM1: string; objectifM1: string; realiseM1: string; ecart: string }
+type MttrRegionRow = { region: string; cities: MttrCityRow[] }
+const MTTR_REGIONS = ["DR Alger", "DR Oran", "DR Constantine", "DR Setif", "DR Ouargla", "DR Bechar", "DR Annaba", "DR Chlef"] as const
+const EMPTY_MTTR_CITY_ROW: MttrCityRow = { wilayaM: "", objectifM: "", realiseM: "", wilayaM1: "", objectifM1: "", realiseM1: "", ecart: "" }
+const DEFAULT_MTTR_ROWS: MttrRegionRow[] = MTTR_REGIONS.map((region) => ({ region, cities: [{ ...EMPTY_MTTR_CITY_ROW }] }))
+
+interface TabTotalEncaissementProps {
+  row: TotalEncaissementRow
+  setRow: React.Dispatch<React.SetStateAction<TotalEncaissementRow>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEncaissementProps) {
+  const update = (field: keyof TotalEncaissementRow, value: string) => {
+    setRow((prev) => ({ ...prev, [field]: value }))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={3} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Encaissement (MDA)</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
+              <th rowSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b border-r">Sous-colonnes</th>
+              <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b border-r">Sous-colonnes</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-white">
+              <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">Encaissements</td>
+              <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.mGp} onChange={(e) => update("mGp", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.mB2b} onChange={(e) => update("mB2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1Gp} onChange={(e) => update("m1Gp", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1B2b} onChange={(e) => update("m1B2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              <td className="px-1 py-1 border-b"><Input value={row.evol} onChange={(e) => update("evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="-" /></td>
+            </tr>
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-3 py-2 border-b text-xs">Total</td>
+              <td className="px-3 py-2 border-b text-xs text-right [direction:rtl]">{fmt(row.mGp || "0")}</td>
+              <td className="px-3 py-2 border-b text-xs text-right [direction:rtl]">{fmt(row.mB2b || "0")}</td>
+              <td className="px-3 py-2 border-b text-xs text-right [direction:rtl]">{fmt(row.m1Gp || "0")}</td>
+              <td className="px-3 py-2 border-b text-xs text-right [direction:rtl]">{fmt(row.m1B2b || "0")}</td>
+              <td className="px-3 py-2 border-b text-xs text-center">{row.evol || "-"}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting}
+          className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabRecouvrementProps {
+  rows: RecouvrementRow[]
+  setRows: React.Dispatch<React.SetStateAction<RecouvrementRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvrementProps) {
+  const update = (index: number, field: keyof Pick<RecouvrementRow, "mGp" | "mB2b" | "m1Gp" | "m1B2b">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={3} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement (MDA)</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b border-r">Sous-colonnes</th>
+              <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b">Sous-colonnes</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">B2B</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput min={0} step="0.01" value={row.mGp} onChange={(e) => update(index, "mGp", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput min={0} step="0.01" value={row.mB2b} onChange={(e) => update(index, "mB2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput min={0} step="0.01" value={row.m1Gp} onChange={(e) => update(index, "m1Gp", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput min={0} step="0.01" value={row.m1B2b} onChange={(e) => update(index, "m1B2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabRealisationTechniqueReseauProps {
+  rows: RealisationTechniqueReseauRow[]
+  setRows: React.Dispatch<React.SetStateAction<RealisationTechniqueReseauRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabRealisationTechniqueReseau({ rows, setRows, onSave, isSubmitting }: TabRealisationTechniqueReseauProps) {
+  const update = (index: number, field: keyof Pick<RealisationTechniqueReseauRow, "m" | "m1">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Realisations techniques</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="1" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="1" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabSituationReseauProps {
+  rows: SituationReseauRow[]
+  setRows: React.Dispatch<React.SetStateAction<SituationReseauRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituationReseauProps) {
+  const update = (index: number, field: keyof Pick<SituationReseauRow, "m" | "m1">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.situation} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.situation}</td>
+                <td className="px-3 py-2 border-b text-xs text-gray-700 whitespace-pre-line">{row.equipements}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="1" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="1" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabTraficDataProps {
+  rows: TraficDataRow[]
+  setRows: React.Dispatch<React.SetStateAction<TraficDataRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabTraficData({ rows, setRows, onSave, isSubmitting }: TabTraficDataProps) {
+  const update = (index: number, field: keyof Pick<TraficDataRow, "m" | "m1">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Trafic Data (TB)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabAmeliorationQualiteProps {
+  rows: AmeliorationQualiteRow[]
+  setRows: React.Dispatch<React.SetStateAction<AmeliorationQualiteRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabAmeliorationQualite({ rows, setRows, onSave, isSubmitting }: TabAmeliorationQualiteProps) {
+  const update = (index: number, field: keyof AmeliorationQualiteRow, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+  const addRow = () => setRows((prev) => [...prev, { ...EMPTY_AMELIORATION_QUALITE_ROW }])
+  const removeRow = (index: number) => setRows((prev) => prev.filter((_, idx) => idx !== index))
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={addRow} className="gap-1"><Plus size={12} /> Ajouter une ligne</Button>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Debit MBPS/wtilaya</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">ecart</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`amelioration-${index}`} className="bg-white">
+                <td className="px-1 py-1 border-b"><Input value={row.wilaya} onChange={(e) => update(index, "wilaya", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.ecart} onChange={(e) => update(index, "ecart", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b text-center">
+                  <Button type="button" size="icon" variant="ghost" onClick={() => removeRow(index)} disabled={rows.length <= 1} className="h-7 w-7 text-red-600">
+                    <Trash2 size={12} />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabCouvertureReseauProps {
+  rows: CouvertureReseauRow[]
+  setRows: React.Dispatch<React.SetStateAction<CouvertureReseauRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabCouvertureReseau({ rows, setRows, onSave, isSubmitting }: TabCouvertureReseauProps) {
+  const update = (index: number, field: keyof CouvertureReseauRow, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+  const addRow = () => setRows((prev) => [...prev, { ...EMPTY_COUVERTURE_RESEAU_ROW }])
+  const removeRow = (index: number) => setRows((prev) => prev.filter((_, idx) => idx !== index))
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={addRow} className="gap-1"><Plus size={12} /> Ajouter une ligne</Button>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Debit Couverture Resau/wtilaya</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">ecart</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`couverture-${index}`} className="bg-white">
+                <td className="px-1 py-1 border-b"><Input value={row.wilaya} onChange={(e) => update(index, "wilaya", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.ecart} onChange={(e) => update(index, "ecart", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b text-center">
+                  <Button type="button" size="icon" variant="ghost" onClick={() => removeRow(index)} disabled={rows.length <= 1} className="h-7 w-7 text-red-600">
+                    <Trash2 size={12} />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabActionNotableReseauProps {
+  rows: ActionNotableReseauRow[]
+  setRows: React.Dispatch<React.SetStateAction<ActionNotableReseauRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabActionNotableReseau({ rows, setRows, onSave, isSubmitting }: TabActionNotableReseauProps) {
+  const update = (index: number, field: keyof ActionNotableReseauRow, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Action</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Objectif 2025</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Taux</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`action-notable-${index}`} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.action}</td>
+                <td className="px-3 py-2 border-b text-xs text-gray-700">{row.objectif2025}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Taux} onChange={(e) => update(index, "m1Taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabDisponibiliteReseauProps {
+  rows: DisponibiliteReseauRow[]
+  setRows: React.Dispatch<React.SetStateAction<DisponibiliteReseauRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabDisponibiliteReseau({ rows, setRows, onSave, isSubmitting }: TabDisponibiliteReseauProps) {
+  const update = (index: number, field: keyof DisponibiliteReseauRow, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Designations</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Taux</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Taux} onChange={(e) => update(index, "m1Taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabDesactivationResiliationProps {
+  rows: DesactivationResiliationRow[]
+  setRows: React.Dispatch<React.SetStateAction<DesactivationResiliationRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabDesactivationResiliation({ rows, setRows, onSave, isSubmitting }: TabDesactivationResiliationProps) {
+  const update = (index: number, field: keyof Pick<DesactivationResiliationRow, "m" | "m1" | "evol">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Desactivation / Resiliation</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabParcAbonnesB2BProps {
+  rows: ParcAbonnesB2BRow[]
+  setRows: React.Dispatch<React.SetStateAction<ParcAbonnesB2BRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabParcAbonnesB2B({ rows, setRows, onSave, isSubmitting }: TabParcAbonnesB2BProps) {
+  const update = (index: number, field: keyof Pick<ParcAbonnesB2BRow, "m" | "m1" | "evol">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Parc Abonnes B2B</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabParcAbonnesGpProps {
+  rows: ParcAbonnesGpRow[]
+  setRows: React.Dispatch<React.SetStateAction<ParcAbonnesGpRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabParcAbonnesGp({ rows, setRows, onSave, isSubmitting }: TabParcAbonnesGpProps) {
+  const update = (index: number, field: keyof Pick<ParcAbonnesGpRow, "m" | "m1" | "evol">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Parc Abonnes GP</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabTotalParcAbonnesProps {
+  rows: TotalParcAbonnesRow[]
+  setRows: React.Dispatch<React.SetStateAction<TotalParcAbonnesRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabTotalParcAbonnes({ rows, setRows, onSave, isSubmitting }: TabTotalParcAbonnesProps) {
+  const update = (index: number, field: keyof Pick<TotalParcAbonnesRow, "m" | "m1" | "evol">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Total Parc Abonnes</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabTotalParcAbonnesTechnologieProps {
+  rows: TotalParcAbonnesTechnologieRow[]
+  setRows: React.Dispatch<React.SetStateAction<TotalParcAbonnesTechnologieRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabTotalParcAbonnesTechnologie({ rows, setRows, onSave, isSubmitting }: TabTotalParcAbonnesTechnologieProps) {
+  const update = (index: number, field: keyof Pick<TotalParcAbonnesTechnologieRow, "m" | "m1" | "evol">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Total Parc Abonnes parc technologie</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabActivationProps {
+  rows: ActivationRow[]
+  setRows: React.Dispatch<React.SetStateAction<ActivationRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabActivation({ rows, setRows, onSave, isSubmitting }: TabActivationProps) {
+  const update = (index: number, field: keyof Pick<ActivationRow, "m" | "m1" | "evol">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Activation</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabChiffreAffairesMdaProps {
+  rows: ChiffreAffairesMdaRow[]
+  setRows: React.Dispatch<React.SetStateAction<ChiffreAffairesMdaRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiffreAffairesMdaProps) {
+  const update = (
+    index: number,
+    field: keyof Pick<ChiffreAffairesMdaRow, "mObjectif" | "mRealise" | "mTaux" | "m1Objectif" | "m1Realise" | "m1Taux">,
+    value: string,
+  ) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Chiffre d'Affaires (MDA)</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Taux</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Taux} onChange={(e) => update(index, "m1Taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabCreancesContentieusesProps {
+  rows: CreancesContentieusesRow[]
+  setRows: React.Dispatch<React.SetStateAction<CreancesContentieusesRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabCreancesContentieuses({ rows, setRows, onSave, isSubmitting }: TabCreancesContentieusesProps) {
+  const update = (index: number, field: keyof Pick<CreancesContentieusesRow, "m" | "m1" | "evol">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Creances Contentieuses</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput min={0} step="0.01" value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabFraisPersonnelProps {
+  rows: FraisPersonnelRow[]
+  setRows: React.Dispatch<React.SetStateAction<FraisPersonnelRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabFraisPersonnel({ rows, setRows, onSave, isSubmitting }: TabFraisPersonnelProps) {
+  const update = (index: number, field: "m" | "m1", value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Frais personnel (MDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabEffectifGspProps {
+  rows: EffectifGspRow[]
+  setRows: React.Dispatch<React.SetStateAction<EffectifGspRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabEffectifGsp({ rows, setRows, onSave, isSubmitting }: TabEffectifGspProps) {
+  const update = (index: number, field: "m" | "m1" | "part", value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">GSP</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Part %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.gsp} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.gsp}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.part} onChange={(e) => update(index, "part", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabAbsenteismeProps {
+  rows: AbsenteismeRow[]
+  setRows: React.Dispatch<React.SetStateAction<AbsenteismeRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabAbsenteisme({ rows, setRows, onSave, isSubmitting }: TabAbsenteismeProps) {
+  const update = (index: number, field: "m" | "m1" | "part", value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Absenteisme (jours)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Part %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.motif} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.motif}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.part} onChange={(e) => update(index, "part", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabMouvementEffectifsProps {
+  rows: MouvementEffectifsRow[]
+  setRows: React.Dispatch<React.SetStateAction<MouvementEffectifsRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabMouvementEffectifs({ rows, setRows, onSave, isSubmitting }: TabMouvementEffectifsProps) {
+  const update = (index: number, field: keyof Pick<MouvementEffectifsRow, "mCadresSup" | "mCadres" | "mMaitrise" | "mExecution" | "m1CadresSup" | "m1Cadres" | "m1Maitrise" | "m1Execution">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Type d'operation</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Cadres Sup</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Cadres</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Maitrise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Execution</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Cadres Sup</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Cadres</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Maitrise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Execution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.bloc}-${row.operation}-${index}`} className={row.operation === "TOTAL" ? "bg-green-100 font-semibold" : "bg-white"}>
+                {index === 0 && <td rowSpan={6} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Arrives</td>}
+                {index === 6 && <td rowSpan={10} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Departs</td>}
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.operation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mCadresSup} onChange={(e) => update(index, "mCadresSup", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mCadres} onChange={(e) => update(index, "mCadres", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mMaitrise} onChange={(e) => update(index, "mMaitrise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mExecution} onChange={(e) => update(index, "mExecution", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1CadresSup} onChange={(e) => update(index, "m1CadresSup", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Cadres} onChange={(e) => update(index, "m1Cadres", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Maitrise} onChange={(e) => update(index, "m1Maitrise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Execution} onChange={(e) => update(index, "m1Execution", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabMouvementEffectifsDomaineProps {
+  rows: MouvementEffectifsDomaineRow[]
+  setRows: React.Dispatch<React.SetStateAction<MouvementEffectifsDomaineRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabMouvementEffectifsDomaine({ rows, setRows, onSave, isSubmitting }: TabMouvementEffectifsDomaineProps) {
+  const update = (index: number, field: keyof Pick<MouvementEffectifsDomaineRow, "mCdi" | "mCdd" | "mCta" | "m1Cdi" | "m1Cdd" | "m1Cta">, value: string) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs par Domaine</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Domaine</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">CDI</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">CDD</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">CTA</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">CDI</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">CDD</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">CTA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.bloc}-${row.domaine}-${index}`} className={row.domaine === "TOTAL" ? "bg-green-100 font-semibold" : "bg-white"}>
+                {index === 0 && <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Recrutement</td>}
+                {index === 5 && <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Sortant</td>}
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.domaine}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mCdi} onChange={(e) => update(index, "mCdi", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mCdd} onChange={(e) => update(index, "mCdd", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mCta} onChange={(e) => update(index, "mCta", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Cdi} onChange={(e) => update(index, "m1Cdi", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Cdd} onChange={(e) => update(index, "m1Cdd", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Cta} onChange={(e) => update(index, "m1Cta", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabCompteResultatProps {
+  rows: CompteResultatRow[]
+  setRows: React.Dispatch<React.SetStateAction<CompteResultatRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteResultatProps) {
+  const update = (
+    index: number,
+    field: keyof Pick<CompteResultatRow, "mBudget" | "mRealise" | "mTaux" | "m1Budget" | "m1Realise" | "m1Taux">,
+    value: string,
+  ) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Designations</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Budget</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Taux</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Budget</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mBudget} onChange={(e) => update(index, "mBudget", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Budget} onChange={(e) => update(index, "m1Budget", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Taux} onChange={(e) => update(index, "m1Taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabEffectifsFormesGspProps {
+  rows: EffectifsFormesGspRow[]
+  setRows: React.Dispatch<React.SetStateAction<EffectifsFormesGspRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabEffectifsFormesGsp({ rows, setRows, onSave, isSubmitting }: TabEffectifsFormesGspProps) {
+  const update = (
+    index: number,
+    field: keyof Pick<EffectifsFormesGspRow, "mObjectif" | "mRealise" | "mTaux" | "m1Objectif" | "m1Realise" | "m1Taux">,
+    value: string,
+  ) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Effectifs Formes par GSP</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Taux</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.gsp} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.gsp}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Taux} onChange={(e) => update(index, "m1Taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabFormationsDomainesProps {
+  rows: FormationsDomainesRow[]
+  setRows: React.Dispatch<React.SetStateAction<FormationsDomainesRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabFormationsDomaines({ rows, setRows, onSave, isSubmitting }: TabFormationsDomainesProps) {
+  const update = (
+    index: number,
+    field: keyof Pick<FormationsDomainesRow, "mObjectif" | "mRealise" | "mTaux" | "m1Objectif" | "m1Realise" | "m1Taux">,
+    value: string,
+  ) => {
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Domaines</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Taux</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.domaine} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.domaine}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Taux} onChange={(e) => update(index, "m1Taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+interface TabMttrProps {
+  rows: MttrRegionRow[]
+  setRows: React.Dispatch<React.SetStateAction<MttrRegionRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
+  const updateCity = (regionIndex: number, cityIndex: number, field: keyof MttrCityRow, value: string) => {
+    setRows((prev) => prev.map((region, rIdx) => {
+      if (rIdx !== regionIndex) return region
+      return {
+        ...region,
+        cities: region.cities.map((city, cIdx) => (cIdx === cityIndex ? { ...city, [field]: value } : city)),
+      }
+    }))
+  }
+
+  const addCity = (regionIndex: number) => {
+    setRows((prev) => prev.map((region, rIdx) => (rIdx === regionIndex ? { ...region, cities: [...region.cities, { ...EMPTY_MTTR_CITY_ROW }] } : region)))
+  }
+
+  const removeCity = (regionIndex: number, cityIndex: number) => {
+    setRows((prev) => prev.map((region, rIdx) => {
+      if (rIdx !== regionIndex) return region
+      if (region.cities.length <= 1) return region
+      return { ...region, cities: region.cities.filter((_, cIdx) => cIdx !== cityIndex) }
+    }))
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">WILAYA</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">WILAYA</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((region, regionIndex) => (
+              region.cities.map((city, cityIndex) => (
+                <tr key={`mttr-${regionIndex}-${cityIndex}`} className="bg-white">
+                  {cityIndex === 0 && (
+                    <td rowSpan={region.cities.length} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">
+                      <div className="flex items-center justify-between gap-2">
+                        <span>{region.region}</span>
+                        <Button type="button" size="icon" variant="ghost" onClick={() => addCity(regionIndex)} className="h-6 w-6 text-green-700">
+                          <Plus size={11} />
+                        </Button>
+                      </div>
+                    </td>
+                  )}
+                  <td className="px-1 py-1 border-b"><Input value={city.wilayaM} onChange={(e) => updateCity(regionIndex, cityIndex, "wilayaM", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.objectifM} onChange={(e) => updateCity(regionIndex, cityIndex, "objectifM", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.realiseM} onChange={(e) => updateCity(regionIndex, cityIndex, "realiseM", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b"><Input value={city.wilayaM1} onChange={(e) => updateCity(regionIndex, cityIndex, "wilayaM1", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.objectifM1} onChange={(e) => updateCity(regionIndex, cityIndex, "objectifM1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.realiseM1} onChange={(e) => updateCity(regionIndex, cityIndex, "realiseM1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.ecart} onChange={(e) => updateCity(regionIndex, cityIndex, "ecart", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b text-center">
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeCity(regionIndex, cityIndex)} disabled={region.cities.length <= 1} className="h-7 w-7 text-red-600">
+                      <Trash2 size={12} />
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onSave} disabled={isSubmitting} className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
+          <Save size={13} /> {isSubmitting ? "Enregistrement" : "Enregistrer"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// 
 // TAB CONFIG
 // 
 const TABS = [
-  { key: "encaissement",   label: "1 - Encaissement",              color: "#2db34b", title: "ENCAISSEMENT" },
-  { key: "tva_immo",       label: "2 - TVA / IMMO",                color: "#2db34b", title: "ETAT TVA / IMMOBILISATIONS" },
-  { key: "tva_biens",      label: "3 - TVA / Biens & Serv",        color: "#2db34b", title: "ETAT TVA / BIENS & SERVICES" },
-  { key: "droits_timbre",  label: "4 - Droits Timbre",             color: "#2db34b", title: "ETAT DROITS DE TIMBRE" },
-  { key: "ca_tap",         label: "5 - CA 7% & CA Glob 1%",        color: "#2db34b", title: "CA 7% & CA GLOBAL 1%" },
-  { key: "etat_tap",       label: "6 - ETAT TAP",                  color: "#2db34b", title: "ETAT TAP" },
-  { key: "ca_siege",       label: "7 - CA Siege",                  color: "#2db34b", title: "CHIFFRE D'AFFAIRE ENCAISSE SIEGE" },
-  { key: "irg",            label: "8 - Situation IRG",             color: "#2db34b", title: "SITUATION IRG" },
-  { key: "taxe2",          label: "9 - Taxe 2%",                   color: "#2db34b", title: "SITUATION DE LA TAXE 2%" },
-  { key: "taxe_masters",   label: "10 - Taxe des Master 1,5%",       color: "#2db34b", title: "ETAT DE LA TAXE 1,5% DES MASTERS" },
-  { key: "taxe_vehicule",  label: "11 - Taxe Vehicule",            color: "#2db34b", title: "TAXE DE VEHICULE" },
-  { key: "taxe_formation", label: "12 - Taxe Formation",           color: "#2db34b", title: "TAXE DE FORMATION" },
-  { key: "acompte",        label: "13 - Acompte Provisionnel",     color: "#2db34b", title: "SITUATION DE L'ACOMPTE PROVISIONNEL DE L'ANNEE EN COURS" },
-  { key: "ibs",            label: "14 - IBS Fournisseurs Etrangers", color: "#2db34b", title: "IBS SUR FOURNISSEURS ETRANGERS" },
-  { key: "taxe_domicil",  label: "15 - Taxe Domiciliation",        color: "#2db34b", title: "TAXE DOMICILIATION BANCAIRE SUR FOURNISSEURS ETRANGERS" },
-  { key: "tva_autoliq",   label: "16 - TVA Auto Liquidation",      color: "#2db34b", title: "TVA AUTO LIQUIDATION SUR FOURNISSEURS ETRANGERS" },
+  { key: "reclamation",   label: "Reclamation",              color: "#2db34b", title: "TABLEAU RECLAMATION" },
+  { key: "reclamation_gp", label: "Reclamation GP",           color: "#2db34b", title: "TABLEAU RECLAMATION GP" },
+  { key: "encaissement",   label: "Encaissement",              color: "#2db34b", title: "ENCAISSEMENT" },
+  { key: "tva_immo",       label: "TVA / IMMO",                color: "#2db34b", title: "ETAT TVA / IMMOBILISATIONS" },
+  { key: "tva_biens",      label: "TVA / Biens & Serv",        color: "#2db34b", title: "ETAT TVA / BIENS & SERVICES" },
+  { key: "droits_timbre",  label: "Droits Timbre",             color: "#2db34b", title: "ETAT DROITS DE TIMBRE" },
+  { key: "ca_tap",         label: "CA 7% & CA Glob 1%",        color: "#2db34b", title: "CA 7% & CA GLOBAL 1%" },
+  { key: "etat_tap",       label: "ETAT TAP",                  color: "#2db34b", title: "ETAT TAP" },
+  { key: "ca_siege",       label: "CA Siege",                  color: "#2db34b", title: "CHIFFRE D'AFFAIRE ENCAISSE SIEGE" },
+  { key: "irg",            label: "Situation IRG",             color: "#2db34b", title: "SITUATION IRG" },
+  { key: "taxe2",          label: "Taxe 2%",                   color: "#2db34b", title: "SITUATION DE LA TAXE 2%" },
+  { key: "taxe_masters",   label: "Taxe des Master 1,5%",       color: "#2db34b", title: "ETAT DE LA TAXE 1,5% DES MASTERS" },
+  { key: "taxe_vehicule",  label: "Taxe Vehicule",            color: "#2db34b", title: "TAXE DE VEHICULE" },
+  { key: "taxe_formation", label: "Taxe Formation",           color: "#2db34b", title: "TAXE DE FORMATION" },
+  { key: "acompte",        label: "Acompte Provisionnel",     color: "#2db34b", title: "SITUATION DE L'ACOMPTE PROVISIONNEL DE L'ANNEE EN COURS" },
+  { key: "ibs",            label: "IBS Fournisseurs Etrangers", color: "#2db34b", title: "IBS SUR FOURNISSEURS ETRANGERS" },
+  { key: "taxe_domicil",  label: "Taxe Domiciliation",        color: "#2db34b", title: "TAXE DOMICILIATION BANCAIRE SUR FOURNISSEURS ETRANGERS" },
+  { key: "tva_autoliq",   label: "TVA Auto Liquidation",      color: "#2db34b", title: "TVA AUTO LIQUIDATION SUR FOURNISSEURS ETRANGERS" },
+  { key: "e_payement_pop",label: "E-PAYEMENT Pop",            color: "#2db34b", title: "E-PAYEMENT POP (MDA)" },
+  { key: "e_payement_prp",label: "E-PAYEMENT Prp",            color: "#2db34b", title: "E-PAYEMENT PRP (MDA)" },
+  { key: "total_encaissement", label: "Totale des encaissment", color: "#2db34b", title: "TOTALE DES ENCAISSMENT" },
+  { key: "recouvrement", label: "Recouvrement", color: "#2db34b", title: "RECOUVREMENT (MDA)" },
+  { key: "realisation_technique_reseau", label: "Realisation technique Reseau", color: "#2db34b", title: "REALISATION TECHNIQUE RESEAU" },
+  { key: "situation_reseau", label: "Situation Reseau", color: "#2db34b", title: "SITUATION RESEAUX" },
+  { key: "trafic_data", label: "Trafic Data", color: "#2db34b", title: "TRAFIC DATA (TB)" },
+  { key: "amelioration_qualite", label: "Amelioration qualite", color: "#2db34b", title: "AMELIORATION QUALITE" },
+  { key: "couverture_reseau", label: "Couverture Reseau", color: "#2db34b", title: "COUVERTURE RESEAU" },
+  { key: "action_notable_reseau", label: "Action notable sur le reseau", color: "#2db34b", title: "ACTION NOTABLE SUR LE RESEAU" },
+  { key: "disponibilite_reseau", label: "Disponibilite reseau", color: "#2db34b", title: "DISPONIBILITE RESEAU" },
+  { key: "desactivation_resiliation", label: "Desactivation / Resiliation", color: "#2db34b", title: "DESACTIVATION / RESILIATION" },
+  { key: "parc_abonnes_b2b", label: "Parc Abonnes B2B", color: "#2db34b", title: "PARC ABONNES B2B" },
+  { key: "mttr", label: "MTTR", color: "#2db34b", title: "MTTR / DR" },
+  { key: "creances_contentieuses", label: "Creances Contentieuses", color: "#2db34b", title: "CREANCES CONTENTIEUSES" },
+  { key: "frais_personnel", label: "Frais personnel", color: "#2db34b", title: "FRAIS PERSONNEL (MDA)" },
+  { key: "effectif_gsp", label: "Effectif par GSP", color: "#2db34b", title: "EFFECTIF PAR GSP" },
+  { key: "absenteisme", label: "Absenteisme", color: "#2db34b", title: "ABSENTEISME (JOURS)" },
+  { key: "mouvement_effectifs", label: "Mouvement des effectifs", color: "#2db34b", title: "MOUVEMENT DES EFFECTIFS" },
+  { key: "mouvement_effectifs_domaine", label: "Mouvement des effectifs par domaine", color: "#2db34b", title: "MOUVEMENT DES EFFECTIFS PAR DOMAINE" },
+  { key: "compte_resultat", label: "Compte de resultat", color: "#2db34b", title: "COMPTE DE RESULTAT" },
+  { key: "effectifs_formes_gsp", label: "Effectifs formes par GSP", color: "#2db34b", title: "EFFECTIFS FORMES PAR GSP" },
+  { key: "formations_domaines", label: "Formations realisees par domaines", color: "#2db34b", title: "FORMATIONS REALISEES PAR DOMAINES" },
+  { key: "parc_abonnes_gp", label: "Parc Abonnes GP", color: "#2db34b", title: "PARC ABONNES GP" },
+  { key: "total_parc_abonnes", label: "Total Parc Abonnes", color: "#2db34b", title: "TOTAL PARC ABONNES" },
+  { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnes parc technologie", color: "#2db34b", title: "TOTAL PARC ABONNES PARC TECHNOLOGIE" },
+  { key: "activation", label: "Activation", color: "#2db34b", title: "ACTIVATION" },
+  { key: "chiffre_affaires_mda", label: "Chiffre d'Affaires (MDA)", color: "#2db34b", title: "CHIFFRE D'AFFAIRES (MDA)" },
 ]
 
 type FiscalTabKey =
+  | "reclamation"
+  | "reclamation_gp"
   | "encaissement"
   | "tva_immo"
   | "tva_biens"
@@ -1399,6 +3488,97 @@ type FiscalTabKey =
   | "ibs"
   | "taxe_domicil"
   | "tva_autoliq"
+  | "e_payement_pop"
+  | "e_payement_prp"
+  | "total_encaissement"
+  | "recouvrement"
+  | "realisation_technique_reseau"
+  | "situation_reseau"
+  | "trafic_data"
+  | "amelioration_qualite"
+  | "couverture_reseau"
+  | "action_notable_reseau"
+  | "disponibilite_reseau"
+  | "desactivation_resiliation"
+  | "parc_abonnes_b2b"
+  | "mttr"
+  | "creances_contentieuses"
+  | "frais_personnel"
+  | "effectif_gsp"
+  | "absenteisme"
+  | "mouvement_effectifs"
+  | "mouvement_effectifs_domaine"
+  | "compte_resultat"
+  | "effectifs_formes_gsp"
+  | "formations_domaines"
+  | "parc_abonnes_gp"
+  | "total_parc_abonnes"
+  | "total_parc_abonnes_technologie"
+  | "activation"
+  | "chiffre_affaires_mda"
+
+type FiscalCategoryKey =
+  | "all"
+  | "reclamation"
+  | "e_payment"
+  | "encaissement"
+  | "recouvrement"
+  | "reseau_technique"
+  | "qualite_reseau"
+  | "creances_contentieuses"
+  | "rh"
+  | "formation"
+  | "cr"
+  | "parc_abonnes"
+  | "activation_desactivation_sim"
+  | "chiffre_affaires"
+
+const DECLARATION_CATEGORY_OPTIONS: Array<{
+  key: FiscalCategoryKey
+  label: string
+  tabKeys: FiscalTabKey[]
+}> = [
+  { key: "all", label: "Toutes les categories", tabKeys: [] },
+  { key: "reclamation", label: "Reclamation", tabKeys: ["reclamation", "reclamation_gp"] },
+  { key: "e_payment", label: "E-payment", tabKeys: ["e_payement_pop", "e_payement_prp"] },
+  { key: "encaissement", label: "Encaissement", tabKeys: ["total_encaissement"] },
+  { key: "recouvrement", label: "Recouvrement", tabKeys: ["recouvrement"] },
+  {
+    key: "reseau_technique",
+    label: "Reseau technique",
+    tabKeys: [
+      "realisation_technique_reseau",
+      "situation_reseau",
+      "trafic_data",
+      "amelioration_qualite",
+      "couverture_reseau",
+      "action_notable_reseau",
+    ],
+  },
+  { key: "qualite_reseau", label: "Qualite reseau", tabKeys: ["disponibilite_reseau", "mttr"] },
+  { key: "creances_contentieuses", label: "Creances contentieuses", tabKeys: ["creances_contentieuses"] },
+  {
+    key: "rh",
+    label: "RH",
+    tabKeys: ["frais_personnel", "effectif_gsp", "absenteisme", "mouvement_effectifs", "mouvement_effectifs_domaine"],
+  },
+  { key: "formation", label: "Formation", tabKeys: ["effectifs_formes_gsp", "formations_domaines"] },
+  { key: "cr", label: "CR", tabKeys: ["compte_resultat"] },
+  {
+    key: "parc_abonnes",
+    label: "Parc abonne",
+    tabKeys: ["parc_abonnes_b2b", "parc_abonnes_gp", "total_parc_abonnes", "total_parc_abonnes_technologie"],
+  },
+  {
+    key: "activation_desactivation_sim",
+    label: "Activation / Desactivation SIM",
+    tabKeys: ["desactivation_resiliation", "activation"],
+  },
+  { key: "chiffre_affaires", label: "Chiffre d'affaires", tabKeys: ["chiffre_affaires_mda"] },
+]
+
+const findFiscalCategoryKeyForTab = (tabKey: string): FiscalCategoryKey =>
+  DECLARATION_CATEGORY_OPTIONS.find((category) => category.key !== "all" && category.tabKeys.includes(tabKey as FiscalTabKey))?.key ?? "all"
 
 interface SavedDeclaration {
   id: string
@@ -1406,6 +3586,8 @@ interface SavedDeclaration {
   direction: string
   mois: string
   annee: string
+  reclamationRows?: ReclamationRow[]
+  reclamationGpRows?: ReclamationGpRow[]
   encRows?: EncRow[]
   tvaImmoRows?: TvaRow[]
   tvaBiensRows?: TvaRow[]
@@ -1423,6 +3605,34 @@ interface SavedDeclaration {
   ibs14Rows?: Ibs14Row[]
   taxe15Rows?: Taxe15Row[]
   tva16Rows?: Tva16Row[]
+  ePayementPopRows?: EPayementRow[]
+  ePayementPrpRows?: EPayementRow[]
+  totalEncaissementRows?: TotalEncaissementRow[]
+  recouvrementRows?: RecouvrementRow[]
+  realisationTechniqueReseauRows?: RealisationTechniqueReseauRow[]
+  situationReseauRows?: SituationReseauRow[]
+  traficDataRows?: TraficDataRow[]
+  ameliorationQualiteRows?: AmeliorationQualiteRow[]
+  couvertureReseauRows?: CouvertureReseauRow[]
+  actionNotableReseauRows?: ActionNotableReseauRow[]
+  disponibiliteReseauRows?: DisponibiliteReseauRow[]
+  desactivationResiliationRows?: DesactivationResiliationRow[]
+  parcAbonnesB2bRows?: ParcAbonnesB2BRow[]
+  mttrRows?: MttrRegionRow[]
+  creancesContentieusesRows?: CreancesContentieusesRow[]
+  fraisPersonnelRows?: FraisPersonnelRow[]
+  effectifGspRows?: EffectifGspRow[]
+  absenteismeRows?: AbsenteismeRow[]
+  mouvementEffectifsRows?: MouvementEffectifsRow[]
+  mouvementEffectifsDomaineRows?: MouvementEffectifsDomaineRow[]
+  compteResultatRows?: CompteResultatRow[]
+  effectifsFormesGspRows?: EffectifsFormesGspRow[]
+  formationsDomainesRows?: FormationsDomainesRow[]
+  parcAbonnesGpRows?: ParcAbonnesGpRow[]
+  totalParcAbonnesRows?: TotalParcAbonnesRow[]
+  totalParcAbonnesTechnologieRows?: TotalParcAbonnesTechnologieRow[]
+  activationRows?: ActivationRow[]
+  chiffreAffairesMdaRows?: ChiffreAffairesMdaRow[]
 }
 
 type ApiFiscalDeclaration = {
@@ -2537,6 +4747,8 @@ const getRecapCellFormula = (recapKey: RecapKey, designation: string, columnKey:
 
 const isFiscalTabKey = (value: string): value is FiscalTabKey => {
   return [
+    "reclamation",
+    "reclamation_gp",
     "encaissement",
     "tva_immo",
     "tva_biens",
@@ -2553,7 +4765,74 @@ const isFiscalTabKey = (value: string): value is FiscalTabKey => {
     "ibs",
     "taxe_domicil",
     "tva_autoliq",
+    "e_payement_pop",
+    "e_payement_prp",
+    "total_encaissement",
+    "recouvrement",
+    "realisation_technique_reseau",
+    "situation_reseau",
+    "trafic_data",
+    "amelioration_qualite",
+    "couverture_reseau",
+    "action_notable_reseau",
+    "disponibilite_reseau",
+    "desactivation_resiliation",
+    "parc_abonnes_b2b",
+    "mttr",
+    "creances_contentieuses",
+    "frais_personnel",
+    "effectif_gsp",
+    "absenteisme",
+    "mouvement_effectifs",
+    "mouvement_effectifs_domaine",
+    "compte_resultat",
+    "effectifs_formes_gsp",
+    "formations_domaines",
+    "parc_abonnes_gp",
+    "total_parc_abonnes",
+    "total_parc_abonnes_technologie",
+    "activation",
+    "chiffre_affaires_mda",
   ].includes(value)
+}
+
+const normalizeReclamationRows = (rows?: ReclamationRow[]) => {
+  const normalizeCategory = (value: unknown): ReclamationRow["category"] => (safeString(value).toLowerCase() === "traitees" ? "traitees" : "recues")
+  const normalizeType = (value: unknown): ReclamationRow["type"] => (safeString(value).toUpperCase() === "B2B" ? "B2B" : "GP")
+  const normalized = (rows ?? []).map((row) => {
+    const source = row as Partial<ReclamationRow>
+    return {
+      category: normalizeCategory(source.category),
+      type: normalizeType(source.type),
+      mGp: safeString(source.mGp),
+      mB2b: safeString(source.mB2b),
+      m1Gp: safeString(source.m1Gp),
+      m1B2b: safeString(source.m1B2b),
+    }
+  })
+
+  if (normalized.length !== 4) {
+    return DEFAULT_RECLAMATION_ROWS.map((row) => ({ ...row }))
+  }
+
+  return normalized
+}
+
+const normalizeReclamationGpRows = (rows?: ReclamationGpRow[]) => {
+  const normalized = (rows ?? []).map((row, index) => {
+    const source = row as Partial<ReclamationGpRow>
+    return {
+      label: safeString(source.label) || RECLAMATION_GP_LABELS[index] || `Ligne ${index + 1}`,
+      recues: safeString(source.recues),
+      traitees: safeString(source.traitees),
+    }
+  })
+
+  if (normalized.length !== RECLAMATION_GP_LABELS.length) {
+    return DEFAULT_RECLAMATION_GP_ROWS.map((row) => ({ ...row }))
+  }
+
+  return normalized
 }
 
 const isRecapKey = (value: string): value is RecapKey => {
@@ -2599,7 +4878,6 @@ const normalizeTvaRows = (rows?: TvaRow[]) => {
     const source = row as Partial<TvaRow>
     return {
       ...EMPTY_TVA,
-      fournisseurId: safeString(source.fournisseurId),
       nomRaisonSociale: safeString(source.nomRaisonSociale),
       adresse: safeString(source.adresse),
       nif: safeString(source.nif),
@@ -2628,10 +4906,9 @@ const normalizeTimbreRows = (rows?: TimbreRow[]) => {
 const normalizeTapRows = (rows?: TAPRow[]) => {
   const normalized = (rows ?? []).map((row) => ({
     wilayaCode: safeString((row as Partial<TAPRow>).wilayaCode),
-    commune: safeString((row as Partial<TAPRow>).commune),
     tap2: safeString((row as Partial<TAPRow>).tap2),
   }))
-  return normalized.length > 0 ? normalized : [{ wilayaCode: "", commune: "", tap2: "" }]
+  return normalized.length > 0 ? normalized : [{ wilayaCode: "", tap2: "" }]
 }
 
 const normalizeSiegeRows = (rows?: SiegeEncRow[]) => {
@@ -2656,6 +4933,393 @@ const normalizeTaxe2Rows = (rows?: Taxe2Row[]) => {
     montant: safeString((row as Partial<Taxe2Row>).montant),
   }))
   return fillRows(normalized, 1, () => ({ base: "", montant: "" }))
+}
+
+const normalizeEPayementRows = (rows?: EPayementRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return EPAYEMENT_CHANNELS.map((rechargement, index) => {
+    const source = sourceRows[index] as Partial<EPayementRow> | undefined
+    return {
+      rechargement,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      evol: safeString(source?.evol),
+    }
+  })
+}
+
+const normalizeTotalEncaissementRows = (rows?: TotalEncaissementRow[]) => {
+  const source = (Array.isArray(rows) ? rows[0] : undefined) as Partial<TotalEncaissementRow> | undefined
+  return [{
+    mGp: safeString(source?.mGp),
+    mB2b: safeString(source?.mB2b),
+    m1Gp: safeString(source?.m1Gp),
+    m1B2b: safeString(source?.m1B2b),
+    evol: safeString(source?.evol) || "-",
+  }]
+}
+
+const normalizeRecouvrementRows = (rows?: RecouvrementRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return RECOUVREMENT_LABELS.map((label, index) => {
+    const source = sourceRows[index] as Partial<RecouvrementRow> | undefined
+    return {
+      label,
+      mGp: safeString(source?.mGp),
+      mB2b: safeString(source?.mB2b),
+      m1Gp: safeString(source?.m1Gp),
+      m1B2b: safeString(source?.m1B2b),
+    }
+  })
+}
+
+const normalizeRealisationTechniqueReseauRows = (rows?: RealisationTechniqueReseauRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return REALISATION_TECHNIQUE_RESEAU_LABELS.map((label, index) => {
+    const source = sourceRows[index] as Partial<RealisationTechniqueReseauRow> | undefined
+    return {
+      label,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+    }
+  })
+}
+
+const normalizeSituationReseauRows = (rows?: SituationReseauRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return DEFAULT_SITUATION_RESEAU_ROWS.map((defaultRow, index) => {
+    const source = sourceRows[index] as Partial<SituationReseauRow> | undefined
+    return {
+      situation: defaultRow.situation,
+      equipements: defaultRow.equipements,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+    }
+  })
+}
+
+const normalizeTraficDataRows = (rows?: TraficDataRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return TRAFIC_DATA_LABELS.map((label, index) => {
+    const source = sourceRows[index] as Partial<TraficDataRow> | undefined
+    return {
+      label,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+    }
+  })
+}
+
+const normalizeAmeliorationQualiteRows = (rows?: AmeliorationQualiteRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  if (sourceRows.length === 0) return [{ ...EMPTY_AMELIORATION_QUALITE_ROW }]
+  return sourceRows.map((row) => ({
+    wilaya: safeString((row as Partial<AmeliorationQualiteRow>).wilaya),
+    mObjectif: safeString((row as Partial<AmeliorationQualiteRow>).mObjectif),
+    mRealise: safeString((row as Partial<AmeliorationQualiteRow>).mRealise),
+    m1Objectif: safeString((row as Partial<AmeliorationQualiteRow>).m1Objectif),
+    m1Realise: safeString((row as Partial<AmeliorationQualiteRow>).m1Realise),
+    ecart: safeString((row as Partial<AmeliorationQualiteRow>).ecart),
+  }))
+}
+
+const normalizeCouvertureReseauRows = (rows?: CouvertureReseauRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  if (sourceRows.length === 0) return [{ ...EMPTY_COUVERTURE_RESEAU_ROW }]
+  return sourceRows.map((row) => ({
+    wilaya: safeString((row as Partial<CouvertureReseauRow>).wilaya),
+    mObjectif: safeString((row as Partial<CouvertureReseauRow>).mObjectif),
+    mRealise: safeString((row as Partial<CouvertureReseauRow>).mRealise),
+    m1Objectif: safeString((row as Partial<CouvertureReseauRow>).m1Objectif),
+    m1Realise: safeString((row as Partial<CouvertureReseauRow>).m1Realise),
+    ecart: safeString((row as Partial<CouvertureReseauRow>).ecart),
+  }))
+}
+
+const normalizeActionNotableReseauRows = (rows?: ActionNotableReseauRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return DEFAULT_ACTION_NOTABLE_RESEAU_ROWS.map((defaultRow, index) => {
+    const source = sourceRows[index] as Partial<ActionNotableReseauRow> | undefined
+    return {
+      action: defaultRow.action,
+      objectif2025: defaultRow.objectif2025,
+      mObjectif: safeString(source?.mObjectif),
+      mRealise: safeString(source?.mRealise),
+      mTaux: safeString(source?.mTaux),
+      m1Objectif: safeString(source?.m1Objectif),
+      m1Realise: safeString(source?.m1Realise),
+      m1Taux: safeString(source?.m1Taux),
+    }
+  })
+}
+
+const normalizeDisponibiliteReseauRows = (rows?: DisponibiliteReseauRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return DEFAULT_DISPONIBILITE_RESEAU_ROWS.map((defaultRow, index) => {
+    const source = sourceRows[index] as Partial<DisponibiliteReseauRow> | undefined
+    return {
+      designation: defaultRow.designation,
+      mObjectif: safeString(source?.mObjectif),
+      mRealise: safeString(source?.mRealise),
+      mTaux: safeString(source?.mTaux),
+      m1Objectif: safeString(source?.m1Objectif),
+      m1Realise: safeString(source?.m1Realise),
+      m1Taux: safeString(source?.m1Taux),
+    }
+  })
+}
+
+const normalizeDesactivationResiliationRows = (rows?: DesactivationResiliationRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return DESACTIVATION_RESILIATION_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<DesactivationResiliationRow> | undefined
+    return {
+      designation,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      evol: safeString(source?.evol),
+    }
+  })
+}
+
+const normalizeParcAbonnesB2BRows = (rows?: ParcAbonnesB2BRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return PARC_ABONNES_B2B_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<ParcAbonnesB2BRow> | undefined
+    return {
+      designation,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      evol: safeString(source?.evol),
+    }
+  })
+}
+
+const normalizeCreancesContentieusesRows = (rows?: CreancesContentieusesRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return CREANCES_CONTENTIEUSES_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<CreancesContentieusesRow> | undefined
+    return {
+      designation,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      evol: safeString(source?.evol),
+    }
+  })
+}
+
+const normalizeFraisPersonnelRows = (rows?: FraisPersonnelRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return FRAIS_PERSONNEL_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<FraisPersonnelRow> | undefined
+    return {
+      designation,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+    }
+  })
+}
+
+const normalizeEffectifGspRows = (rows?: EffectifGspRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return EFFECTIF_GSP_LABELS.map((gsp, index) => {
+    const source = sourceRows[index] as Partial<EffectifGspRow> | undefined
+    return {
+      gsp,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      part: safeString(source?.part),
+    }
+  })
+}
+
+const normalizeAbsenteismeRows = (rows?: AbsenteismeRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return ABSENTEISME_LABELS.map((motif, index) => {
+    const source = sourceRows[index] as Partial<AbsenteismeRow> | undefined
+    return {
+      motif,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      part: safeString(source?.part),
+    }
+  })
+}
+
+const normalizeMouvementEffectifsRows = (rows?: MouvementEffectifsRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return MOUVEMENT_EFFECTIFS_TEMPLATE.map((item, index) => {
+    const source = sourceRows[index] as Partial<MouvementEffectifsRow> | undefined
+    return {
+      bloc: item.bloc,
+      operation: item.operation,
+      mCadresSup: safeString(source?.mCadresSup),
+      mCadres: safeString(source?.mCadres),
+      mMaitrise: safeString(source?.mMaitrise),
+      mExecution: safeString(source?.mExecution),
+      m1CadresSup: safeString(source?.m1CadresSup),
+      m1Cadres: safeString(source?.m1Cadres),
+      m1Maitrise: safeString(source?.m1Maitrise),
+      m1Execution: safeString(source?.m1Execution),
+    }
+  })
+}
+
+const normalizeMouvementEffectifsDomaineRows = (rows?: MouvementEffectifsDomaineRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return MOUVEMENT_EFFECTIFS_DOMAINE_TEMPLATE.map((item, index) => {
+    const source = sourceRows[index] as Partial<MouvementEffectifsDomaineRow> | undefined
+    return {
+      bloc: item.bloc,
+      domaine: item.domaine,
+      mCdi: safeString(source?.mCdi),
+      mCdd: safeString(source?.mCdd),
+      mCta: safeString(source?.mCta),
+      m1Cdi: safeString(source?.m1Cdi),
+      m1Cdd: safeString(source?.m1Cdd),
+      m1Cta: safeString(source?.m1Cta),
+    }
+  })
+}
+
+const normalizeCompteResultatRows = (rows?: CompteResultatRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return COMPTE_RESULTAT_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<CompteResultatRow> | undefined
+    return {
+      designation,
+      mBudget: safeString(source?.mBudget),
+      mRealise: safeString(source?.mRealise),
+      mTaux: safeString(source?.mTaux),
+      m1Budget: safeString(source?.m1Budget),
+      m1Realise: safeString(source?.m1Realise),
+      m1Taux: safeString(source?.m1Taux),
+    }
+  })
+}
+
+const normalizeEffectifsFormesGspRows = (rows?: EffectifsFormesGspRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return EFFECTIFS_FORMES_GSP_LABELS.map((gsp, index) => {
+    const source = sourceRows[index] as Partial<EffectifsFormesGspRow> | undefined
+    return {
+      gsp,
+      mObjectif: safeString(source?.mObjectif),
+      mRealise: safeString(source?.mRealise),
+      mTaux: safeString(source?.mTaux),
+      m1Objectif: safeString(source?.m1Objectif),
+      m1Realise: safeString(source?.m1Realise),
+      m1Taux: safeString(source?.m1Taux),
+    }
+  })
+}
+
+const normalizeFormationsDomainesRows = (rows?: FormationsDomainesRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return FORMATIONS_DOMAINES_LABELS.map((domaine, index) => {
+    const source = sourceRows[index] as Partial<FormationsDomainesRow> | undefined
+    return {
+      domaine,
+      mObjectif: safeString(source?.mObjectif),
+      mRealise: safeString(source?.mRealise),
+      mTaux: safeString(source?.mTaux),
+      m1Objectif: safeString(source?.m1Objectif),
+      m1Realise: safeString(source?.m1Realise),
+      m1Taux: safeString(source?.m1Taux),
+    }
+  })
+}
+
+const normalizeParcAbonnesGpRows = (rows?: ParcAbonnesGpRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return PARC_ABONNES_GP_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<ParcAbonnesGpRow> | undefined
+    return {
+      designation,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      evol: safeString(source?.evol),
+    }
+  })
+}
+
+const normalizeTotalParcAbonnesRows = (rows?: TotalParcAbonnesRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return TOTAL_PARC_ABONNES_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<TotalParcAbonnesRow> | undefined
+    return {
+      designation,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      evol: safeString(source?.evol),
+    }
+  })
+}
+
+const normalizeTotalParcAbonnesTechnologieRows = (rows?: TotalParcAbonnesTechnologieRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<TotalParcAbonnesTechnologieRow> | undefined
+    return {
+      designation,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      evol: safeString(source?.evol),
+    }
+  })
+}
+
+const normalizeActivationRows = (rows?: ActivationRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return ACTIVATION_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<ActivationRow> | undefined
+    return {
+      designation,
+      m: safeString(source?.m),
+      m1: safeString(source?.m1),
+      evol: safeString(source?.evol),
+    }
+  })
+}
+
+const normalizeChiffreAffairesMdaRows = (rows?: ChiffreAffairesMdaRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return CHIFFRE_AFFAIRES_MDA_LABELS.map((designation, index) => {
+    const source = sourceRows[index] as Partial<ChiffreAffairesMdaRow> | undefined
+    return {
+      designation,
+      mObjectif: safeString(source?.mObjectif),
+      mRealise: safeString(source?.mRealise),
+      mTaux: safeString(source?.mTaux),
+      m1Objectif: safeString(source?.m1Objectif),
+      m1Realise: safeString(source?.m1Realise),
+      m1Taux: safeString(source?.m1Taux),
+    }
+  })
+}
+
+const normalizeMttrRows = (rows?: MttrRegionRow[]) => {
+  const sourceRows = Array.isArray(rows) ? rows : []
+  return MTTR_REGIONS.map((regionName, index) => {
+    const sourceRegion = sourceRows[index] as Partial<MttrRegionRow> | undefined
+    const sourceCities = Array.isArray(sourceRegion?.cities) ? sourceRegion.cities : []
+    const normalizedCities = sourceCities.length > 0
+      ? sourceCities.map((city) => ({
+          wilayaM: safeString((city as Partial<MttrCityRow>).wilayaM),
+          objectifM: safeString((city as Partial<MttrCityRow>).objectifM),
+          realiseM: safeString((city as Partial<MttrCityRow>).realiseM),
+          wilayaM1: safeString((city as Partial<MttrCityRow>).wilayaM1),
+          objectifM1: safeString((city as Partial<MttrCityRow>).objectifM1),
+          realiseM1: safeString((city as Partial<MttrCityRow>).realiseM1),
+          ecart: safeString((city as Partial<MttrCityRow>).ecart),
+        }))
+      : [{ ...EMPTY_MTTR_CITY_ROW }]
+
+    return {
+      region: regionName,
+      cities: normalizedCities,
+    }
+  })
 }
 
 const normalizeMasterRows = (rows?: MasterRow[]) => {
@@ -2739,6 +5403,8 @@ const normalizeTva16Rows = (rows?: Tva16Row[]) => {
 }
 
 const resolveDeclarationTabKey = (decl: SavedDeclaration): FiscalTabKey => {
+  if ((decl.reclamationRows?.length ?? 0) > 0) return "reclamation"
+  if ((decl.reclamationGpRows?.length ?? 0) > 0) return "reclamation_gp"
   if ((decl.encRows?.length ?? 0) > 0) return "encaissement"
   if ((decl.tvaImmoRows?.length ?? 0) > 0) return "tva_immo"
   if ((decl.tvaBiensRows?.length ?? 0) > 0) return "tva_biens"
@@ -2755,6 +5421,34 @@ const resolveDeclarationTabKey = (decl: SavedDeclaration): FiscalTabKey => {
   if ((decl.ibs14Rows?.length ?? 0) > 0) return "ibs"
   if ((decl.taxe15Rows?.length ?? 0) > 0) return "taxe_domicil"
   if ((decl.tva16Rows?.length ?? 0) > 0) return "tva_autoliq"
+  if ((decl.ePayementPopRows?.length ?? 0) > 0) return "e_payement_pop"
+  if ((decl.ePayementPrpRows?.length ?? 0) > 0) return "e_payement_prp"
+  if ((decl.totalEncaissementRows?.length ?? 0) > 0) return "total_encaissement"
+  if ((decl.recouvrementRows?.length ?? 0) > 0) return "recouvrement"
+  if ((decl.realisationTechniqueReseauRows?.length ?? 0) > 0) return "realisation_technique_reseau"
+  if ((decl.situationReseauRows?.length ?? 0) > 0) return "situation_reseau"
+  if ((decl.traficDataRows?.length ?? 0) > 0) return "trafic_data"
+  if ((decl.ameliorationQualiteRows?.length ?? 0) > 0) return "amelioration_qualite"
+  if ((decl.couvertureReseauRows?.length ?? 0) > 0) return "couverture_reseau"
+  if ((decl.actionNotableReseauRows?.length ?? 0) > 0) return "action_notable_reseau"
+  if ((decl.disponibiliteReseauRows?.length ?? 0) > 0) return "disponibilite_reseau"
+  if ((decl.desactivationResiliationRows?.length ?? 0) > 0) return "desactivation_resiliation"
+  if ((decl.parcAbonnesB2bRows?.length ?? 0) > 0) return "parc_abonnes_b2b"
+  if ((decl.mttrRows?.length ?? 0) > 0) return "mttr"
+  if ((decl.creancesContentieusesRows?.length ?? 0) > 0) return "creances_contentieuses"
+  if ((decl.fraisPersonnelRows?.length ?? 0) > 0) return "frais_personnel"
+  if ((decl.effectifGspRows?.length ?? 0) > 0) return "effectif_gsp"
+  if ((decl.absenteismeRows?.length ?? 0) > 0) return "absenteisme"
+  if ((decl.mouvementEffectifsRows?.length ?? 0) > 0) return "mouvement_effectifs"
+  if ((decl.mouvementEffectifsDomaineRows?.length ?? 0) > 0) return "mouvement_effectifs_domaine"
+  if ((decl.compteResultatRows?.length ?? 0) > 0) return "compte_resultat"
+  if ((decl.effectifsFormesGspRows?.length ?? 0) > 0) return "effectifs_formes_gsp"
+  if ((decl.formationsDomainesRows?.length ?? 0) > 0) return "formations_domaines"
+  if ((decl.parcAbonnesGpRows?.length ?? 0) > 0) return "parc_abonnes_gp"
+  if ((decl.totalParcAbonnesRows?.length ?? 0) > 0) return "total_parc_abonnes"
+  if ((decl.totalParcAbonnesTechnologieRows?.length ?? 0) > 0) return "total_parc_abonnes_technologie"
+  if ((decl.activationRows?.length ?? 0) > 0) return "activation"
+  if ((decl.chiffreAffairesMdaRows?.length ?? 0) > 0) return "chiffre_affaires_mda"
   return "encaissement"
 }
 
@@ -2774,15 +5468,13 @@ const normalizeInvoiceDate = (value: unknown) => {
 }
 
 const getInvoiceSupplierKey = (row: TvaRow) => {
-  const supplierId = normalizeInvoicePart(row.fournisseurId)
-  if (supplierId) return `ID:${supplierId}`
   const supplierName = normalizeInvoicePart(row.nomRaisonSociale)
   if (supplierName) return `NAME:${supplierName}`
   return ""
 }
 
 const getInvoiceDisplayInfo = (row: TvaRow): TvaInvoiceDuplicateInfo => ({
-  fournisseur: safeString(row.nomRaisonSociale).trim() || safeString(row.fournisseurId).trim() || "-",
+  fournisseur: safeString(row.nomRaisonSociale).trim() || "-",
   reference: safeString(row.numFacture).trim(),
   date: normalizeInvoiceDate(row.dateFacture),
 })
@@ -2869,9 +5561,37 @@ interface PrintZoneProps {
   ibs14Rows: Ibs14Row[]
   taxe15Rows: Taxe15Row[]
   tva16Rows: Tva16Row[]
+  ePayementPopRows: EPayementRow[]
+  ePayementPrpRows: EPayementRow[]
+  totalEncaissementRows: TotalEncaissementRow[]
+  recouvrementRows: RecouvrementRow[]
+  realisationTechniqueReseauRows: RealisationTechniqueReseauRow[]
+  situationReseauRows: SituationReseauRow[]
+  traficDataRows: TraficDataRow[]
+  ameliorationQualiteRows: AmeliorationQualiteRow[]
+  couvertureReseauRows: CouvertureReseauRow[]
+  actionNotableReseauRows: ActionNotableReseauRow[]
+  disponibiliteReseauRows: DisponibiliteReseauRow[]
+  desactivationResiliationRows: DesactivationResiliationRow[]
+  parcAbonnesB2bRows: ParcAbonnesB2BRow[]
+  mttrRows: MttrRegionRow[]
+  creancesContentieusesRows: CreancesContentieusesRow[]
+  fraisPersonnelRows: FraisPersonnelRow[]
+  effectifGspRows: EffectifGspRow[]
+  absenteismeRows: AbsenteismeRow[]
+  mouvementEffectifsRows: MouvementEffectifsRow[]
+  mouvementEffectifsDomaineRows: MouvementEffectifsDomaineRow[]
+  compteResultatRows: CompteResultatRow[]
+  effectifsFormesGspRows: EffectifsFormesGspRow[]
+  formationsDomainesRows: FormationsDomainesRow[]
+  parcAbonnesGpRows: ParcAbonnesGpRow[]
+  totalParcAbonnesRows: TotalParcAbonnesRow[]
+  totalParcAbonnesTechnologieRows: TotalParcAbonnesTechnologieRow[]
+  activationRows: ActivationRow[]
+  chiffreAffairesMdaRows: ChiffreAffairesMdaRow[]
 }
 
-function PrintZone({ activeTab, direction, mois, annee, encRows, tvaImmoRows, tvaBiensRows, timbreRows, b12, b13, tapRows, caSiegeRows, irgRows, taxe2Rows, masterRows, taxe11Montant, taxe12Rows, acompteMonths, ibs14Rows, taxe15Rows, tva16Rows }: PrintZoneProps) {
+function PrintZone({ activeTab, direction, mois, annee, encRows, tvaImmoRows, tvaBiensRows, timbreRows, b12, b13, tapRows, caSiegeRows, irgRows, taxe2Rows, masterRows, taxe11Montant, taxe12Rows, acompteMonths, ibs14Rows, taxe15Rows, tva16Rows, ePayementPopRows, ePayementPrpRows, totalEncaissementRows, recouvrementRows, realisationTechniqueReseauRows, situationReseauRows, traficDataRows, ameliorationQualiteRows, couvertureReseauRows, actionNotableReseauRows, disponibiliteReseauRows, desactivationResiliationRows, parcAbonnesB2bRows, mttrRows, creancesContentieusesRows, fraisPersonnelRows, effectifGspRows, absenteismeRows, mouvementEffectifsRows, mouvementEffectifsDomaineRows, compteResultatRows, effectifsFormesGspRows, formationsDomainesRows, parcAbonnesGpRows, totalParcAbonnesRows, totalParcAbonnesTechnologieRows, activationRows, chiffreAffairesMdaRows }: PrintZoneProps) {
   const tab  = TABS.find((t) => t.key === activeTab)!
   const mon  = MONTHS.find((m) => m.value === mois)?.label ?? mois
   const c12  = num(b12) * 0.07
@@ -3129,22 +5849,19 @@ function PrintZone({ activeTab, direction, mois, annee, encRows, tvaImmoRows, tv
         <>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr>
-              {["#","Code Wilaya","Wilaya","Commune","TAP 2%"].map((h) => <th key={h} style={thStyle}>{h}</th>)}
+              {["#","Code Wilaya","TAP 2%"].map((h) => <th key={h} style={thStyle}>{h}</th>)}
             </tr></thead>
             <tbody>
               {tapRows.map((r, i) => {
-                const w = WILAYA_COMMUNE_DATA.find((w) => w.code === r.wilayaCode)
                 return <tr key={i} style={{ background: "#fff", color: "#000" }}>
                   <td style={{ ...tdStyle, textAlign: "center", backgroundColor: "#fff", color: "#000" }}>{i+1}</td>
                   <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, backgroundColor: "#fff", color: "#000" }}>{r.wilayaCode}</td>
-                  <td style={{ ...tdStyle, backgroundColor: "#fff", color: "#000" }}>{w?.wilaya ?? ""}</td>
-                  <td style={{ ...tdStyle, backgroundColor: "#fff", color: "#000" }}>{r.commune}</td>
                   <td style={{ ...tdStyle, textAlign: "right", backgroundColor: "#fff", color: "#000" }}>{r.tap2 ? fmt(num(r.tap2)) : ""}</td>
                 </tr>
               })}
             </tbody>
             <tfoot><tr style={{ background: "#ddd", fontWeight: 700, color: "#000" }}>
-              <td colSpan={4} style={{ ...tdStyle, textAlign: "right", backgroundColor: "#ddd", color: "#000" }}>MONTANT TAP</td>
+              <td colSpan={2} style={{ ...tdStyle, textAlign: "right", backgroundColor: "#ddd", color: "#000" }}>MONTANT TAP</td>
               <td style={{ ...tdStyle, textAlign: "right", fontSize: 11, backgroundColor: "#ddd", color: "#000" }}>{fmt(tapRows.reduce((s,r) => s+num(r.tap2),0))} DZD</td>
             </tr></tfoot>
           </table>
@@ -3243,6 +5960,750 @@ function PrintZone({ activeTab, direction, mois, annee, encRows, tvaImmoRows, tv
           </table>
         )
       })()}
+
+      {(activeTab === "e_payement_pop" || activeTab === "e_payement_prp") && (() => {
+        const title = activeTab === "e_payement_pop" ? "E-PAYEMENT Pop (MDA)" : "E-PAYEMENT Prp (MDA)"
+        const rows = activeTab === "e_payement_pop" ? ePayementPopRows : ePayementPrpRows
+        return (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ ...thStyle, textAlign: "left" }} colSpan={4}>{title}</th>
+              </tr>
+              <tr>
+                {["Rechargement", "M", "M+1", "Evol"].map((header) => (
+                  <th key={header} style={thStyle}>{header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={`${title}-${index}`}>
+                  <td style={tdStyle}>{EPAYEMENT_CHANNELS[index] ?? row.rechargement}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{row.evol ? fmt(num(row.evol)) : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      })()}
+
+      {activeTab === "total_encaissement" && (() => {
+        const row = totalEncaissementRows[0] ?? EMPTY_TOTAL_ENCAISSEMENT_ROW
+        return (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th rowSpan={3} style={thStyle}>Encaissement (MDA)</th>
+                <th colSpan={2} style={thStyle}>M</th>
+                <th colSpan={2} style={thStyle}>M+1</th>
+                <th rowSpan={3} style={thStyle}>Evol</th>
+              </tr>
+              <tr>
+                <th colSpan={2} style={thStyle}>Sous-colonnes</th>
+                <th colSpan={2} style={thStyle}>Sous-colonnes</th>
+              </tr>
+              <tr>
+                <th style={thStyle}>GP</th>
+                <th style={thStyle}>B2B</th>
+                <th style={thStyle}>GP</th>
+                <th style={thStyle}>B2B</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={tdStyle}>Encaissements</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mGp ? fmt(num(row.mGp)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mB2b ? fmt(num(row.mB2b)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Gp ? fmt(num(row.m1Gp)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1B2b ? fmt(num(row.m1B2b)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "center" }}>{row.evol || "-"}</td>
+              </tr>
+              <tr style={{ fontWeight: 700 }}>
+                <td style={tdStyle}>Total</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(row.mGp || "0")}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(row.mB2b || "0")}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(row.m1Gp || "0")}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(row.m1B2b || "0")}</td>
+                <td style={{ ...tdStyle, textAlign: "center" }}>{row.evol || "-"}</td>
+              </tr>
+            </tbody>
+          </table>
+        )
+      })()}
+
+      {activeTab === "recouvrement" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={3} style={thStyle}>Recouvrement (MDA)</th>
+              <th colSpan={2} style={thStyle}>M</th>
+              <th colSpan={2} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th colSpan={2} style={thStyle}>Sous-colonnes</th>
+              <th colSpan={2} style={thStyle}>Sous-colonnes</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>GP</th>
+              <th style={thStyle}>B2B</th>
+              <th style={thStyle}>GP</th>
+              <th style={thStyle}>B2B</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recouvrementRows.map((row, index) => (
+              <tr key={`recouvrement-${index}`} style={index === recouvrementRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.label}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mGp ? fmt(num(row.mGp)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mB2b ? fmt(num(row.mB2b)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Gp ? fmt(num(row.m1Gp)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1B2b ? fmt(num(row.m1B2b)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "realisation_technique_reseau" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Realisations techniques</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+            </tr>
+          </thead>
+          <tbody>
+            {realisationTechniqueReseauRows.map((row, index) => (
+              <tr key={`real-tech-${index}`}>
+                <td style={tdStyle}>{row.label}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "situation_reseau" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Situation Reseaux</th>
+              <th style={thStyle}>Equipements</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+            </tr>
+          </thead>
+          <tbody>
+            {situationReseauRows.map((row, index) => (
+              <tr key={`situation-reseau-${index}`}>
+                <td style={tdStyle}>{row.situation}</td>
+                <td style={{ ...tdStyle, whiteSpace: "pre-line" }}>{row.equipements}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "trafic_data" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Trafic Data (TB)</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+            </tr>
+          </thead>
+          <tbody>
+            {traficDataRows.map((row, index) => (
+              <tr key={`trafic-data-${index}`} style={index === traficDataRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.label}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "amelioration_qualite" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Debit MBPS/wtilaya</th>
+              <th colSpan={2} style={thStyle}>M</th>
+              <th colSpan={2} style={thStyle}>M+1</th>
+              <th rowSpan={2} style={thStyle}>ecart</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ameliorationQualiteRows.map((row, index) => (
+              <tr key={`amelioration-qualite-${index}`}>
+                <td style={tdStyle}>{row.wilaya}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mObjectif ? fmt(num(row.mObjectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mRealise ? fmt(num(row.mRealise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Objectif ? fmt(num(row.m1Objectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Realise ? fmt(num(row.m1Realise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.ecart ? fmt(num(row.ecart)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "couverture_reseau" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Debit Couverture Resau/wtilaya</th>
+              <th colSpan={2} style={thStyle}>M</th>
+              <th colSpan={2} style={thStyle}>M+1</th>
+              <th rowSpan={2} style={thStyle}>ecart</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {couvertureReseauRows.map((row, index) => (
+              <tr key={`couverture-reseau-${index}`}>
+                <td style={tdStyle}>{row.wilaya}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mObjectif ? fmt(num(row.mObjectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mRealise ? fmt(num(row.mRealise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Objectif ? fmt(num(row.m1Objectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Realise ? fmt(num(row.m1Realise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.ecart ? fmt(num(row.ecart)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "action_notable_reseau" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Action</th>
+              <th rowSpan={2} style={thStyle}>Objectif 2025</th>
+              <th colSpan={3} style={thStyle}>M</th>
+              <th colSpan={3} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {actionNotableReseauRows.map((row, index) => (
+              <tr key={`action-notable-reseau-${index}`}>
+                <td style={tdStyle}>{row.action}</td>
+                <td style={tdStyle}>{row.objectif2025}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mObjectif ? fmt(num(row.mObjectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mRealise ? fmt(num(row.mRealise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mTaux ? fmt(num(row.mTaux)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Objectif ? fmt(num(row.m1Objectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Realise ? fmt(num(row.m1Realise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Taux ? fmt(num(row.m1Taux)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "disponibilite_reseau" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Designations</th>
+              <th colSpan={3} style={thStyle}>M</th>
+              <th colSpan={3} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {disponibiliteReseauRows.map((row, index) => (
+              <tr key={`disponibilite-reseau-${index}`}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mObjectif ? fmt(num(row.mObjectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mRealise ? fmt(num(row.mRealise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mTaux ? fmt(num(row.mTaux)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Objectif ? fmt(num(row.m1Objectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Realise ? fmt(num(row.m1Realise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Taux ? fmt(num(row.m1Taux)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "desactivation_resiliation" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Desactivation / Resiliation</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+              <th style={thStyle}>Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {desactivationResiliationRows.map((row, index) => (
+              <tr key={`desactivation-resiliation-${index}`} style={index === desactivationResiliationRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.evol ? fmt(num(row.evol)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "parc_abonnes_b2b" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Parc Abonnes B2B</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+              <th style={thStyle}>Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {parcAbonnesB2bRows.map((row, index) => (
+              <tr key={`parc-abonnes-b2b-${index}`} style={index === parcAbonnesB2bRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.evol ? fmt(num(row.evol)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "parc_abonnes_gp" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Parc Abonnes GP</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+              <th style={thStyle}>Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {parcAbonnesGpRows.map((row, index) => (
+              <tr key={`parc-abonnes-gp-${index}`} style={index === parcAbonnesGpRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.evol ? fmt(num(row.evol)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "total_parc_abonnes" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Total Parc Abonnes</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+              <th style={thStyle}>Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {totalParcAbonnesRows.map((row, index) => (
+              <tr key={`total-parc-abonnes-${index}`} style={index === totalParcAbonnesRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.evol ? fmt(num(row.evol)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "total_parc_abonnes_technologie" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Total Parc Abonnes parc technologie</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+              <th style={thStyle}>Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {totalParcAbonnesTechnologieRows.map((row, index) => (
+              <tr key={`total-parc-abonnes-tech-${index}`} style={index === totalParcAbonnesTechnologieRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.evol ? fmt(num(row.evol)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "activation" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Activation</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+              <th style={thStyle}>Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activationRows.map((row, index) => (
+              <tr key={`activation-${index}`} style={index === activationRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.evol ? fmt(num(row.evol)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "chiffre_affaires_mda" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Chiffre d'Affaires (MDA)</th>
+              <th colSpan={3} style={thStyle}>M</th>
+              <th colSpan={3} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {chiffreAffairesMdaRows.map((row, index) => (
+              <tr key={`chiffre-affaires-mda-${index}`}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mObjectif ? fmt(num(row.mObjectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mRealise ? fmt(num(row.mRealise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mTaux ? fmt(num(row.mTaux)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Objectif ? fmt(num(row.m1Objectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Realise ? fmt(num(row.m1Realise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Taux ? fmt(num(row.m1Taux)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "mttr" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>MTTR / DR</th>
+              <th colSpan={3} style={thStyle}>M</th>
+              <th colSpan={3} style={thStyle}>M+1</th>
+              <th rowSpan={2} style={thStyle}>Ecart</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>WILAYA</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>WILAYA</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mttrRows.map((region, regionIndex) => (
+              region.cities.map((city, cityIndex) => (
+                <tr key={`print-mttr-${regionIndex}-${cityIndex}`}>
+                  {cityIndex === 0 && <td rowSpan={region.cities.length} style={tdStyle}>{region.region}</td>}
+                  <td style={tdStyle}>{city.wilayaM}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{city.objectifM ? fmt(num(city.objectifM)) : ""}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{city.realiseM ? fmt(num(city.realiseM)) : ""}</td>
+                  <td style={tdStyle}>{city.wilayaM1}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{city.objectifM1 ? fmt(num(city.objectifM1)) : ""}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{city.realiseM1 ? fmt(num(city.realiseM1)) : ""}</td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>{city.ecart ? fmt(num(city.ecart)) : ""}</td>
+                </tr>
+              ))
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "creances_contentieuses" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Creances Contentieuses</th>
+              <th style={thStyle}>M</th>
+              <th style={thStyle}>M+1</th>
+              <th style={thStyle}>Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {creancesContentieusesRows.map((row, index) => (
+              <tr key={`creances-contentieuses-${index}`} style={index === creancesContentieusesRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.evol ? fmt(num(row.evol)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "frais_personnel" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><th style={thStyle}>Frais personnel (MDA)</th><th style={thStyle}>M</th><th style={thStyle}>M+1</th></tr></thead>
+          <tbody>
+            {fraisPersonnelRows.map((row, index) => (
+              <tr key={`frais-personnel-${index}`}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "effectif_gsp" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><th style={thStyle}>GSP</th><th style={thStyle}>M</th><th style={thStyle}>M+1</th><th style={thStyle}>Part %</th></tr></thead>
+          <tbody>
+            {effectifGspRows.map((row, index) => (
+              <tr key={`effectif-gsp-${index}`} style={index === effectifGspRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.gsp}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.part ? fmt(num(row.part)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "absenteisme" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr><th style={thStyle}>Absenteisme (jours)</th><th style={thStyle}>M</th><th style={thStyle}>M+1</th><th style={thStyle}>Part %</th></tr></thead>
+          <tbody>
+            {absenteismeRows.map((row, index) => (
+              <tr key={`absenteisme-${index}`} style={index === absenteismeRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.motif}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m ? fmt(num(row.m)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(num(row.m1)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.part ? fmt(num(row.part)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "mouvement_effectifs" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Mouvement des effectifs</th>
+              <th rowSpan={2} style={thStyle}>Type d'operation</th>
+              <th colSpan={4} style={thStyle}>M</th>
+              <th colSpan={4} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Cadres Sup</th><th style={thStyle}>Cadres</th><th style={thStyle}>Maitrise</th><th style={thStyle}>Execution</th>
+              <th style={thStyle}>Cadres Sup</th><th style={thStyle}>Cadres</th><th style={thStyle}>Maitrise</th><th style={thStyle}>Execution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mouvementEffectifsRows.map((row, index) => (
+              <tr key={`mouvement-effectifs-${index}`} style={row.operation === "TOTAL" ? { fontWeight: 700 } : undefined}>
+                {index === 0 && <td rowSpan={6} style={tdStyle}>Arrives</td>}
+                {index === 6 && <td rowSpan={10} style={tdStyle}>Departs</td>}
+                <td style={tdStyle}>{row.operation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mCadresSup ? fmt(num(row.mCadresSup)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mCadres ? fmt(num(row.mCadres)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mMaitrise ? fmt(num(row.mMaitrise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mExecution ? fmt(num(row.mExecution)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1CadresSup ? fmt(num(row.m1CadresSup)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Cadres ? fmt(num(row.m1Cadres)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Maitrise ? fmt(num(row.m1Maitrise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Execution ? fmt(num(row.m1Execution)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "mouvement_effectifs_domaine" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Mouvement des effectifs par Domaine</th>
+              <th rowSpan={2} style={thStyle}>Domaine</th>
+              <th colSpan={3} style={thStyle}>M</th>
+              <th colSpan={3} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>CDI</th><th style={thStyle}>CDD</th><th style={thStyle}>CTA</th>
+              <th style={thStyle}>CDI</th><th style={thStyle}>CDD</th><th style={thStyle}>CTA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mouvementEffectifsDomaineRows.map((row, index) => (
+              <tr key={`mouvement-effectifs-domaine-${index}`} style={row.domaine === "TOTAL" ? { fontWeight: 700 } : undefined}>
+                {index === 0 && <td rowSpan={5} style={tdStyle}>Recrutement</td>}
+                {index === 5 && <td rowSpan={5} style={tdStyle}>Sortant</td>}
+                <td style={tdStyle}>{row.domaine}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mCdi ? fmt(num(row.mCdi)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mCdd ? fmt(num(row.mCdd)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mCta ? fmt(num(row.mCta)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Cdi ? fmt(num(row.m1Cdi)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Cdd ? fmt(num(row.m1Cdd)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Cta ? fmt(num(row.m1Cta)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "compte_resultat" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Designations</th>
+              <th colSpan={3} style={thStyle}>M</th>
+              <th colSpan={3} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Budget</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+              <th style={thStyle}>Budget</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {compteResultatRows.map((row, index) => (
+              <tr key={`compte-resultat-${index}`}>
+                <td style={tdStyle}>{row.designation}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mBudget ? fmt(num(row.mBudget)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mRealise ? fmt(num(row.mRealise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mTaux ? fmt(num(row.mTaux)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Budget ? fmt(num(row.m1Budget)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Realise ? fmt(num(row.m1Realise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Taux ? fmt(num(row.m1Taux)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "effectifs_formes_gsp" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Effectifs Formes par GSP</th>
+              <th colSpan={3} style={thStyle}>M</th>
+              <th colSpan={3} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {effectifsFormesGspRows.map((row, index) => (
+              <tr key={`effectifs-formes-gsp-${index}`} style={index === effectifsFormesGspRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.gsp}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mObjectif ? fmt(num(row.mObjectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mRealise ? fmt(num(row.mRealise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mTaux ? fmt(num(row.mTaux)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Objectif ? fmt(num(row.m1Objectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Realise ? fmt(num(row.m1Realise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Taux ? fmt(num(row.m1Taux)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {activeTab === "formations_domaines" && (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th rowSpan={2} style={thStyle}>Domaines</th>
+              <th colSpan={3} style={thStyle}>M</th>
+              <th colSpan={3} style={thStyle}>M+1</th>
+            </tr>
+            <tr>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+              <th style={thStyle}>Objectif</th>
+              <th style={thStyle}>Realise</th>
+              <th style={thStyle}>Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {formationsDomainesRows.map((row, index) => (
+              <tr key={`formations-domaines-${index}`} style={index === formationsDomainesRows.length - 1 ? { fontWeight: 700 } : undefined}>
+                <td style={tdStyle}>{row.domaine}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mObjectif ? fmt(num(row.mObjectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mRealise ? fmt(num(row.mRealise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.mTaux ? fmt(num(row.mTaux)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Objectif ? fmt(num(row.m1Objectif)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Realise ? fmt(num(row.m1Realise)) : ""}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1Taux ? fmt(num(row.m1Taux)) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       {activeTab === "taxe_masters" && (() => {
         const totalHT   = masterRows.reduce((s,r)=>s+num(r.montantHT),0)
@@ -3427,7 +6888,6 @@ export default function NouvelleDeclarationPage() {
 
   //  Regions (fetched from API) 
   const [regions, setRegions] = useState<{ id: number; name: string }[]>([])
-  const [fiscalFournisseurs, setFiscalFournisseurs] = useState<FiscalFournisseurOption[]>([])
   useEffect(() => {
     const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
     fetch(`${API_BASE}/api/regions`, {
@@ -3437,30 +6897,6 @@ export default function NouvelleDeclarationPage() {
       .then((r) => r.json())
       .then((data: { id: number; name: string }[]) => setRegions(data))
       .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-    fetch(`${API_BASE}/api/fiscal-fournisseurs`, {
-      credentials: "include",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(async (r) => {
-        if (!r.ok) {
-          throw new Error(`HTTP ${r.status}`)
-        }
-        return r.json()
-      })
-      .then((data: unknown) => {
-        const normalized = asArrayPayload(data)
-          .map((item) => normalizeFiscalFournisseurOption(item))
-          .filter((item): item is FiscalFournisseurOption => item !== null)
-        setFiscalFournisseurs(normalized)
-      })
-      .catch((err) => {
-        console.error("Erreur chargement fournisseurs fiscaux:", err)
-        setFiscalFournisseurs([])
-      })
   }, [])
 
   useEffect(() => {
@@ -3494,7 +6930,8 @@ export default function NouvelleDeclarationPage() {
   }, [])
 
   //  Global meta 
-  const [activeTab,  setActiveTab]  = useState("encaissement")
+  const [activeTab,  setActiveTab]  = useState("reclamation")
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<FiscalCategoryKey>("all")
   const [entryMode, setEntryMode] = useState<RecapMode>("declaration")
   const [activeRecapTab, setActiveRecapTab] = useState<RecapKey>("tva_collectee")
   const [direction,  setDirection]  = useState("")
@@ -3508,13 +6945,15 @@ export default function NouvelleDeclarationPage() {
   const [fiscalPolicyRevision, setFiscalPolicyRevision] = useState(0)
 
   //  Tab data (lifted) 
+  const [reclamationRows, setReclamationRows] = useState<ReclamationRow[]>(DEFAULT_RECLAMATION_ROWS.map((row) => ({ ...row })))
+  const [reclamationGpRows, setReclamationGpRows] = useState<ReclamationGpRow[]>(DEFAULT_RECLAMATION_GP_ROWS.map((row) => ({ ...row })))
   const [encRows,       setEncRows]       = useState<EncRow[]>([{ designation: "", ht: "" }])
   const [tvaImmoRows,   setTvaImmoRows]   = useState<TvaRow[]>([{ ...EMPTY_TVA }])
   const [tvaBiensRows,  setTvaBiensRows]  = useState<TvaRow[]>([{ ...EMPTY_TVA }])
   const [timbreRows,    setTimbreRows]    = useState<TimbreRow[]>([{ designation: "", caTTCEsp: "", droitTimbre: "" }])
   const [b12,           setB12]           = useState("")
   const [b13,           setB13]           = useState("")
-  const [tapRows,       setTapRows]       = useState<TAPRow[]>([{ wilayaCode: "", commune: "", tap2: "" }])
+  const [tapRows,       setTapRows]       = useState<TAPRow[]>([{ wilayaCode: "", tap2: "" }])
   const [siegeEncRows,  setSiegeEncRows]  = useState<SiegeEncRow[]>(Array(12).fill(null).map(() => ({ ttc: "", ht: "" })))
   const [irgRows,        setIrgRows]        = useState<IrgRow[]>(Array(5).fill(null).map(() => ({ assietteImposable: "", montant: "" })))
   const [taxe2Rows,      setTaxe2Rows]      = useState<Taxe2Row[]>([{ base: "", montant: "" }])
@@ -3525,6 +6964,34 @@ export default function NouvelleDeclarationPage() {
   const [ibs14Rows,      setIbs14Rows]      = useState<Ibs14Row[]>([{ ...EMPTY_IBS14 }])
   const [taxe15Rows,     setTaxe15Rows]     = useState<Taxe15Row[]>([{ ...EMPTY_TAXE15 }])
   const [tva16Rows,      setTva16Rows]      = useState<Tva16Row[]>([{ ...EMPTY_TVA16 }])
+  const [ePayementPopRows, setEPayementPopRows] = useState<EPayementRow[]>(createDefaultEPayementRows())
+  const [ePayementPrpRows, setEPayementPrpRows] = useState<EPayementRow[]>(createDefaultEPayementRows())
+  const [totalEncaissementRows, setTotalEncaissementRows] = useState<TotalEncaissementRow[]>([{ ...EMPTY_TOTAL_ENCAISSEMENT_ROW }])
+  const [recouvrementRows, setRecouvrementRows] = useState<RecouvrementRow[]>(DEFAULT_RECOUVREMENT_ROWS.map((row) => ({ ...row })))
+  const [realisationTechniqueReseauRows, setRealisationTechniqueReseauRows] = useState<RealisationTechniqueReseauRow[]>(DEFAULT_REALISATION_TECHNIQUE_RESEAU_ROWS.map((row) => ({ ...row })))
+  const [situationReseauRows, setSituationReseauRows] = useState<SituationReseauRow[]>(DEFAULT_SITUATION_RESEAU_ROWS.map((row) => ({ ...row })))
+  const [traficDataRows, setTraficDataRows] = useState<TraficDataRow[]>(DEFAULT_TRAFIC_DATA_ROWS.map((row) => ({ ...row })))
+  const [ameliorationQualiteRows, setAmeliorationQualiteRows] = useState<AmeliorationQualiteRow[]>([{ ...EMPTY_AMELIORATION_QUALITE_ROW }])
+  const [couvertureReseauRows, setCouvertureReseauRows] = useState<CouvertureReseauRow[]>([{ ...EMPTY_COUVERTURE_RESEAU_ROW }])
+  const [actionNotableReseauRows, setActionNotableReseauRows] = useState<ActionNotableReseauRow[]>(DEFAULT_ACTION_NOTABLE_RESEAU_ROWS.map((row) => ({ ...row })))
+  const [disponibiliteReseauRows, setDisponibiliteReseauRows] = useState<DisponibiliteReseauRow[]>(DEFAULT_DISPONIBILITE_RESEAU_ROWS.map((row) => ({ ...row })))
+  const [desactivationResiliationRows, setDesactivationResiliationRows] = useState<DesactivationResiliationRow[]>(DEFAULT_DESACTIVATION_RESILIATION_ROWS.map((row) => ({ ...row })))
+  const [parcAbonnesB2bRows, setParcAbonnesB2bRows] = useState<ParcAbonnesB2BRow[]>(DEFAULT_PARC_ABONNES_B2B_ROWS.map((row) => ({ ...row })))
+  const [mttrRows, setMttrRows] = useState<MttrRegionRow[]>(DEFAULT_MTTR_ROWS.map((row) => ({ ...row, cities: row.cities.map((city) => ({ ...city })) })))
+  const [creancesContentieusesRows, setCreancesContentieusesRows] = useState<CreancesContentieusesRow[]>(DEFAULT_CREANCES_CONTENTIEUSES_ROWS.map((row) => ({ ...row })))
+  const [fraisPersonnelRows, setFraisPersonnelRows] = useState<FraisPersonnelRow[]>(DEFAULT_FRAIS_PERSONNEL_ROWS.map((row) => ({ ...row })))
+  const [effectifGspRows, setEffectifGspRows] = useState<EffectifGspRow[]>(DEFAULT_EFFECTIF_GSP_ROWS.map((row) => ({ ...row })))
+  const [absenteismeRows, setAbsenteismeRows] = useState<AbsenteismeRow[]>(DEFAULT_ABSENTEISME_ROWS.map((row) => ({ ...row })))
+  const [mouvementEffectifsRows, setMouvementEffectifsRows] = useState<MouvementEffectifsRow[]>(DEFAULT_MOUVEMENT_EFFECTIFS_ROWS.map((row) => ({ ...row })))
+  const [mouvementEffectifsDomaineRows, setMouvementEffectifsDomaineRows] = useState<MouvementEffectifsDomaineRow[]>(DEFAULT_MOUVEMENT_EFFECTIFS_DOMAINE_ROWS.map((row) => ({ ...row })))
+  const [compteResultatRows, setCompteResultatRows] = useState<CompteResultatRow[]>(DEFAULT_COMPTE_RESULTAT_ROWS.map((row) => ({ ...row })))
+  const [effectifsFormesGspRows, setEffectifsFormesGspRows] = useState<EffectifsFormesGspRow[]>(DEFAULT_EFFECTIFS_FORMES_GSP_ROWS.map((row) => ({ ...row })))
+  const [formationsDomainesRows, setFormationsDomainesRows] = useState<FormationsDomainesRow[]>(DEFAULT_FORMATIONS_DOMAINES_ROWS.map((row) => ({ ...row })))
+  const [parcAbonnesGpRows, setParcAbonnesGpRows] = useState<ParcAbonnesGpRow[]>(DEFAULT_PARC_ABONNES_GP_ROWS.map((row) => ({ ...row })))
+  const [totalParcAbonnesRows, setTotalParcAbonnesRows] = useState<TotalParcAbonnesRow[]>(DEFAULT_TOTAL_PARC_ABONNES_ROWS.map((row) => ({ ...row })))
+  const [totalParcAbonnesTechnologieRows, setTotalParcAbonnesTechnologieRows] = useState<TotalParcAbonnesTechnologieRow[]>(DEFAULT_TOTAL_PARC_ABONNES_TECHNOLOGIE_ROWS.map((row) => ({ ...row })))
+  const [activationRows, setActivationRows] = useState<ActivationRow[]>(DEFAULT_ACTIVATION_ROWS.map((row) => ({ ...row })))
+  const [chiffreAffairesMdaRows, setChiffreAffairesMdaRows] = useState<ChiffreAffairesMdaRow[]>(DEFAULT_CHIFFRE_AFFAIRES_MDA_ROWS.map((row) => ({ ...row })))
   const [fiscalDeclarations, setFiscalDeclarations] = useState<ApiFiscalDeclaration[]>([])
   const [recapRowsByKey, setRecapRowsByKey] = useState<Record<RecapKey, Record<string, string>[]>>({
     tva_collectee: [],
@@ -3547,7 +7014,10 @@ export default function NouvelleDeclarationPage() {
     () => new Set(getManageableFiscalTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),
     [adminSelectedDirection, fiscalPolicyRevision, isAdminRole, userRole],
   )
-  const availableTabs = useMemo(() => TABS.filter((tab) => manageableTabKeys.has(tab.key)), [manageableTabKeys])
+  const availableTabs = useMemo(
+    () => TABS.filter((tab) => manageableTabKeys.has(tab.key) || CUSTOM_FISCAL_TAB_KEYS.has(tab.key)),
+    [manageableTabKeys],
+  )
   const disabledTabKeys = useMemo(
     () => new Set(availableTabs.filter((tab) => isFiscalTabDisabledByPolicy(tab.key)).map((tab) => tab.key)),
     [availableTabs, fiscalPolicyRevision],
@@ -3556,6 +7026,23 @@ export default function NouvelleDeclarationPage() {
     () => availableTabs.map((tab) => ({ ...tab, isDisabled: disabledTabKeys.has(tab.key) })),
     [availableTabs, disabledTabKeys],
   )
+  const declarationTabs = useMemo(
+    () => selectableTabs.filter((tab) => CUSTOM_FISCAL_TAB_KEYS.has(tab.key)),
+    [selectableTabs],
+  )
+  const declarationCategoryOptions = useMemo(() => {
+    const availableKeys = new Set(declarationTabs.map((tab) => tab.key))
+    return DECLARATION_CATEGORY_OPTIONS.filter(
+      (category) => category.key === "all" || category.tabKeys.some((tabKey) => availableKeys.has(tabKey)),
+    )
+  }, [declarationTabs])
+  const filteredDeclarationTabs = useMemo(() => {
+    if (selectedCategoryKey === "all") return declarationTabs
+    const selectedCategory = declarationCategoryOptions.find((category) => category.key === selectedCategoryKey)
+    if (!selectedCategory) return declarationTabs
+    const categoryTabKeys = new Set(selectedCategory.tabKeys)
+    return declarationTabs.filter((tab) => categoryTabKeys.has(tab.key as FiscalTabKey))
+  }, [declarationCategoryOptions, declarationTabs, selectedCategoryKey])
   const selectableYears = useMemo(
     () => YEARS.filter((year) => MONTHS.some((month) => !isFiscalPeriodLocked(month.value, year, userRole))),
     [fiscalPolicyRevision, userRole],
@@ -3564,7 +7051,7 @@ export default function NouvelleDeclarationPage() {
     () => MONTHS.filter((month) => !isFiscalPeriodLocked(month.value, annee, userRole)),
     [annee, fiscalPolicyRevision, userRole],
   )
-  const hasFiscalTabAccess = availableTabs.length > 0
+  const hasFiscalTabAccess = declarationTabs.length > 0
   const isActiveTabDisabled = entryMode === "declaration" ? disabledTabKeys.has(activeTab) : false
   const activeRecapDefinition = useMemo(
     () => RECAP_TABS.find((item) => item.key === activeRecapTab) ?? RECAP_TABS[0],
@@ -3590,8 +7077,7 @@ export default function NouvelleDeclarationPage() {
     [isRegionalRole, isFinanceRole, user],
   )
 
-  const isDirectionLocked = isRegionalRole || isFinanceRole
-  const effectiveDirection = isAdminRole ? safeString(direction).trim() : resolveDirectionForRole(direction)
+  const effectiveDirection = resolveDirectionForRole(safeString(direction).trim() || safeString(user?.direction).trim() || "Siege")
 
   useEffect(() => {
     if (!userRole) return
@@ -3615,18 +7101,26 @@ export default function NouvelleDeclarationPage() {
 
   const canManageTabForDirection = useCallback(
     (tabKey: string, directionValue: string) => {
+      if (CUSTOM_FISCAL_TAB_KEYS.has(tabKey)) return true
       return getManageableFiscalTabKeysForDirection(userRole, isAdminRole ? directionValue : undefined).includes(tabKey)
     },
     [fiscalPolicyRevision, isAdminRole, userRole],
   )
 
   useEffect(() => {
-    if (availableTabs.length === 0) return
-    const firstEnabledTab = selectableTabs.find((tab) => !tab.isDisabled)?.key ?? availableTabs[0].key
-    if (!availableTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
+    if (entryMode !== "declaration") return
+    if (filteredDeclarationTabs.length === 0) return
+    const firstEnabledTab = filteredDeclarationTabs.find((tab) => !tab.isDisabled)?.key ?? filteredDeclarationTabs[0].key
+    if (!filteredDeclarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
       setActiveTab(firstEnabledTab)
     }
-  }, [activeTab, availableTabs, disabledTabKeys, selectableTabs])
+  }, [activeTab, disabledTabKeys, entryMode, filteredDeclarationTabs])
+
+  useEffect(() => {
+    if (selectedCategoryKey === "all") return
+    if (declarationCategoryOptions.some((category) => category.key === selectedCategoryKey)) return
+    setSelectedCategoryKey("all")
+  }, [declarationCategoryOptions, selectedCategoryKey])
 
   useEffect(() => {
     if (!selectableYears.includes(annee)) {
@@ -3777,6 +7271,8 @@ export default function NouvelleDeclarationPage() {
       setEditingSourceMois(loadedMois)
       setEditingSourceAnnee(loadedAnnee)
 
+      setReclamationRows(normalizeReclamationRows(declaration.reclamationRows))
+      setReclamationGpRows(normalizeReclamationGpRows(declaration.reclamationGpRows))
       setEncRows(normalizeEncRows(declaration.encRows))
       setTvaImmoRows(normalizeTvaRows(declaration.tvaImmoRows))
       setTvaBiensRows(normalizeTvaRows(declaration.tvaBiensRows))
@@ -3794,6 +7290,34 @@ export default function NouvelleDeclarationPage() {
       setIbs14Rows(normalizeIbsRows(declaration.ibs14Rows))
       setTaxe15Rows(normalizeTaxe15Rows(declaration.taxe15Rows))
       setTva16Rows(normalizeTva16Rows(declaration.tva16Rows))
+      setEPayementPopRows(normalizeEPayementRows(declaration.ePayementPopRows))
+      setEPayementPrpRows(normalizeEPayementRows(declaration.ePayementPrpRows))
+      setTotalEncaissementRows(normalizeTotalEncaissementRows(declaration.totalEncaissementRows))
+      setRecouvrementRows(normalizeRecouvrementRows(declaration.recouvrementRows))
+      setRealisationTechniqueReseauRows(normalizeRealisationTechniqueReseauRows(declaration.realisationTechniqueReseauRows))
+      setSituationReseauRows(normalizeSituationReseauRows(declaration.situationReseauRows))
+      setTraficDataRows(normalizeTraficDataRows(declaration.traficDataRows))
+      setAmeliorationQualiteRows(normalizeAmeliorationQualiteRows(declaration.ameliorationQualiteRows))
+      setCouvertureReseauRows(normalizeCouvertureReseauRows(declaration.couvertureReseauRows))
+      setActionNotableReseauRows(normalizeActionNotableReseauRows(declaration.actionNotableReseauRows))
+      setDisponibiliteReseauRows(normalizeDisponibiliteReseauRows(declaration.disponibiliteReseauRows))
+      setDesactivationResiliationRows(normalizeDesactivationResiliationRows(declaration.desactivationResiliationRows))
+      setParcAbonnesB2bRows(normalizeParcAbonnesB2BRows(declaration.parcAbonnesB2bRows))
+      setMttrRows(normalizeMttrRows(declaration.mttrRows))
+      setCreancesContentieusesRows(normalizeCreancesContentieusesRows(declaration.creancesContentieusesRows))
+      setFraisPersonnelRows(normalizeFraisPersonnelRows(declaration.fraisPersonnelRows))
+      setEffectifGspRows(normalizeEffectifGspRows(declaration.effectifGspRows))
+      setAbsenteismeRows(normalizeAbsenteismeRows(declaration.absenteismeRows))
+      setMouvementEffectifsRows(normalizeMouvementEffectifsRows(declaration.mouvementEffectifsRows))
+      setMouvementEffectifsDomaineRows(normalizeMouvementEffectifsDomaineRows(declaration.mouvementEffectifsDomaineRows))
+      setCompteResultatRows(normalizeCompteResultatRows(declaration.compteResultatRows))
+      setEffectifsFormesGspRows(normalizeEffectifsFormesGspRows(declaration.effectifsFormesGspRows))
+      setFormationsDomainesRows(normalizeFormationsDomainesRows(declaration.formationsDomainesRows))
+      setParcAbonnesGpRows(normalizeParcAbonnesGpRows(declaration.parcAbonnesGpRows))
+      setTotalParcAbonnesRows(normalizeTotalParcAbonnesRows(declaration.totalParcAbonnesRows))
+      setTotalParcAbonnesTechnologieRows(normalizeTotalParcAbonnesTechnologieRows(declaration.totalParcAbonnesTechnologieRows))
+      setActivationRows(normalizeActivationRows(declaration.activationRows))
+      setChiffreAffairesMdaRows(normalizeChiffreAffairesMdaRows(declaration.chiffreAffairesMdaRows))
     } catch {
       toast({
         title: "Erreur de chargement",
@@ -4003,11 +7527,7 @@ export default function NouvelleDeclarationPage() {
       return
     }
 
-    // Validation : direction, mois, annee obligatoires
-    if (!saveDirection) {
-      toast({ title: "Direction requise", description: "Veuillez saisir la direction avant d'enregistrer.", variant: "destructive" })
-      return
-    }
+    // Validation : mois, annee obligatoires
     if (!mois) {
       toast({ title: "Mois requis", description: "Veuillez selectionner le mois avant d'enregistrer.", variant: "destructive" })
       return
@@ -4044,6 +7564,18 @@ export default function NouvelleDeclarationPage() {
     // Validation : aucune case du tableau actif ne doit etre vide
     let validationError = false
     switch (activeTab) {
+      case "reclamation":
+        if (reclamationRows.some((r) => !r.mGp && !r.mB2b && !r.m1Gp && !r.m1B2b)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Reclamation.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "reclamation_gp":
+        if (reclamationGpRows.some((r) => !r.recues || !r.traitees)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Reclamation GP.", variant: "destructive" })
+          validationError = true
+        }
+        break
       case "encaissement":
         if (encRows.some(r => !r.designation.trim() || !r.ht)) {
           toast({ title: "Champs incomplets", description: "Tous les champs du tableau doivent etre remplis.", variant: "destructive" })
@@ -4051,13 +7583,13 @@ export default function NouvelleDeclarationPage() {
         }
         break
       case "tva_immo":
-        if (tvaImmoRows.some(r => !r.fournisseurId || !r.nomRaisonSociale.trim() || !r.nif.trim() || !r.adresse.trim() || !r.numRC.trim() || !r.dateFacture || !r.numFacture.trim() || !r.montantHT || !normalizeTvaRate(r.tauxTVA))) {
+        if (tvaImmoRows.some(r => !r.nomRaisonSociale.trim() || !r.nif.trim() || !r.adresse.trim() || !r.numRC.trim() || !r.dateFacture || !r.numFacture.trim() || !r.montantHT || !normalizeTvaRate(r.tauxTVA))) {
           toast({ title: "Champs incomplets", description: "Tous les champs du tableau doivent etre remplis.", variant: "destructive" })
           validationError = true
         }
         break
       case "tva_biens":
-        if (tvaBiensRows.some(r => !r.fournisseurId || !r.nomRaisonSociale.trim() || !r.nif.trim() || !r.adresse.trim() || !r.numRC.trim() || !r.dateFacture || !r.numFacture.trim() || !r.montantHT || !normalizeTvaRate(r.tauxTVA))) {
+        if (tvaBiensRows.some(r => !r.nomRaisonSociale.trim() || !r.nif.trim() || !r.adresse.trim() || !r.numRC.trim() || !r.dateFacture || !r.numFacture.trim() || !r.montantHT || !normalizeTvaRate(r.tauxTVA))) {
           toast({ title: "Champs incomplets", description: "Tous les champs du tableau doivent etre remplis.", variant: "destructive" })
           validationError = true
         }
@@ -4075,7 +7607,7 @@ export default function NouvelleDeclarationPage() {
         }
         break
       case "etat_tap":
-        if (tapRows.some(r => !r.wilayaCode || !r.commune.trim() || !r.tap2)) {
+        if (tapRows.some(r => !r.wilayaCode || !r.tap2)) {
           toast({ title: "Champs incomplets", description: "Tous les champs du tableau doivent etre remplis.", variant: "destructive" })
           validationError = true
         }
@@ -4095,6 +7627,174 @@ export default function NouvelleDeclarationPage() {
       case "taxe2":
         if (!taxe2Rows[0].base && !taxe2Rows[0].montant) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner la ligne Taxe 2%.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "e_payement_pop":
+        if (ePayementPopRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau E-PAYEMENT Pop.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "e_payement_prp":
+        if (ePayementPrpRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau E-PAYEMENT Prp.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "total_encaissement":
+        if (totalEncaissementRows.some((row) => !row.mGp || !row.mB2b || !row.m1Gp || !row.m1B2b || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les valeurs du tableau Totale des encaissment.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "recouvrement":
+        if (recouvrementRows.some((row) => !row.mGp || !row.mB2b || !row.m1Gp || !row.m1B2b)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Recouvrement.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "realisation_technique_reseau":
+        if (realisationTechniqueReseauRows.some((row) => !row.m || !row.m1)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Realisation technique Reseau.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "situation_reseau":
+        if (situationReseauRows.some((row) => !row.m || !row.m1)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Situation Reseau.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "trafic_data":
+        if (traficDataRows.some((row) => !row.m || !row.m1)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Trafic Data.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "amelioration_qualite":
+        if (ameliorationQualiteRows.some((row) => !row.wilaya || !row.mObjectif || !row.mRealise || !row.m1Objectif || !row.m1Realise || !row.ecart)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Amelioration qualite.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "couverture_reseau":
+        if (couvertureReseauRows.some((row) => !row.wilaya || !row.mObjectif || !row.mRealise || !row.m1Objectif || !row.m1Realise || !row.ecart)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Couverture Reseau.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "action_notable_reseau":
+        if (actionNotableReseauRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Action notable sur le reseau.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "disponibilite_reseau":
+        if (disponibiliteReseauRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Disponibilite reseau.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "desactivation_resiliation":
+        if (desactivationResiliationRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Desactivation / Resiliation.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "parc_abonnes_b2b":
+        if (parcAbonnesB2bRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Parc Abonnes B2B.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "mttr":
+        if (mttrRows.some((region) => region.cities.some((city) => !city.wilayaM || !city.objectifM || !city.realiseM || !city.wilayaM1 || !city.objectifM1 || !city.realiseM1 || !city.ecart))) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau MTTR.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "creances_contentieuses":
+        if (creancesContentieusesRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Creances Contentieuses.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "frais_personnel":
+        if (fraisPersonnelRows.some((row) => !row.m || !row.m1)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Frais personnel.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "effectif_gsp":
+        if (effectifGspRows.some((row) => !row.m || !row.m1 || !row.part)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Effectif par GSP.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "absenteisme":
+        if (absenteismeRows.some((row) => !row.m || !row.m1 || !row.part)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Absenteisme.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "mouvement_effectifs":
+        if (mouvementEffectifsRows.some((row) => !row.mCadresSup || !row.mCadres || !row.mMaitrise || !row.mExecution || !row.m1CadresSup || !row.m1Cadres || !row.m1Maitrise || !row.m1Execution)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Mouvement des effectifs.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "mouvement_effectifs_domaine":
+        if (mouvementEffectifsDomaineRows.some((row) => !row.mCdi || !row.mCdd || !row.mCta || !row.m1Cdi || !row.m1Cdd || !row.m1Cta)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Mouvement des effectifs par domaine.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "compte_resultat":
+        if (compteResultatRows.some((row) => !row.mBudget || !row.mRealise || !row.mTaux || !row.m1Budget || !row.m1Realise || !row.m1Taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Compte de resultat.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "effectifs_formes_gsp":
+        if (effectifsFormesGspRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Effectifs formes par GSP.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "formations_domaines":
+        if (formationsDomainesRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Formations realisees par domaines.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "parc_abonnes_gp":
+        if (parcAbonnesGpRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Parc Abonnes GP.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "total_parc_abonnes":
+        if (totalParcAbonnesRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Total Parc Abonnes.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "total_parc_abonnes_technologie":
+        if (totalParcAbonnesTechnologieRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Total Parc Abonnes parc technologie.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "activation":
+        if (activationRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Activation.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "chiffre_affaires_mda":
+        if (chiffreAffairesMdaRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Chiffre d'Affaires (MDA).", variant: "destructive" })
           validationError = true
         }
         break
@@ -4151,6 +7851,8 @@ export default function NouvelleDeclarationPage() {
       direction: saveDirection,
       mois,
       annee,
+      reclamationRows: [] as ReclamationRow[],
+      reclamationGpRows: [] as ReclamationGpRow[],
       encRows: [] as EncRow[],
       tvaImmoRows: [] as TvaRow[],
       tvaBiensRows: [] as TvaRow[],
@@ -4168,10 +7870,44 @@ export default function NouvelleDeclarationPage() {
       ibs14Rows: [] as Ibs14Row[],
       taxe15Rows: [] as Taxe15Row[],
       tva16Rows: [] as Tva16Row[],
+      ePayementPopRows: [] as EPayementRow[],
+      ePayementPrpRows: [] as EPayementRow[],
+      totalEncaissementRows: [] as TotalEncaissementRow[],
+      recouvrementRows: [] as RecouvrementRow[],
+      realisationTechniqueReseauRows: [] as RealisationTechniqueReseauRow[],
+      situationReseauRows: [] as SituationReseauRow[],
+      traficDataRows: [] as TraficDataRow[],
+      ameliorationQualiteRows: [] as AmeliorationQualiteRow[],
+      couvertureReseauRows: [] as CouvertureReseauRow[],
+      actionNotableReseauRows: [] as ActionNotableReseauRow[],
+      disponibiliteReseauRows: [] as DisponibiliteReseauRow[],
+      desactivationResiliationRows: [] as DesactivationResiliationRow[],
+      parcAbonnesB2bRows: [] as ParcAbonnesB2BRow[],
+      mttrRows: [] as MttrRegionRow[],
+      creancesContentieusesRows: [] as CreancesContentieusesRow[],
+      fraisPersonnelRows: [] as FraisPersonnelRow[],
+      effectifGspRows: [] as EffectifGspRow[],
+      absenteismeRows: [] as AbsenteismeRow[],
+      mouvementEffectifsRows: [] as MouvementEffectifsRow[],
+      mouvementEffectifsDomaineRows: [] as MouvementEffectifsDomaineRow[],
+      compteResultatRows: [] as CompteResultatRow[],
+      effectifsFormesGspRows: [] as EffectifsFormesGspRow[],
+      formationsDomainesRows: [] as FormationsDomainesRow[],
+      parcAbonnesGpRows: [] as ParcAbonnesGpRow[],
+      totalParcAbonnesRows: [] as TotalParcAbonnesRow[],
+      totalParcAbonnesTechnologieRows: [] as TotalParcAbonnesTechnologieRow[],
+      activationRows: [] as ActivationRow[],
+      chiffreAffairesMdaRows: [] as ChiffreAffairesMdaRow[],
     }
     
     // Remplir uniquement les donnees du tableau actif
     switch (activeTab) {
+      case "reclamation":
+        baseDecl.reclamationRows = reclamationRows
+        break
+      case "reclamation_gp":
+        baseDecl.reclamationGpRows = reclamationGpRows
+        break
       case "encaissement":
         baseDecl.encRows = encRows
         break
@@ -4221,6 +7957,90 @@ export default function NouvelleDeclarationPage() {
       case "tva_autoliq":
         baseDecl.tva16Rows = tva16Rows
         break
+      case "e_payement_pop":
+        baseDecl.ePayementPopRows = ePayementPopRows
+        break
+      case "e_payement_prp":
+        baseDecl.ePayementPrpRows = ePayementPrpRows
+        break
+      case "total_encaissement":
+        baseDecl.totalEncaissementRows = totalEncaissementRows
+        break
+      case "recouvrement":
+        baseDecl.recouvrementRows = recouvrementRows
+        break
+      case "realisation_technique_reseau":
+        baseDecl.realisationTechniqueReseauRows = realisationTechniqueReseauRows
+        break
+      case "situation_reseau":
+        baseDecl.situationReseauRows = situationReseauRows
+        break
+      case "trafic_data":
+        baseDecl.traficDataRows = traficDataRows
+        break
+      case "amelioration_qualite":
+        baseDecl.ameliorationQualiteRows = ameliorationQualiteRows
+        break
+      case "couverture_reseau":
+        baseDecl.couvertureReseauRows = couvertureReseauRows
+        break
+      case "action_notable_reseau":
+        baseDecl.actionNotableReseauRows = actionNotableReseauRows
+        break
+      case "disponibilite_reseau":
+        baseDecl.disponibiliteReseauRows = disponibiliteReseauRows
+        break
+      case "desactivation_resiliation":
+        baseDecl.desactivationResiliationRows = desactivationResiliationRows
+        break
+      case "parc_abonnes_b2b":
+        baseDecl.parcAbonnesB2bRows = parcAbonnesB2bRows
+        break
+      case "mttr":
+        baseDecl.mttrRows = mttrRows
+        break
+      case "creances_contentieuses":
+        baseDecl.creancesContentieusesRows = creancesContentieusesRows
+        break
+      case "frais_personnel":
+        baseDecl.fraisPersonnelRows = fraisPersonnelRows
+        break
+      case "effectif_gsp":
+        baseDecl.effectifGspRows = effectifGspRows
+        break
+      case "absenteisme":
+        baseDecl.absenteismeRows = absenteismeRows
+        break
+      case "mouvement_effectifs":
+        baseDecl.mouvementEffectifsRows = mouvementEffectifsRows
+        break
+      case "mouvement_effectifs_domaine":
+        baseDecl.mouvementEffectifsDomaineRows = mouvementEffectifsDomaineRows
+        break
+      case "compte_resultat":
+        baseDecl.compteResultatRows = compteResultatRows
+        break
+      case "effectifs_formes_gsp":
+        baseDecl.effectifsFormesGspRows = effectifsFormesGspRows
+        break
+      case "formations_domaines":
+        baseDecl.formationsDomainesRows = formationsDomainesRows
+        break
+      case "parc_abonnes_gp":
+        baseDecl.parcAbonnesGpRows = parcAbonnesGpRows
+        break
+      case "total_parc_abonnes":
+        baseDecl.totalParcAbonnesRows = totalParcAbonnesRows
+        break
+      case "total_parc_abonnes_technologie":
+        baseDecl.totalParcAbonnesTechnologieRows = totalParcAbonnesTechnologieRows
+        break
+      case "activation":
+        baseDecl.activationRows = activationRows
+        break
+      case "chiffre_affaires_mda":
+        baseDecl.chiffreAffairesMdaRows = chiffreAffairesMdaRows
+        break
     }
     
     try {
@@ -4241,6 +8061,8 @@ export default function NouvelleDeclarationPage() {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       let tabData: unknown = {}
       switch (activeTab) {
+        case "reclamation":  tabData = { reclamationRows }; break
+        case "reclamation_gp":  tabData = { reclamationGpRows }; break
         case "encaissement":   tabData = { encRows }; break
         case "tva_immo":       tabData = { tvaImmoRows }; break
         case "tva_biens":      tabData = { tvaBiensRows }; break
@@ -4257,6 +8079,34 @@ export default function NouvelleDeclarationPage() {
         case "ibs":            tabData = { ibs14Rows }; break
         case "taxe_domicil":   tabData = { taxe15Rows }; break
         case "tva_autoliq":    tabData = { tva16Rows }; break
+        case "e_payement_pop": tabData = { ePayementPopRows }; break
+        case "e_payement_prp": tabData = { ePayementPrpRows }; break
+        case "total_encaissement": tabData = { totalEncaissementRows }; break
+        case "recouvrement": tabData = { recouvrementRows }; break
+        case "realisation_technique_reseau": tabData = { realisationTechniqueReseauRows }; break
+        case "situation_reseau": tabData = { situationReseauRows }; break
+        case "trafic_data": tabData = { traficDataRows }; break
+        case "amelioration_qualite": tabData = { ameliorationQualiteRows }; break
+        case "couverture_reseau": tabData = { couvertureReseauRows }; break
+        case "action_notable_reseau": tabData = { actionNotableReseauRows }; break
+        case "disponibilite_reseau": tabData = { disponibiliteReseauRows }; break
+        case "desactivation_resiliation": tabData = { desactivationResiliationRows }; break
+        case "parc_abonnes_b2b": tabData = { parcAbonnesB2bRows }; break
+        case "mttr": tabData = { mttrRows }; break
+        case "creances_contentieuses": tabData = { creancesContentieusesRows }; break
+        case "frais_personnel": tabData = { fraisPersonnelRows }; break
+        case "effectif_gsp": tabData = { effectifGspRows }; break
+        case "absenteisme": tabData = { absenteismeRows }; break
+        case "mouvement_effectifs": tabData = { mouvementEffectifsRows }; break
+        case "mouvement_effectifs_domaine": tabData = { mouvementEffectifsDomaineRows }; break
+        case "compte_resultat": tabData = { compteResultatRows }; break
+        case "effectifs_formes_gsp": tabData = { effectifsFormesGspRows }; break
+        case "formations_domaines": tabData = { formationsDomainesRows }; break
+        case "parc_abonnes_gp": tabData = { parcAbonnesGpRows }; break
+        case "total_parc_abonnes": tabData = { totalParcAbonnesRows }; break
+        case "total_parc_abonnes_technologie": tabData = { totalParcAbonnesTechnologieRows }; break
+        case "activation": tabData = { activationRows }; break
+        case "chiffre_affaires_mda": tabData = { chiffreAffairesMdaRows }; break
       }
       const requestPayload = {
         tabKey: activeTab,
@@ -4318,6 +8168,8 @@ export default function NouvelleDeclarationPage() {
         if (editingDeclarationId && originalDeclaration) {
           let restoreTabData: unknown = {}
           switch (activeTab) {
+            case "reclamation":  restoreTabData = { reclamationRows: originalDeclaration.reclamationRows ?? [] }; break
+            case "reclamation_gp":  restoreTabData = { reclamationGpRows: originalDeclaration.reclamationGpRows ?? [] }; break
             case "encaissement":   restoreTabData = { encRows: originalDeclaration.encRows ?? [] }; break
             case "tva_immo":       restoreTabData = { tvaImmoRows: originalDeclaration.tvaImmoRows ?? [] }; break
             case "tva_biens":      restoreTabData = { tvaBiensRows: originalDeclaration.tvaBiensRows ?? [] }; break
@@ -4334,6 +8186,90 @@ export default function NouvelleDeclarationPage() {
             case "ibs":            restoreTabData = { ibs14Rows: originalDeclaration.ibs14Rows ?? [] }; break
             case "taxe_domicil":   restoreTabData = { taxe15Rows: originalDeclaration.taxe15Rows ?? [] }; break
             case "tva_autoliq":    restoreTabData = { tva16Rows: originalDeclaration.tva16Rows ?? [] }; break
+            case "e_payement_pop": restoreTabData = {
+              ePayementPopRows: normalizeEPayementRows(originalDeclaration.ePayementPopRows),
+            }; break
+            case "e_payement_prp": restoreTabData = {
+              ePayementPrpRows: normalizeEPayementRows(originalDeclaration.ePayementPrpRows),
+            }; break
+            case "total_encaissement": restoreTabData = {
+              totalEncaissementRows: normalizeTotalEncaissementRows(originalDeclaration.totalEncaissementRows),
+            }; break
+            case "recouvrement": restoreTabData = {
+              recouvrementRows: normalizeRecouvrementRows(originalDeclaration.recouvrementRows),
+            }; break
+            case "realisation_technique_reseau": restoreTabData = {
+              realisationTechniqueReseauRows: normalizeRealisationTechniqueReseauRows(originalDeclaration.realisationTechniqueReseauRows),
+            }; break
+            case "situation_reseau": restoreTabData = {
+              situationReseauRows: normalizeSituationReseauRows(originalDeclaration.situationReseauRows),
+            }; break
+            case "trafic_data": restoreTabData = {
+              traficDataRows: normalizeTraficDataRows(originalDeclaration.traficDataRows),
+            }; break
+            case "amelioration_qualite": restoreTabData = {
+              ameliorationQualiteRows: normalizeAmeliorationQualiteRows(originalDeclaration.ameliorationQualiteRows),
+            }; break
+            case "couverture_reseau": restoreTabData = {
+              couvertureReseauRows: normalizeCouvertureReseauRows(originalDeclaration.couvertureReseauRows),
+            }; break
+            case "action_notable_reseau": restoreTabData = {
+              actionNotableReseauRows: normalizeActionNotableReseauRows(originalDeclaration.actionNotableReseauRows),
+            }; break
+            case "disponibilite_reseau": restoreTabData = {
+              disponibiliteReseauRows: normalizeDisponibiliteReseauRows(originalDeclaration.disponibiliteReseauRows),
+            }; break
+            case "desactivation_resiliation": restoreTabData = {
+              desactivationResiliationRows: normalizeDesactivationResiliationRows(originalDeclaration.desactivationResiliationRows),
+            }; break
+            case "parc_abonnes_b2b": restoreTabData = {
+              parcAbonnesB2bRows: normalizeParcAbonnesB2BRows(originalDeclaration.parcAbonnesB2bRows),
+            }; break
+            case "mttr": restoreTabData = {
+              mttrRows: normalizeMttrRows(originalDeclaration.mttrRows),
+            }; break
+            case "creances_contentieuses": restoreTabData = {
+              creancesContentieusesRows: normalizeCreancesContentieusesRows(originalDeclaration.creancesContentieusesRows),
+            }; break
+            case "frais_personnel": restoreTabData = {
+              fraisPersonnelRows: normalizeFraisPersonnelRows(originalDeclaration.fraisPersonnelRows),
+            }; break
+            case "effectif_gsp": restoreTabData = {
+              effectifGspRows: normalizeEffectifGspRows(originalDeclaration.effectifGspRows),
+            }; break
+            case "absenteisme": restoreTabData = {
+              absenteismeRows: normalizeAbsenteismeRows(originalDeclaration.absenteismeRows),
+            }; break
+            case "mouvement_effectifs": restoreTabData = {
+              mouvementEffectifsRows: normalizeMouvementEffectifsRows(originalDeclaration.mouvementEffectifsRows),
+            }; break
+            case "mouvement_effectifs_domaine": restoreTabData = {
+              mouvementEffectifsDomaineRows: normalizeMouvementEffectifsDomaineRows(originalDeclaration.mouvementEffectifsDomaineRows),
+            }; break
+            case "compte_resultat": restoreTabData = {
+              compteResultatRows: normalizeCompteResultatRows(originalDeclaration.compteResultatRows),
+            }; break
+            case "effectifs_formes_gsp": restoreTabData = {
+              effectifsFormesGspRows: normalizeEffectifsFormesGspRows(originalDeclaration.effectifsFormesGspRows),
+            }; break
+            case "formations_domaines": restoreTabData = {
+              formationsDomainesRows: normalizeFormationsDomainesRows(originalDeclaration.formationsDomainesRows),
+            }; break
+            case "parc_abonnes_gp": restoreTabData = {
+              parcAbonnesGpRows: normalizeParcAbonnesGpRows(originalDeclaration.parcAbonnesGpRows),
+            }; break
+            case "total_parc_abonnes": restoreTabData = {
+              totalParcAbonnesRows: normalizeTotalParcAbonnesRows(originalDeclaration.totalParcAbonnesRows),
+            }; break
+            case "total_parc_abonnes_technologie": restoreTabData = {
+              totalParcAbonnesTechnologieRows: normalizeTotalParcAbonnesTechnologieRows(originalDeclaration.totalParcAbonnesTechnologieRows),
+            }; break
+            case "activation": restoreTabData = {
+              activationRows: normalizeActivationRows(originalDeclaration.activationRows),
+            }; break
+            case "chiffre_affaires_mda": restoreTabData = {
+              chiffreAffairesMdaRows: normalizeChiffreAffairesMdaRows(originalDeclaration.chiffreAffairesMdaRows),
+            }; break
           }
 
           const restoreResponse = await fetch(`${apiBase}/api/fiscal`, {
@@ -4401,7 +8337,6 @@ export default function NouvelleDeclarationPage() {
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
   const mon = MONTHS.find((m) => m.value === mois)?.label ?? mois
-  const directionSelectValue = entryMode === "etats_sortie" ? "Siege" : effectiveDirection
   const currentPeriodLockMessage = (() => {
     if (editingDeclarationId && editingSourceMois && editingSourceAnnee && isFiscalPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)) {
       return `${getFiscalPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`
@@ -4415,7 +8350,7 @@ export default function NouvelleDeclarationPage() {
   return (
     <LayoutWrapper user={user}>
       {/* Block global (direction) role */}
-      {user.role === "direction" || !hasFiscalTabAccess ? (
+      {!hasFiscalTabAccess ? (
         <AccessDeniedDialog
           title="Acces refuse"
           message={user.role === "direction"
@@ -4439,6 +8374,34 @@ export default function NouvelleDeclarationPage() {
         ibs14Rows={ibs14Rows}
         taxe15Rows={taxe15Rows}
         tva16Rows={tva16Rows}
+        ePayementPopRows={ePayementPopRows}
+        ePayementPrpRows={ePayementPrpRows}
+        totalEncaissementRows={totalEncaissementRows}
+        recouvrementRows={recouvrementRows}
+        realisationTechniqueReseauRows={realisationTechniqueReseauRows}
+        situationReseauRows={situationReseauRows}
+        traficDataRows={traficDataRows}
+        ameliorationQualiteRows={ameliorationQualiteRows}
+        couvertureReseauRows={couvertureReseauRows}
+        actionNotableReseauRows={actionNotableReseauRows}
+        disponibiliteReseauRows={disponibiliteReseauRows}
+        desactivationResiliationRows={desactivationResiliationRows}
+        parcAbonnesB2bRows={parcAbonnesB2bRows}
+        mttrRows={mttrRows}
+        creancesContentieusesRows={creancesContentieusesRows}
+        fraisPersonnelRows={fraisPersonnelRows}
+        effectifGspRows={effectifGspRows}
+        absenteismeRows={absenteismeRows}
+        mouvementEffectifsRows={mouvementEffectifsRows}
+        mouvementEffectifsDomaineRows={mouvementEffectifsDomaineRows}
+        compteResultatRows={compteResultatRows}
+        effectifsFormesGspRows={effectifsFormesGspRows}
+        formationsDomainesRows={formationsDomainesRows}
+        parcAbonnesGpRows={parcAbonnesGpRows}
+        totalParcAbonnesRows={totalParcAbonnesRows}
+        totalParcAbonnesTechnologieRows={totalParcAbonnesTechnologieRows}
+        activationRows={activationRows}
+        chiffreAffairesMdaRows={chiffreAffairesMdaRows}
       />
 
       <div className="space-y-5 w-full" ref={printRef}>
@@ -4466,22 +8429,6 @@ export default function NouvelleDeclarationPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-end gap-6">
-      {/* Direction */}
-              <div className="space-y-1 flex-1 min-w-[220px]">
-                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Direction</label>
-                <Select value={directionSelectValue} onValueChange={setDirection} disabled={isDirectionLocked || entryMode === "etats_sortie"}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="- Selectionner une direction -" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Siege">Siege</SelectItem>
-                    {isDirectionLocked && effectiveDirection && effectiveDirection !== "Siege" && !regions.some((r) => r.name === effectiveDirection) && (
-                      <SelectItem value={effectiveDirection}>{effectiveDirection}</SelectItem>
-                    )}
-                    {regions.map((r) => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
               {/* Mois */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Mois</label>
@@ -4509,6 +8456,20 @@ export default function NouvelleDeclarationPage() {
                   className="h-10 w-[120px] rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                 />
               </div>
+              {/* Categorie */}
+              <div className="space-y-1 flex-1 min-w-[220px]">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
+                <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as FiscalCategoryKey)} disabled={entryMode !== "declaration"}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Selectionner une categorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {declarationCategoryOptions.map((category) => (
+                      <SelectItem key={category.key} value={category.key}>{category.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               {/* Tableau */}
               <div className="space-y-1 flex-1 min-w-[220px]">
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
@@ -4516,6 +8477,7 @@ export default function NouvelleDeclarationPage() {
                   if (entryMode === "declaration") {
                     if (disabledTabKeys.has(value)) return
                     setActiveTab(value)
+                    setSelectedCategoryKey(findFiscalCategoryKeyForTab(value))
                     return
                   }
                   setActiveRecapTab(value as RecapKey)
@@ -4525,11 +8487,13 @@ export default function NouvelleDeclarationPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {entryMode === "declaration"
-                      ? selectableTabs.map((t) => (
-                        <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
-                          {t.label}{t.isDisabled ? " (desactive)" : ""}
-                        </SelectItem>
-                      ))
+                      ? filteredDeclarationTabs.length === 0
+                        ? <SelectItem value="no-tables" disabled>Aucun tableau disponible pour cette categorie</SelectItem>
+                        : filteredDeclarationTabs.map((t) => (
+                          <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
+                            {t.label}{t.isDisabled ? " (desactive)" : ""}
+                          </SelectItem>
+                        ))
                       : RECAP_TABS.map((item) => (
                         <SelectItem key={item.key} value={item.key}>{item.title}</SelectItem>
                       ))}
@@ -4631,6 +8595,26 @@ export default function NouvelleDeclarationPage() {
             </Card>
           ) : (
             <>
+          {activeTab === "reclamation" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Tableau Reclamation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabReclamation rows={reclamationRows} setRows={setReclamationRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "reclamation_gp" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Tableau Reclamation GP</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabReclamationGp rows={reclamationGpRows} setRows={setReclamationGpRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
           {activeTab === "encaissement" && (
               <Card>
                 <CardHeader className="pb-3">
@@ -4647,7 +8631,7 @@ export default function NouvelleDeclarationPage() {
                   <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Etat TVA / Immobilisations - Liste des factures</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <TabTVAEtat rows={tvaImmoRows} setRows={setTvaImmoRows} onSave={handleSave} isSubmitting={isSubmitting} fournisseurs={fiscalFournisseurs} withSelectableRate />
+                  <TabTVAEtat rows={tvaImmoRows} setRows={setTvaImmoRows} onSave={handleSave} isSubmitting={isSubmitting} withSelectableRate />
                 </CardContent>
               </Card>
             )}
@@ -4657,7 +8641,7 @@ export default function NouvelleDeclarationPage() {
                   <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Etat TVA / Biens &amp; Services - Liste des factures</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <TabTVAEtat rows={tvaBiensRows} setRows={setTvaBiensRows} onSave={handleSave} isSubmitting={isSubmitting} fournisseurs={fiscalFournisseurs} withSelectableRate />
+                  <TabTVAEtat rows={tvaBiensRows} setRows={setTvaBiensRows} onSave={handleSave} isSubmitting={isSubmitting} withSelectableRate />
                 </CardContent>
               </Card>
             )}
@@ -4684,7 +8668,7 @@ export default function NouvelleDeclarationPage() {
             {activeTab === "etat_tap" && (
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Etat TAP - Saisie par Wilaya / Commune</CardTitle>
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Etat TAP - Saisie par Code Wilaya</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <TabTAP rows={tapRows} setRows={setTapRows}
@@ -4720,6 +8704,316 @@ export default function NouvelleDeclarationPage() {
                 </CardHeader>
                 <CardContent>
                   <TabTaxe2 rows={taxe2Rows} setRows={setTaxe2Rows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "e_payement_pop" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N17 - E-PAYEMENT Pop (MDA)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabEPayementSingle
+                    title="E-PAYEMENT Pop (MDA)"
+                    rows={ePayementPopRows}
+                    setRows={setEPayementPopRows}
+                    onSave={handleSave}
+                    isSubmitting={isSubmitting}
+                  />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "e_payement_prp" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N18 - E-PAYEMENT Prp (MDA)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabEPayementSingle
+                    title="E-PAYEMENT Prp (MDA)"
+                    rows={ePayementPrpRows}
+                    setRows={setEPayementPrpRows}
+                    onSave={handleSave}
+                    isSubmitting={isSubmitting}
+                  />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "total_encaissement" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N19 - Totale des encaissment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabTotalEncaissement
+                    row={totalEncaissementRows[0] ?? EMPTY_TOTAL_ENCAISSEMENT_ROW}
+                    setRow={(updater) => {
+                      if (typeof updater === "function") {
+                        setTotalEncaissementRows((prev) => [
+                          (updater as (value: TotalEncaissementRow) => TotalEncaissementRow)(prev[0] ?? EMPTY_TOTAL_ENCAISSEMENT_ROW),
+                        ])
+                      } else {
+                        setTotalEncaissementRows([updater])
+                      }
+                    }}
+                    onSave={handleSave}
+                    isSubmitting={isSubmitting}
+                  />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "recouvrement" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N20 - Recouvrement (MDA)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "realisation_technique_reseau" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N21 - Realisation technique Reseau</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabRealisationTechniqueReseau
+                    rows={realisationTechniqueReseauRows}
+                    setRows={setRealisationTechniqueReseauRows}
+                    onSave={handleSave}
+                    isSubmitting={isSubmitting}
+                  />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "situation_reseau" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N22 - Situation Reseau</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabSituationReseau rows={situationReseauRows} setRows={setSituationReseauRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "trafic_data" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N23 - Trafic Data</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabTraficData rows={traficDataRows} setRows={setTraficDataRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "amelioration_qualite" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N24 - Amelioration qualite</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabAmeliorationQualite rows={ameliorationQualiteRows} setRows={setAmeliorationQualiteRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "couverture_reseau" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N25 - Couverture Reseau</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabCouvertureReseau rows={couvertureReseauRows} setRows={setCouvertureReseauRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "action_notable_reseau" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N26 - Action notable sur le reseau</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabActionNotableReseau rows={actionNotableReseauRows} setRows={setActionNotableReseauRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "disponibilite_reseau" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N27 - Disponibilite reseau</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabDisponibiliteReseau rows={disponibiliteReseauRows} setRows={setDisponibiliteReseauRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "desactivation_resiliation" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N28 - Desactivation / Resiliation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabDesactivationResiliation rows={desactivationResiliationRows} setRows={setDesactivationResiliationRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "parc_abonnes_b2b" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N29 - Parc Abonnes B2B</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabParcAbonnesB2B rows={parcAbonnesB2bRows} setRows={setParcAbonnesB2bRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "mttr" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N30 - MTTR / DR</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabMttr rows={mttrRows} setRows={setMttrRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "creances_contentieuses" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N31 - Creances Contentieuses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabCreancesContentieuses rows={creancesContentieusesRows} setRows={setCreancesContentieusesRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "frais_personnel" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N32 - Frais personnel (MDA)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabFraisPersonnel rows={fraisPersonnelRows} setRows={setFraisPersonnelRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "effectif_gsp" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N33 - Effectif par GSP</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabEffectifGsp rows={effectifGspRows} setRows={setEffectifGspRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "absenteisme" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N34 - Absenteisme</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabAbsenteisme rows={absenteismeRows} setRows={setAbsenteismeRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "mouvement_effectifs" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N35 - Mouvement des effectifs</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabMouvementEffectifs rows={mouvementEffectifsRows} setRows={setMouvementEffectifsRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "mouvement_effectifs_domaine" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N36 - Mouvement des effectifs par domaine</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabMouvementEffectifsDomaine rows={mouvementEffectifsDomaineRows} setRows={setMouvementEffectifsDomaineRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "compte_resultat" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N37 - Compte de resultat</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabCompteResultat rows={compteResultatRows} setRows={setCompteResultatRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "effectifs_formes_gsp" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N38 - Effectifs formes par GSP</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabEffectifsFormesGsp rows={effectifsFormesGspRows} setRows={setEffectifsFormesGspRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "formations_domaines" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N39 - Formations realisees par domaines</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabFormationsDomaines rows={formationsDomainesRows} setRows={setFormationsDomainesRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "parc_abonnes_gp" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N40 - Parc Abonnes GP</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabParcAbonnesGp rows={parcAbonnesGpRows} setRows={setParcAbonnesGpRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "total_parc_abonnes" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N41 - Total Parc Abonnes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabTotalParcAbonnes rows={totalParcAbonnesRows} setRows={setTotalParcAbonnesRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "total_parc_abonnes_technologie" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N42 - Total Parc Abonnes parc technologie</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabTotalParcAbonnesTechnologie rows={totalParcAbonnesTechnologieRows} setRows={setTotalParcAbonnesTechnologieRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "activation" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N43 - Activation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabActivation rows={activationRows} setRows={setActivationRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                </CardContent>
+              </Card>
+            )}
+            {activeTab === "chiffre_affaires_mda" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>N44 - Chiffre d'Affaires (MDA)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TabChiffreAffairesMda rows={chiffreAffairesMdaRows} setRows={setChiffreAffairesMdaRows} onSave={handleSave} isSubmitting={isSubmitting} />
                 </CardContent>
               </Card>
             )}

@@ -7,26 +7,16 @@ import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
-  FileText,
-  Settings,
   LogOut,
   ChevronDown,
   ChevronRight,
-  Printer,
   Calculator,
   FilePlus,
-  Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/lib/auth-client"
 import type { User } from "@/lib/db"
 import UserProfileMenu from "./user-profile-menu"
-
-const imprimeChecqueLinks = [
-  { name: "Dashboard", href: "/cheque_dashbord", icon: LayoutDashboard },
-  { name: "Nouveau Chèque", href: "/cheque", icon: FileText },
-  { name: "Paramètres", href: "/parametres", icon: Settings },
-]
 
 const fiscaLinks = [
   { name: "Dashboard", href: "/fisca_dashbord", icon: LayoutDashboard },
@@ -42,10 +32,8 @@ export function Sidebar({ user }: SidebarProps) {
   const router = useRouter()
 
   const isFiscaPath = pathname === "/fisca_dashbord" || pathname.startsWith("/declaration")
-  const modules = (user.accessModules || "cheque,fisca").split(",").map((m: string) => m.trim())
-  const hasChecque = modules.includes("cheque")
+  const modules = (user.accessModules || "fisca").split(",").map((m: string) => m.trim())
   const hasFisca = modules.includes("fisca")
-  const [openImprimeChecque, setOpenImprimeChecque] = useState(!isFiscaPath)
   const [openFisca, setOpenFisca] = useState(isFiscaPath)
 
   const handleLogout = async () => {
@@ -149,13 +137,6 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </div>
       <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-        {hasChecque && renderGroup(
-          "Imprime Chèque",
-          Printer,
-          imprimeChecqueLinks,
-          openImprimeChecque,
-          () => setOpenImprimeChecque((v) => !v),
-        )}
         {hasFisca && renderGroup(
           "Fisca",
           Calculator,

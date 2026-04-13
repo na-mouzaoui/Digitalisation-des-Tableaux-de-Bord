@@ -32,7 +32,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2, Plus, Eye, EyeOff, KeyRound, Info } from "lucide-react";
-import { getRoleLabel } from "@/lib/roles";
 import {
   Tooltip,
   TooltipContent,
@@ -46,9 +45,8 @@ const ROLE_OPTIONS = [
     label: "Global",
     privileges: [
       "Accès complet à toutes les régions",
-      "Voir et imprimer tous les chèques",
       "Accès aux déclarations fiscales de toutes les directions",
-      "Gestion des fournisseurs et carnet de chèques",
+      "Supervision des workflows fiscaux",
     ],
   },
   {
@@ -56,9 +54,8 @@ const ROLE_OPTIONS = [
     label: "Finance",
     privileges: [
       "Accès aux fonctionnalités financières",
-      "Création et impression de chèques",
       "Gestion des déclarations fiscales",
-      "Gestion des fournisseurs et carnet de chèques",
+      "Validation des déclarations siège",
     ],
   },
   {
@@ -66,11 +63,26 @@ const ROLE_OPTIONS = [
     label: "Régionale",
     privileges: [
       "Accès limité à sa région assignée uniquement",
-      "Création et impression de chèques régionaux",
       "Consultation de l'historique de sa région",
+      "Validation des déclarations régionales",
     ],
   },
 ];
+
+const getRoleLabel = (role: string) => {
+  switch ((role ?? "").trim().toLowerCase()) {
+    case "admin":
+      return "Admin"
+    case "comptabilite":
+      return "Finance"
+    case "regionale":
+      return "Regionale"
+    case "direction":
+      return "Global"
+    default:
+      return role || "Utilisateur"
+  }
+}
 
 function RoleSelector({
   value,
@@ -156,7 +168,7 @@ export default function AdminUserManagement() {
     region: "",
     isRegionalApprover: false,
     isFinanceApprover: false,
-    accessModules: ["cheque", "fisca"] as string[],
+    accessModules: ["fisca"] as string[],
   });
 
   useEffect(() => {
@@ -386,7 +398,7 @@ export default function AdminUserManagement() {
       region: user.region || "",
       isRegionalApprover: !!user.isRegionalApprover,
       isFinanceApprover: !!user.isFinanceApprover,
-      accessModules: user.accessModules ? user.accessModules.split(",").map(s => s.trim()).filter(Boolean) : ["cheque", "fisca"],
+      accessModules: ["fisca"],
     });
     setIsEditOpen(true);
   };
@@ -403,7 +415,7 @@ export default function AdminUserManagement() {
       region: "",
       isRegionalApprover: false,
       isFinanceApprover: false,
-      accessModules: ["cheque", "fisca"],
+      accessModules: ["fisca"],
     });
     setShowPassword(false);
   };
@@ -523,33 +535,8 @@ export default function AdminUserManagement() {
               </div>
               <div className="space-y-2">
                 <Label>Accès aux modules *</Label>
-                <div className="flex gap-3">
-                  {[
-                    { id: "cheque", label: "Imprime Chèque" },
-                    { id: "fisca", label: "Fiscalité" },
-                  ].map((mod) => (
-                    <label
-                      key={mod.id}
-                      className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium cursor-pointer transition-colors ${
-                        formData.accessModules.includes(mod.id)
-                          ? "border-green-500 bg-green-50 text-green-700"
-                          : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={formData.accessModules.includes(mod.id)}
-                        onChange={(e) => {
-                          const mods = e.target.checked
-                            ? [...formData.accessModules, mod.id]
-                            : formData.accessModules.filter((m) => m !== mod.id);
-                          setFormData({ ...formData, accessModules: mods });
-                        }}
-                      />
-                      {mod.label}
-                    </label>
-                  ))}
+                <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+                  Fiscalité
                 </div>
               </div>
               {formData.role === "regionale" && (
@@ -644,9 +631,9 @@ export default function AdminUserManagement() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1 flex-wrap">
-                    {(user.accessModules || "cheque,fisca").split(",").map((m) => (
+                    {(user.accessModules || "fisca").split(",").map((m) => (
                       <Badge key={m} variant="outline" className="text-xs">
-                        {m.trim() === "cheque" ? "Chèque" : m.trim() === "fisca" ? "Fisca" : m.trim()}
+                        {m.trim() === "fisca" ? "Fisca" : m.trim()}
                       </Badge>
                     ))}
                   </div>
@@ -751,33 +738,8 @@ export default function AdminUserManagement() {
             </div>
             <div className="space-y-2">
               <Label>Accès aux modules</Label>
-              <div className="flex gap-3">
-                {[
-                  { id: "cheque", label: "Imprime Chèque" },
-                  { id: "fisca", label: "Fiscalité" },
-                ].map((mod) => (
-                  <label
-                    key={mod.id}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium cursor-pointer transition-colors ${
-                      formData.accessModules.includes(mod.id)
-                        ? "border-green-500 bg-green-50 text-green-700"
-                        : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={formData.accessModules.includes(mod.id)}
-                      onChange={(e) => {
-                        const mods = e.target.checked
-                          ? [...formData.accessModules, mod.id]
-                          : formData.accessModules.filter((m) => m !== mod.id);
-                        setFormData({ ...formData, accessModules: mods });
-                      }}
-                    />
-                    {mod.label}
-                  </label>
-                ))}
+              <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+                Fiscalité
               </div>
             </div>
             {formData.role === "regionale" && (

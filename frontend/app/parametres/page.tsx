@@ -42,7 +42,7 @@ function ParametresContent() {
           <AccessDeniedDialog
             title="Accès refusé"
             message="Votre rôle ne vous permet pas de créer, modifier ou supprimer des banques, ni de modifier les paramètres de calibrage. Seuls les utilisateurs avec le rôle 'Finance', 'Régionale' ou 'Admin' peuvent effectuer cette action."
-            redirectTo="/cheque_dashbord"
+            redirectTo="/fisca_dashbord"
           />
         )}
       </div>

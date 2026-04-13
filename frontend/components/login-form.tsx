@@ -29,7 +29,7 @@ export function LoginForm() {
     const result = await login(email, password)
     if (result.success) {
       // Decode JWT to determine role-based redirect
-      let destination = "/cheque_dashbord"
+      let destination = "/fisca_dashbord"
       try {
         const token = localStorage.getItem("jwt")
         if (token) {

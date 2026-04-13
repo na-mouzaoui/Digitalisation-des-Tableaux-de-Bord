@@ -11,97 +11,82 @@ namespace CheckFillingAPI.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_FiscalDeclarations_Users_ApprovedByUserId",
-                table: "FiscalDeclarations");
+            migrationBuilder.Sql(@"
+IF OBJECT_ID(N'[dbo].[FiscalDeclarations]', N'U') IS NOT NULL
+   AND OBJECT_ID(N'[dbo].[Declaration]', N'U') IS NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_FiscalDeclarations_Users_ApprovedByUserId')
+        ALTER TABLE [dbo].[FiscalDeclarations] DROP CONSTRAINT [FK_FiscalDeclarations_Users_ApprovedByUserId];
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_FiscalDeclarations_Users_UserId",
-                table: "FiscalDeclarations");
+    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_FiscalDeclarations_Users_UserId')
+        ALTER TABLE [dbo].[FiscalDeclarations] DROP CONSTRAINT [FK_FiscalDeclarations_Users_UserId];
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_FiscalRecaps_Users_UserId",
-                table: "FiscalRecaps");
+    IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE [name] = N'PK_FiscalDeclarations')
+        ALTER TABLE [dbo].[FiscalDeclarations] DROP CONSTRAINT [PK_FiscalDeclarations];
 
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_FiscalDeclarations",
-                table: "FiscalDeclarations");
+    EXEC sp_rename N'[dbo].[FiscalDeclarations]', N'Declaration';
+END
 
-            migrationBuilder.DropPrimaryKey(
-                name: "PK_FiscalRecaps",
-                table: "FiscalRecaps");
+IF OBJECT_ID(N'[dbo].[FiscalRecaps]', N'U') IS NOT NULL
+   AND OBJECT_ID(N'[dbo].[EtatsDeSortie]', N'U') IS NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_FiscalRecaps_Users_UserId')
+        ALTER TABLE [dbo].[FiscalRecaps] DROP CONSTRAINT [FK_FiscalRecaps_Users_UserId];
 
-            migrationBuilder.RenameTable(
-                name: "FiscalDeclarations",
-                newName: "Declaration");
+    IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE [name] = N'PK_FiscalRecaps')
+        ALTER TABLE [dbo].[FiscalRecaps] DROP CONSTRAINT [PK_FiscalRecaps];
 
-            migrationBuilder.RenameTable(
-                name: "FiscalRecaps",
-                newName: "EtatsDeSortie");
+    EXEC sp_rename N'[dbo].[FiscalRecaps]', N'EtatsDeSortie';
+END
 
-            migrationBuilder.RenameIndex(
-                name: "IX_FiscalDeclarations_UserId_TabKey_Mois_Annee",
-                table: "Declaration",
-                newName: "IX_Declaration_UserId_TabKey_Mois_Annee");
+IF OBJECT_ID(N'[dbo].[Declaration]', N'U') IS NOT NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_FiscalDeclarations_UserId_TabKey_Mois_Annee' AND [object_id] = OBJECT_ID(N'[dbo].[Declaration]'))
+        EXEC sp_rename N'[dbo].[Declaration].[IX_FiscalDeclarations_UserId_TabKey_Mois_Annee]', N'IX_Declaration_UserId_TabKey_Mois_Annee', N'INDEX';
 
-            migrationBuilder.RenameIndex(
-                name: "IX_FiscalDeclarations_UserId",
-                table: "Declaration",
-                newName: "IX_Declaration_UserId");
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_FiscalDeclarations_UserId' AND [object_id] = OBJECT_ID(N'[dbo].[Declaration]'))
+        EXEC sp_rename N'[dbo].[Declaration].[IX_FiscalDeclarations_UserId]', N'IX_Declaration_UserId', N'INDEX';
 
-            migrationBuilder.RenameIndex(
-                name: "IX_FiscalDeclarations_IsApproved",
-                table: "Declaration",
-                newName: "IX_Declaration_IsApproved");
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_FiscalDeclarations_IsApproved' AND [object_id] = OBJECT_ID(N'[dbo].[Declaration]'))
+        EXEC sp_rename N'[dbo].[Declaration].[IX_FiscalDeclarations_IsApproved]', N'IX_Declaration_IsApproved', N'INDEX';
 
-            migrationBuilder.RenameIndex(
-                name: "IX_FiscalDeclarations_ApprovedByUserId",
-                table: "Declaration",
-                newName: "IX_Declaration_ApprovedByUserId");
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_FiscalDeclarations_ApprovedByUserId' AND [object_id] = OBJECT_ID(N'[dbo].[Declaration]'))
+        EXEC sp_rename N'[dbo].[Declaration].[IX_FiscalDeclarations_ApprovedByUserId]', N'IX_Declaration_ApprovedByUserId', N'INDEX';
 
-            migrationBuilder.RenameIndex(
-                name: "IX_FiscalRecaps_UserId",
-                table: "EtatsDeSortie",
-                newName: "IX_EtatsDeSortie_UserId");
+    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE [name] = N'PK_Declaration')
+        ALTER TABLE [dbo].[Declaration] ADD CONSTRAINT [PK_Declaration] PRIMARY KEY ([Id]);
 
-            migrationBuilder.RenameIndex(
-                name: "IX_FiscalRecaps_Key_Mois_Annee",
-                table: "EtatsDeSortie",
-                newName: "IX_EtatsDeSortie_Key_Mois_Annee");
+    IF COL_LENGTH(N'[dbo].[Declaration]', N'ApprovedByUserId') IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_Declaration_Users_ApprovedByUserId')
+        ALTER TABLE [dbo].[Declaration] WITH CHECK
+        ADD CONSTRAINT [FK_Declaration_Users_ApprovedByUserId]
+            FOREIGN KEY([ApprovedByUserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE NO ACTION;
 
-            migrationBuilder.AddPrimaryKey(
-                name: "PK_Declaration",
-                table: "Declaration",
-                column: "Id");
+    IF COL_LENGTH(N'[dbo].[Declaration]', N'UserId') IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_Declaration_Users_UserId')
+        ALTER TABLE [dbo].[Declaration] WITH CHECK
+        ADD CONSTRAINT [FK_Declaration_Users_UserId]
+            FOREIGN KEY([UserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE CASCADE;
+END
 
-            migrationBuilder.AddPrimaryKey(
-                name: "PK_EtatsDeSortie",
-                table: "EtatsDeSortie",
-                column: "Id");
+IF OBJECT_ID(N'[dbo].[EtatsDeSortie]', N'U') IS NOT NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_FiscalRecaps_UserId' AND [object_id] = OBJECT_ID(N'[dbo].[EtatsDeSortie]'))
+        EXEC sp_rename N'[dbo].[EtatsDeSortie].[IX_FiscalRecaps_UserId]', N'IX_EtatsDeSortie_UserId', N'INDEX';
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Declaration_Users_ApprovedByUserId",
-                table: "Declaration",
-                column: "ApprovedByUserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+    IF EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_FiscalRecaps_Key_Mois_Annee' AND [object_id] = OBJECT_ID(N'[dbo].[EtatsDeSortie]'))
+        EXEC sp_rename N'[dbo].[EtatsDeSortie].[IX_FiscalRecaps_Key_Mois_Annee]', N'IX_EtatsDeSortie_Key_Mois_Annee', N'INDEX';
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Declaration_Users_UserId",
-                table: "Declaration",
-                column: "UserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+    IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE [name] = N'PK_EtatsDeSortie')
+        ALTER TABLE [dbo].[EtatsDeSortie] ADD CONSTRAINT [PK_EtatsDeSortie] PRIMARY KEY ([Id]);
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_EtatsDeSortie_Users_UserId",
-                table: "EtatsDeSortie",
-                column: "UserId",
-                principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+    IF COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'UserId') IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_EtatsDeSortie_Users_UserId')
+        ALTER TABLE [dbo].[EtatsDeSortie] WITH CHECK
+        ADD CONSTRAINT [FK_EtatsDeSortie_Users_UserId]
+            FOREIGN KEY([UserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE CASCADE;
+END
+");
         }
 
         /// <inheritdoc />

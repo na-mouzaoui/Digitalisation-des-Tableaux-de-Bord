@@ -13,7 +13,7 @@ public class User
     public string? Region { get; set; } // nord, sud, est, ouest (pour role regionale uniquement)
     public bool IsRegionalApprover { get; set; } = false; // Peut approuver les déclarations régionales de la même région
     public bool IsFinanceApprover { get; set; } = false; // Peut approuver les déclarations du niveau Siège
-    public string AccessModules { get; set; } = "cheque,fisca"; // modules accessibles : cheque, fisca
+    public string AccessModules { get; set; } = "fisca"; // modules accessibles : fisca
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public ICollection<Check> Checks { get; set; } = new List<Check>();

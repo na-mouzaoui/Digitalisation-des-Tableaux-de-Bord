@@ -1,13 +1,13 @@
 {
   "profiles": {
-    "CheckFillingAPI": {
+    "TableauDeBordAPI": {
       "commandName": "Project",
       "launchBrowser": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "CheckFillingAPI:Local": {
+    "TableauDeBordAPI:Local": {
       "commandName": "Project",
       "launchBrowser": false,
       "environmentVariables": {

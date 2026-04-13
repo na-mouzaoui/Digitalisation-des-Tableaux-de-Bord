@@ -124,18 +124,12 @@ export default function AuditLogViewer() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Toutes</SelectItem>
-              <SelectItem value="PRINT_CHECK">Imprimer chèque</SelectItem>
               <SelectItem value="CREATE_BANK">Créer banque</SelectItem>
               <SelectItem value="UPDATE_BANK">Modifier banque</SelectItem>
               <SelectItem value="DELETE_BANK">Supprimer banque</SelectItem>
-              <SelectItem value="UPDATE_CALIBRATION">Modifier calibrage</SelectItem>
               <SelectItem value="CREATE_USER">Créer utilisateur</SelectItem>
               <SelectItem value="UPDATE_USER">Modifier utilisateur</SelectItem>
               <SelectItem value="DELETE_USER">Supprimer utilisateur</SelectItem>
-              <SelectItem value="FISCAL_FOURNISSEUR_CREATE">Fournisseur fiscal - Création</SelectItem>
-              <SelectItem value="FISCAL_FOURNISSEUR_UPDATE">Fournisseur fiscal - Modification</SelectItem>
-              <SelectItem value="FISCAL_FOURNISSEUR_DELETE">Fournisseur fiscal - Suppression</SelectItem>
-              <SelectItem value="FISCAL_FOURNISSEUR_IMPORT">Fournisseur fiscal - Import</SelectItem>
             </SelectContent>
           </Select>
         </div>

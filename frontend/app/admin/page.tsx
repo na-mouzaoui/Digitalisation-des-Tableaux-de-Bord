@@ -7,11 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import AdminUserManagement from "@/components/admin-user-management"
-import AdminRegionConfig from "@/components/admin-region-config"
 import AdminAuditLogs from "@/components/admin-audit-logs"
-import { BankManagement } from "@/components/bank-management"
-import { FiscalFournisseursManagement } from "@/components/fiscal-fournisseurs-management"
-import AdminFiscalSettings from "@/components/admin-fiscal-settings"
 import { logout } from "@/lib/auth-client"
 
 export default function AdminPage() {
@@ -20,7 +16,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isLoading && status === "authenticated" && (user as { role?: string } | null)?.role !== "admin") {
-      router.replace("/cheque_dashbord")
+      router.replace("/fisca_dashbord")
     }
   }, [isLoading, status, user, router])
 
@@ -45,7 +41,7 @@ export default function AdminPage() {
             <h1 className="text-3xl font-bold">Administration</h1>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push("/cheque_dashbord")}>
+            <Button variant="outline" onClick={() => router.push("/fisca_dashbord")}>
               Retour à la plateforme
             </Button>
             <Button variant="outline" onClick={handleLogout}>
@@ -55,10 +51,9 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="users">Utilisateurs</TabsTrigger>
             <TabsTrigger value="audit">Audit</TabsTrigger>
-            <TabsTrigger value="gestion">Gestion</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
@@ -79,41 +74,6 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <AdminAuditLogs />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="gestion" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestion des banques</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <BankManagement />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Paramètres fiscaux</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AdminFiscalSettings />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestion des fournisseurs fiscaux</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FiscalFournisseursManagement />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuration des régions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AdminRegionConfig />
               </CardContent>
             </Card>
           </TabsContent>

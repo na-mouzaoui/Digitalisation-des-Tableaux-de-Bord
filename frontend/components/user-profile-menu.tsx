@@ -22,10 +22,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { getRoleLabel } from "@/lib/roles";
 import { User, Key, LogOut, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { API_BASE } from "@/lib/config";
+
+const getRoleLabel = (role: string) => {
+  switch ((role ?? "").trim().toLowerCase()) {
+    case "admin":
+      return "Admin"
+    case "comptabilite":
+      return "Finance"
+    case "regionale":
+      return "Regionale"
+    case "direction":
+      return "Global"
+    default:
+      return role || "Utilisateur"
+  }
+}
 
 interface UserData {
   email: string;

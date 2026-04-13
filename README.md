@@ -1,43 +1,11 @@
-# DFC Portal - Documentation fonctionnelle
+# Tableau de bord - Documentation fonctionnelle
 
-Ce document décrit le contenu de l'application en 4 parties :
-1. Impression de chèque
-2. Fisca
-3. Recap Fiscaux
-4. Page Admin
+Ce document décrit le contenu de l'application en 3 parties :
+1. Fisca
+2. Recap Fiscaux
+3. Page Admin
 
-## 1. Impression de chèque
-
-### Objectif
-Permettre la création, la prévisualisation, l'impression et le suivi des chèques.
-
-### Fonctionnalités principales
-- Création d'un chèque avec montant, bénéficiaire, ville, date, banque et référence.
-- Conversion automatique du montant en lettres (pour l'impression).
-- Prévisualisation avant impression.
-- Génération et impression PDF du chèque(texts des champs sans fond du cheque).
-- Gestion des banques (ajout, modification, suppression) avec modèle PDF de chèque.
-- Calibrage des positions des champs par banque et par utilisateur.
-- Gestion des chéquiers (création, consultation, mise à jour, suppression selon droits).
-- Historique des chèques avec recherche, tri, filtres, export PDF/Excel.
-- Mise à jour du statut des chèques (émis, annulé, rejeté) avec motif si nécessaire.
-- Journalisation des actions (audit) et notifications temps réel des mises à jour.
-
-### Règles métier importantes
-- Le rôle direction n'a pas le droit de créer/imprimer des chèques.
-- Un fournisseur peut être recréé avec le même nom tant que cela n’est pas fait par le même type d’utilisateur.Cas particulier : Pour les utilisateurs régionaux, l’unicité est basée sur la région.
-- Les utilisateurs régionale sont limités à leur périmètre régional (accès et données filtrées).
-- Référence de chèque vérifiée côté API.
-- Si un chéquier est plein, aucun nouveau chèque ne peut être émis dessus.
-- Le compteur d'utilisation du chéquier est incrémenté à chaque émission.
-- Un chéquier déjà utilisé ne peut plus être modifié.
-- Validation des chéquiers :
-  - série exactement 2 caractères,
-  - numéros dans la plage autorisée,
-  - numéro de fin >= numéro de début,
-  - unicité sur banque + série + numéro de départ.
-
-## 2. Fisca
+## 1. Fisca
 
 ### Objectif
 Saisir, sauvegarder, modifier, consulter, imprimer et historiser les déclarations fiscales.
@@ -133,7 +101,7 @@ Saisir, sauvegarder, modifier, consulter, imprimer et historiser les déclaratio
     - direction (global) : voit toutes les déclarations du siège approuvées + toutes les déclarations régionales (approuvées et en attente).
 - Les données peuvent exister localement (cache local) et sont aussi persistées côté API.
 
-## 3. Recap Fiscaux
+## 2. Recap Fiscaux
 
 ### Objectif
 Générer et consulter des récapitulatifs fiscaux automatiques regroupant les 7 tableaux consolidés d'une période donnée.
@@ -182,7 +150,7 @@ Générer et consulter des récapitulatifs fiscaux automatiques regroupant les 7
 - Formatage des montants cohérent avec le reste de l'application (fr-DZ : milliers espaced, virgule décimale).
 - Design des tableaux unifié avec shadcn/ui Table pour cohérence visuelle.
 
-## 4. Page Admin
+## 3. Page Admin
 
 ### Objectif
 Centraliser l'administration des utilisateurs, des référentiels et de l'audit.
