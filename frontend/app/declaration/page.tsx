@@ -23,14 +23,14 @@ const getCurrentFiscalPeriod = (now: Date = new Date()) => ({
   annee: String(now.getFullYear()),
 })
 
-const getFiscalPeriodLockMessage = (mois: string, annee: string) => `Période ${mois}/${annee}.`
-const isFiscalPeriodLocked = () => false
+const getFiscalPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
+const isFiscalPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
 const syncFiscalPolicy = async (_direction?: string | null) => null
-const isAdminFiscalRole = () => false
-const isRegionalFiscalRole = () => false
-const isFinanceFiscalRole = () => false
-const getManageableFiscalTabKeysForDirection = () => TABS.map((tab) => tab.key)
-const isFiscalTabDisabledByPolicy = () => false
+const isAdminFiscalRole = (_role?: string | null) => false
+const isRegionalFiscalRole = (_role?: string | null) => false
+const isFinanceFiscalRole = (_role?: string | null) => false
+const getManageableFiscalTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
+const isFiscalTabDisabledByPolicy = (_tabKey?: string) => false
 
 // 
 // HELPERS
@@ -6903,11 +6903,6 @@ export default function NouvelleDeclarationPage() {
     if (typeof window === "undefined") return
     const params = new URLSearchParams(window.location.search)
 
-    const requestedMode = safeString(params.get("entryMode")).trim()
-    if (requestedMode === "etats_sortie") {
-      setEntryMode("etats_sortie")
-    }
-
     const requestedRecapTab = safeString(params.get("recapTab")).trim()
     if (isRecapKey(requestedRecapTab)) {
       setActiveRecapTab(requestedRecapTab)
@@ -6932,7 +6927,7 @@ export default function NouvelleDeclarationPage() {
   //  Global meta 
   const [activeTab,  setActiveTab]  = useState("reclamation")
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<FiscalCategoryKey>("all")
-  const [entryMode, setEntryMode] = useState<RecapMode>("declaration")
+  const [entryMode] = useState<RecapMode>("declaration")
   const [activeRecapTab, setActiveRecapTab] = useState<RecapKey>("tva_collectee")
   const [direction,  setDirection]  = useState("")
   const [mois,       setMois]       = useState(INITIAL_FISCAL_PERIOD.mois)
@@ -7492,11 +7487,6 @@ export default function NouvelleDeclarationPage() {
   }
 
   const handleSave = async () => {
-    if (entryMode === "etats_sortie") {
-      await handleSaveEtatsSortie()
-      return
-    }
-
     const saveDirection = effectiveDirection
 
     const isAdminEditing = isAdminRole && !!editingDeclarationId
@@ -8422,10 +8412,8 @@ export default function NouvelleDeclarationPage() {
         <Card className="border border-gray-200">
           <CardContent className="pt-4 pb-3">
             <div className="mb-4 flex items-center justify-end">
-              <div className="flex items-center gap-2 text-xs font-medium text-emerald-800">
-                <span>Declaration</span>
-                <Switch checked={entryMode === "etats_sortie"} onCheckedChange={(checked) => setEntryMode(checked ? "etats_sortie" : "declaration")} />
-                <span>Etats de sortie</span>
+              <div className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
+                Mode: Déclaration
               </div>
             </div>
             <div className="flex flex-wrap items-end gap-6">

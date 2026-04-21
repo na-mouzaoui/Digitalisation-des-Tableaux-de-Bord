@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Kestrel to listen on all network interfaces
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.ListenAnyIP(5001); // Écoute sur 0.0.0.0:5001
+    serverOptions.ListenAnyIP(5241); // Écoute sur 0.0.0.0:5241
 });
 
 // Add services to the container.
@@ -167,6 +167,9 @@ builder.Services.AddAuthentication(options =>
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IBankService, BankService>();
+builder.Services.AddScoped<ICheckService, CheckService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
 
 var app = builder.Build();
 
@@ -282,27 +285,6 @@ BEGIN
         CREATE INDEX [IX_Declaration_ApprovedByUserId] ON [dbo].[Declaration]([ApprovedByUserId]);
 END
 
--- Safety net: keep recap table aligned with EF mapping (EtatsDeSortie).
-IF OBJECT_ID(N'[dbo].[EtatsDeSortie]', N'U') IS NULL
-BEGIN
-    IF OBJECT_ID(N'[dbo].[FiscalRecaps]', N'U') IS NOT NULL
-    BEGIN
-        EXEC sp_rename N'[dbo].[FiscalRecaps]', N'EtatsDeSortie';
-    END
-END
-
-IF OBJECT_ID(N'[dbo].[EtatsDeSortie]', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_EtatsDeSortie_UserId' AND [object_id] = OBJECT_ID(N'[dbo].[EtatsDeSortie]'))
-       AND COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'UserId') IS NOT NULL
-        CREATE INDEX [IX_EtatsDeSortie_UserId] ON [dbo].[EtatsDeSortie]([UserId]);
-
-    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_EtatsDeSortie_Key_Mois_Annee' AND [object_id] = OBJECT_ID(N'[dbo].[EtatsDeSortie]'))
-       AND COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'Key') IS NOT NULL
-       AND COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'Mois') IS NOT NULL
-       AND COL_LENGTH(N'[dbo].[EtatsDeSortie]', N'Annee') IS NOT NULL
-        CREATE UNIQUE INDEX [IX_EtatsDeSortie_Key_Mois_Annee] ON [dbo].[EtatsDeSortie]([Key], [Mois], [Annee]);
-END
 ");
 }
 

@@ -71,15 +71,6 @@ const actionLabels: Record<string, string> = {
   REJECT_DECLARATION: "Rejeter une déclaration",
   EXPORT_DECLARATION: "Exporter une déclaration en PDF",
 
-  // Historique (anciens logs recap)
-  FISCAL_RECAP_SAVE: "Enregistrement d'un état de sortie",
-  FISCAL_RECAP_DELETE: "Suppression de recap",
-  
-  // États de sortie
-  ETATS_SORTIE_SAVE: "Enregistrement d'un état de sortie",
-  ETATS_SORTIE_DELETE: "Suppression d'un état de sortie",
-  ETATS_SORTIE_PRINT: "Exporter un état de sortie en PDF",
-  
   // Déclarations fiscales
   CREATE_FISCAL_DECLARATION: "Ajout d'une déclaration fiscale",
   UPDATE_FISCAL_DECLARATION: "Modification d'une déclaration fiscale",
@@ -101,7 +92,6 @@ const actionGroups: Record<string, string[]> = {
   "Régions": ["CREATE_REGION", "UPDATE_REGION", "DELETE_REGION"],
   "Utilisateurs": ["CREATE_USER", "UPDATE_USER", "DELETE_USER", "RESET_PASSWORD"],
   "Déclarations": ["FISCAL_SAVE", "FISCAL_APPROVE", "FISCAL_DELETE", "FISCAL_PRINT"],
-  "États de sortie": ["ETATS_SORTIE_SAVE", "ETATS_SORTIE_DELETE", "ETATS_SORTIE_PRINT"],
   "Paramètres fiscaux": ["UPDATE_FISCAL_SETTING"]
 };
 

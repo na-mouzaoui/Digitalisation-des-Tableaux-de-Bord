@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TableauDeBord.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5f466e43908204c9101456ed6f4267ba272917c7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5b56d32811ba8ea8de02b577f40c703c3b620d73")]
 [assembly: System.Reflection.AssemblyProductAttribute("TableauDeBord.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TableauDeBord.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

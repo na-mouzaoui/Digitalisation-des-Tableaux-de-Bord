@@ -81,12 +81,6 @@ public class FiscalController : ControllerBase
         );
     }
 
-    private static int GetDeadlineDayForRole(string? role)
-    {
-        _ = role;
-        return 10;
-    }
-
     private static string ResolveDirectionForRole(string role, string? requestedDirection, string userDirection, string userRegion, string? existingDirection = null)
     {
         var normalizedRole = (role ?? "").Trim().ToLowerInvariant();
@@ -120,40 +114,6 @@ public class FiscalController : ControllerBase
         if (!string.IsNullOrWhiteSpace(normalizedExistingDirection))
             return normalizedExistingDirection;
         return normalizedUserDirection;
-    }
-
-    private static bool TryBuildPeriodDeadline(string mois, string annee, string? role, out DateTime deadline)
-    {
-        deadline = DateTime.MinValue;
-
-        if (!int.TryParse((mois ?? "").Trim(), out var month) || month < 1 || month > 12)
-            return false;
-
-        if (!int.TryParse((annee ?? "").Trim(), out var year) || year < 1900 || year > 9999)
-            return false;
-
-        var deadlineMonth = month == 12 ? 1 : month + 1;
-        var deadlineYear = month == 12 ? year + 1 : year;
-        var deadlineDay = GetDeadlineDayForRole(role);
-
-        deadline = new DateTime(deadlineYear, deadlineMonth, deadlineDay, 23, 59, 59, DateTimeKind.Local);
-        return true;
-    }
-
-    private static bool IsPeriodLocked(string mois, string annee, string? role, out DateTime deadline)
-    {
-        if (!TryBuildPeriodDeadline(mois, annee, role, out deadline))
-            return false;
-
-        return DateTime.Now > deadline;
-    }
-
-    private IActionResult BuildPeriodLockedResponse(string mois, string annee, DateTime deadline)
-    {
-        return Conflict(new
-        {
-            message = $"La période {mois}/{annee} est clôturée. Le délai était fixé au {deadline:dd/MM/yyyy HH:mm}."
-        });
     }
 
     private static readonly string[] RegionalManageableTabOrder =
@@ -556,47 +516,11 @@ public class FiscalController : ControllerBase
         {
             role = currentUserRole,
             requestedDirection = (direction ?? "").Trim(),
-            deadlineDay = GetDeadlineDayForRole(currentUserRole),
             regionalTabKeys,
             financeTabKeys,
             manageableTabKeys,
             disabledTabKeys,
             serverNow = DateTime.UtcNow,
-        });
-    }
-
-    // ─── GET api/fiscal/period-lock ───────────────────────────────────────
-    // Évalue le verrou de période depuis la règle backend.
-    [HttpGet("period-lock")]
-    public async Task<IActionResult> GetPeriodLock([FromQuery] string mois, [FromQuery] string annee)
-    {
-        var userId = GetCurrentUserId();
-        var currentUserContext = await GetCurrentUserContextAsync(userId);
-        var currentUserRole = currentUserContext.Role;
-
-        if (!TryBuildPeriodDeadline(mois, annee, currentUserRole, out var deadline))
-        {
-            return BadRequest(new
-            {
-                message = "Période invalide.",
-                mois,
-                annee
-            });
-        }
-
-        var isLocked = DateTime.Now > deadline;
-        var periodLabel = $"{mois}/{annee}";
-
-        return Ok(new
-        {
-            mois,
-            annee,
-            role = currentUserRole,
-            isLocked,
-            deadline,
-            message = isLocked
-                ? $"La période {periodLabel} est clôturée depuis le {deadline:dd/MM/yyyy HH:mm}."
-                : $"La période {periodLabel} est encore ouverte jusqu'au {deadline:dd/MM/yyyy HH:mm}."
         });
     }
 
@@ -704,9 +628,6 @@ public class FiscalController : ControllerBase
         if (!CanManageTabForRole(currentUserRole, request.TabKey))
             return BuildTabAccessDeniedResponse(currentUserRole, request.TabKey);
 
-        if (IsPeriodLocked(request.Mois, request.Annee, currentUserRole, out var periodDeadline))
-            return BuildPeriodLockedResponse(request.Mois, request.Annee, periodDeadline);
-
         // Vérifier qu'il n'existe pas de doublon (même TabKey, Direction, Mois/Année)
         var uniquenessRequest = new DeclarationRequest
         {
@@ -779,12 +700,6 @@ public class FiscalController : ControllerBase
         // Vérifier les permissions d'accès
         if (!await CanUserAccessDeclarationAsync(userId, decl))
             return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez modifier que les déclarations de votre groupe." });
-
-        if (IsPeriodLocked(decl.Mois, decl.Annee, currentUserRole, out var sourceDeadline))
-            return BuildPeriodLockedResponse(decl.Mois, decl.Annee, sourceDeadline);
-
-        if (IsPeriodLocked(request.Mois, request.Annee, currentUserRole, out var targetDeadline))
-            return BuildPeriodLockedResponse(request.Mois, request.Annee, targetDeadline);
 
         var targetDirection = ResolveDirectionForRole(currentUserRole, request.Direction, currentUserContext.Direction, currentUserContext.Region, decl.Direction);
 
@@ -936,9 +851,6 @@ public class FiscalController : ControllerBase
         if (!await CanUserAccessDeclarationAsync(userId, decl))
             return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez supprimer que les déclarations de votre groupe." });
 
-        if (IsPeriodLocked(decl.Mois, decl.Annee, currentUserRole, out var periodDeadline))
-            return BuildPeriodLockedResponse(decl.Mois, decl.Annee, periodDeadline);
-
         var info = new { decl.TabKey, decl.Mois, decl.Annee, deletedByUserId = userId };
         _context.Declarations.Remove(decl);
         await _context.SaveChangesAsync();
@@ -972,219 +884,6 @@ public class FiscalController : ControllerBase
         return Ok(new { message = "Impression enregistrée dans l'audit." });
     }
 
-    // ─── GET api/fiscal/reminders ──────────────────────────────────────────
-    // Retourne les rappels de saisie (j-5) pour la période a echeance (mois precedent).
-    [HttpGet("reminders")]
-    public async Task<IActionResult> GetReminders([FromQuery] string? mois, [FromQuery] string? annee)
-    {
-        Console.WriteLine("=== [API CALLED] GET /api/fiscal/reminders ===");
-        
-        var userId = GetCurrentUserId();
-        var currentUserContext = await GetCurrentUserContextAsync(userId);
-        var currentUserRole = (currentUserContext.Role ?? "").Trim().ToLowerInvariant();
-        
-        Console.WriteLine($"[GetReminders] userId={userId}, role={currentUserRole}");
-        var isTable6Enabled = await IsTable6EnabledAsync();
-
-        var now = DateTime.Now;
-        // Période fiscale courante: du 11 au 10.
-        // Avant le 11, on reste sur le mois précédent.
-        DateTime fiscalCurrentPeriodDate = now.Day >= 11 ? now : now.AddMonths(-1);
-        DateTime activePeriodDate = fiscalCurrentPeriodDate;
-
-        if (int.TryParse((mois ?? "").Trim(), out var requestedMonth)
-            && int.TryParse((annee ?? "").Trim(), out var requestedYear)
-            && requestedMonth >= 1
-            && requestedMonth <= 12
-            && requestedYear >= 1900
-            && requestedYear <= 9999)
-        {
-            activePeriodDate = new DateTime(requestedYear, requestedMonth, 1);
-        }
-
-        IQueryable<Declaration> visibleDeclarationsQuery = _context.Declarations
-            .AsNoTracking();
-
-        // Aligner la portée des rappels avec la portée du dashboard fiscal.
-        if (currentUserRole == "admin") { }
-        else if (currentUserRole == "regionale") {
-            visibleDeclarationsQuery = visibleDeclarationsQuery.Where(d => d.UserId == userId);
-        }
-        else if (currentUserRole is "finance" or "comptabilite" or "direction") { }
-        else {
-            visibleDeclarationsQuery = visibleDeclarationsQuery.Where(d => d.UserId == userId);
-        }
-
-        var visibleDeclarationsRaw = await visibleDeclarationsQuery
-            .Select(d => new
-            {
-                d.TabKey,
-                d.IsApproved,
-                d.Mois,
-                d.Annee,
-                Direction = d.Direction,
-            })
-            .ToListAsync();
-
-        // La période fiscale est calculée avec la règle 11-10.
-        // On fait un matching numérique Mois/Annee pour supporter "4" et "04".
-
-        bool MatchesPeriod(string? moisValue, string? anneeValue, DateTime target)
-        {
-            if (!int.TryParse((moisValue ?? "").Trim(), out var month) || month < 1 || month > 12)
-                return false;
-
-            if (!int.TryParse((anneeValue ?? "").Trim(), out var year) || year < 1900 || year > 9999)
-                return false;
-
-            return month == target.Month && year == target.Year;
-        }
-
-        var currentMonth = activePeriodDate.Month.ToString("00");
-        var currentYear = activePeriodDate.Year.ToString();
-
-        var visibleDeclarations = visibleDeclarationsRaw
-            .Where(d => MatchesPeriod(d.Mois, d.Annee, activePeriodDate))
-            .ToList();
-
-        Console.WriteLine($"[REMINDERS] Date={now:yyyy-MM-dd}, Période fiscale système={fiscalCurrentPeriodDate:MM/yyyy}, Période active={currentMonth}/{currentYear}, Rôle={currentUserRole}");
-
-        Console.WriteLine($"[REMINDERS] Total declarations in DB for this user: {visibleDeclarationsRaw.Count}, Visible declarations used for KPI: {visibleDeclarations.Count}");
-        Console.WriteLine($"[REMINDERS] Declarations by Mois/Annee: {string.Join(", ", visibleDeclarationsRaw.GroupBy(d => $"{d.Mois}/{d.Annee}").Select(g => $"{g.Key}({g.Count()})"))}");
-
-        string ResolveDeclarationDirection(string? declarationDirection)
-        {
-            var explicitDirection = (declarationDirection ?? "").Trim();
-            if (!string.IsNullOrWhiteSpace(explicitDirection))
-            {
-                return IsHeadOfficeDirection(explicitDirection) ? "Siège" : explicitDirection;
-            }
-            return string.Empty;
-        }
-
-        // Collecter toutes les directions accessibles
-        var allAccessibleDirections = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        if (currentUserRole == "admin")
-        {
-            // Admin: ajouter toutes les régions + siège
-            var allRegions = await _context.Regions.Select(r => r.Name).ToListAsync();
-            allAccessibleDirections.UnionWith(allRegions);
-            allAccessibleDirections.Add("Siège");
-        }
-        else if (currentUserRole == "regionale")
-        {
-            // Régionale: ajouter seulement sa région + siège
-            var userRegion = currentUserContext.Region ?? "";
-            if (!string.IsNullOrWhiteSpace(userRegion))
-                allAccessibleDirections.Add(userRegion);
-            allAccessibleDirections.Add("Siège");
-        }
-        else if (currentUserRole is "finance" or "comptabilite" or "direction")
-        {
-            // Finance/Comptabilité/Global: ajouter toutes les régions + siège
-            var allRegions = await _context.Regions.Select(r => r.Name).ToListAsync();
-            allAccessibleDirections.UnionWith(allRegions);
-            allAccessibleDirections.Add("Siège");
-        }
-        else
-        {
-            // Pour les autres rôles (agents, etc), afficher la région de l'utilisateur ou au moins Siège
-            var userRegion = currentUserContext.Region ?? "";
-            if (!string.IsNullOrWhiteSpace(userRegion))
-                allAccessibleDirections.Add(userRegion);
-            allAccessibleDirections.Add("Siège");
-        }
-
-        var declarationsByDirection = visibleDeclarations
-            .Select(d => new
-            {
-                d.TabKey,
-                d.IsApproved,
-                Direction = ResolveDeclarationDirection(d.Direction)
-            })
-            .Where(d => !string.IsNullOrWhiteSpace(d.Direction))
-            .GroupBy(d => d.Direction, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var reminders = new List<ReminderDto>();
-
-        // Créer un map des déclarations par direction
-        var declarationsByDirectionMap = new Dictionary<string, List<(string TabKey, bool IsApproved)>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var directionGroup in declarationsByDirection)
-        {
-            var directionKey = (directionGroup.Key ?? "").Trim();
-            if (!string.IsNullOrWhiteSpace(directionKey))
-            {
-                declarationsByDirectionMap[directionKey] = directionGroup
-                    .Select(d => ((d.TabKey ?? "").Trim(), d.IsApproved))
-                    .Where(d => !string.IsNullOrWhiteSpace(d.Item1))
-                    .ToList();
-            }
-        }
-
-        foreach (var direction in allAccessibleDirections)
-        {
-            var isSiegeDirection = IsHeadOfficeDirection(direction);
-            var assignedTabs = (isSiegeDirection ? FinanceManageableTabOrder : RegionalManageableTabOrder)
-                .Where(tab => isTable6Enabled || !string.Equals(tab, "etat_tap", StringComparison.OrdinalIgnoreCase))
-                .ToArray();
-            var roleForDeadline = isSiegeDirection ? "finance" : "regionale";
-
-            if (!TryBuildPeriodDeadline(currentMonth, currentYear, roleForDeadline, out var deadline))
-                continue;
-
-            // Calcul des jours restants jusqu'à minuit du jour suivant le deadline
-            // Pour inclure tout le jour du 10 (par ex. 10 avril complet pour période mars)
-            var deadlineEndOfDay = deadline.AddDays(1).Date; // Minuit du jour suivant
-            var daysUntilDeadline = (int)Math.Floor((deadlineEndOfDay - now).TotalDays);
-
-            // Récupérer les déclarations pour cette direction
-            var hasDirectionDeclarations = declarationsByDirectionMap.TryGetValue(direction, out var directionsDeclarations);
-            var enteredTabSet = hasDirectionDeclarations && directionsDeclarations != null
-                ? directionsDeclarations.Select(d => d.TabKey).ToHashSet(StringComparer.OrdinalIgnoreCase)
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            var approvedTabSet = hasDirectionDeclarations && directionsDeclarations != null
-                ? directionsDeclarations
-                    .Where(d => d.IsApproved)
-                    .Select(d => d.TabKey)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase)
-                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            var enteredTabs = assignedTabs.Count(tab => enteredTabSet.Contains(tab));
-            var approvedTabs = assignedTabs.Count(tab => approvedTabSet.Contains(tab));
-            var remainingToEnterTabs = assignedTabs.Length - enteredTabs;
-            var remainingToApproveTabs = enteredTabs - approvedTabs;
-
-            var missingTabs = assignedTabs
-                .Where(tab => !approvedTabSet.Contains(tab))
-                .ToList();
-
-            reminders.Add(new ReminderDto
-            {
-                Direction = direction,
-                Mois = currentMonth,
-                Annee = currentYear,
-                Deadline = deadline,
-                DaysUntilDeadline = daysUntilDeadline,
-                TotalTabs = assignedTabs.Length,
-                EnteredTabs = enteredTabs,
-                ApprovedTabs = approvedTabs,
-                RemainingToEnterTabs = remainingToEnterTabs,
-                RemainingToApproveTabs = remainingToApproveTabs,
-                MissingTabs = missingTabs,
-                IsUrgent = daysUntilDeadline <= 5
-            });
-        }
-
-        Console.WriteLine($"[REMINDERS] Total reminders returned: {reminders.Count}");
-        foreach (var r in reminders) {
-            Console.WriteLine($"  - {r.Direction}: {r.EnteredTabs}/{r.TotalTabs} entered, {r.ApprovedTabs} approved");
-        }
-
-        return Ok(new { reminders });
-    }
 }
 
 // ─── DTO ─────────────────────────────────────────────────────────────────────
@@ -1214,21 +913,5 @@ public sealed class TvaImmoPayload
 public sealed class TvaBiensPayload
 {
     public List<TvaInvoiceRow> TvaBiensRows { get; set; } = new();
-}
-
-public sealed class ReminderDto
-{
-    public string Direction { get; set; } = "";
-    public string Mois { get; set; } = "";
-    public string Annee { get; set; } = "";
-    public DateTime Deadline { get; set; }
-    public int DaysUntilDeadline { get; set; }
-    public int TotalTabs { get; set; }
-    public int EnteredTabs { get; set; }
-    public int ApprovedTabs { get; set; }
-    public int RemainingToEnterTabs { get; set; }
-    public int RemainingToApproveTabs { get; set; }
-    public List<string> MissingTabs { get; set; } = new();
-    public bool IsUrgent { get; set; }
 }
 

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj": {}
+    "C:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj": {}
   },
   "projects": {
-    "c:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj": {
+    "C:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj",
+        "projectUniqueName": "C:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj",
         "projectName": "TableauDeBord.Api",
-        "projectPath": "c:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj",
+        "projectPath": "C:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj",
         "packagesPath": "C:\\Users\\nazim_mouzaoui\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\obj\\",
+        "outputPath": "C:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

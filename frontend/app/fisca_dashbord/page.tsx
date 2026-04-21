@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { HubConnectionBuilder } from "@microsoft/signalr"
 import { LayoutWrapper } from "@/components/layout-wrapper"
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
@@ -12,14 +13,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CheckCircle, Trash2, Printer, Filter, ChevronUp, ChevronDown, X, Pencil, Clock3, CalendarDays, Building2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE } from "@/lib/config"
-const getFiscalPeriodLockMessage = (mois: string, annee: string) => `Période ${mois}/${annee}.`
-const isFiscalPeriodLocked = () => false
+import WILAYAS_COMMUNES, { type WilayaCommuneEntry } from "@/lib/wilayas-communes"
 
 type EncRow = { designation: string; ht?: string; ttc?: string }
 type TvaRate = "19" | "9"
 type TvaRow = { nomRaisonSociale: string; adresse: string; nif: string; authNif: string; numRC: string; authRC: string; numFacture: string; dateFacture: string; montantHT: string; tva: string; tauxTVA?: TvaRate | "" }
 type TimbreRow = { designation: string; caTTCEsp: string; droitTimbre: string }
-type TAPRow = { wilayaCode: string; tap2: string }
+type TAPRow = { wilayaCode: string; commune: string; tap2: string }
 type SiegeEncRow = { ttc: string; ht: string }
 type IrgRow    = { assietteImposable: string; montant: string }
 type Taxe2Row  = { base: string; montant: string }
@@ -37,86 +37,6 @@ type Ibs14Row  = {
 }
 type Taxe15Row = { numFacture: string; dateFacture: string; raisonSociale: string; montantNetDevise: string; monnaie: string; tauxChange: string; montantDinars: string; tauxTaxe: string; montantAPayer: string }
 type Tva16Row  = { numFacture: string; montantBrutDevise: string; tauxChange: string; montantBrutDinars: string; tva19: string }
-type EPayementRow = { rechargement: string; m: string; m1: string; evol: string }
-type TotalEncaissementRow = { mGp: string; mB2b: string; m1Gp: string; m1B2b: string; evol: string }
-type RecouvrementRow = { label: string; mGp: string; mB2b: string; m1Gp: string; m1B2b: string }
-type RealisationTechniqueReseauRow = { label: string; m: string; m1: string }
-type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
-type TraficDataRow = { label: string; m: string; m1: string }
-type AmeliorationQualiteRow = { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }
-type CouvertureReseauRow = { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }
-type ActionNotableReseauRow = { action: string; objectif2025: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
-type DisponibiliteReseauRow = { designation: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
-type DesactivationResiliationRow = { designation: string; m: string; m1: string; evol: string }
-type ParcAbonnesB2BRow = { designation: string; m: string; m1: string; evol: string }
-type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; wilayaM1: string; objectifM1: string; realiseM1: string; ecart: string }
-type MttrRegionRow = { region: string; cities: MttrCityRow[] }
-type CreancesContentieusesRow = { designation: string; m: string; m1: string; evol: string }
-type FraisPersonnelRow = { designation: string; m: string; m1: string }
-type EffectifGspRow = { gsp: string; m: string; m1: string; part: string }
-type AbsenteismeRow = { motif: string; m: string; m1: string; part: string }
-type MouvementEffectifsRow = {
-  bloc: "arrives" | "departs"
-  operation: string
-  mCadresSup: string
-  mCadres: string
-  mMaitrise: string
-  mExecution: string
-  m1CadresSup: string
-  m1Cadres: string
-  m1Maitrise: string
-  m1Execution: string
-}
-type MouvementEffectifsDomaineRow = {
-  bloc: "recrutement" | "sortant"
-  domaine: string
-  mCdi: string
-  mCdd: string
-  mCta: string
-  m1Cdi: string
-  m1Cdd: string
-  m1Cta: string
-}
-type CompteResultatRow = {
-  designation: string
-  mBudget: string
-  mRealise: string
-  mTaux: string
-  m1Budget: string
-  m1Realise: string
-  m1Taux: string
-}
-type EffectifsFormesGspRow = {
-  gsp: string
-  mObjectif: string
-  mRealise: string
-  mTaux: string
-  m1Objectif: string
-  m1Realise: string
-  m1Taux: string
-}
-type FormationsDomainesRow = {
-  domaine: string
-  mObjectif: string
-  mRealise: string
-  mTaux: string
-  m1Objectif: string
-  m1Realise: string
-  m1Taux: string
-}
-type ParcAbonnesGpRow = { designation: string; m: string; m1: string; evol: string }
-type TotalParcAbonnesRow = { designation: string; m: string; m1: string; evol: string }
-type TotalParcAbonnesTechnologieRow = { designation: string; m: string; m1: string; evol: string }
-type ActivationRow = { designation: string; m: string; m1: string; evol: string }
-type ChiffreAffairesMdaRow = {
-  designation: string
-  mObjectif: string
-  mRealise: string
-  mTaux: string
-  m1Objectif: string
-  m1Realise: string
-  m1Taux: string
-}
 
 const SIEGE_G1_LABELS = ["Encaissement", "Encaissement Exon\u00e9r\u00e9e"]
 const SIEGE_G2_LABELS = [
@@ -133,7 +53,6 @@ const IRG_LABELS = [
 const TAXE2_LABELS = ["Taxe sur l'importation des biens et services"]
 const TAXE12_LABELS = ["Taxe de Formation Professionnelle 1%", "Taxe d'Apprentissage 1%"]
 const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Août","Sept","Oct","Nov","Déc"]
-const EPAYEMENT_CHANNELS = ["Baridimob", "webportail", "GAB-Alg Poste", "WINPAY (BNA)"] as const
 
 interface SavedDeclaration {
   id: string
@@ -162,34 +81,6 @@ interface SavedDeclaration {
   ibs14Rows?: Ibs14Row[]
   taxe15Rows?: Taxe15Row[]
   tva16Rows?: Tva16Row[]
-  ePayementPopRows?: EPayementRow[]
-  ePayementPrpRows?: EPayementRow[]
-  totalEncaissementRows?: TotalEncaissementRow[]
-  recouvrementRows?: RecouvrementRow[]
-  realisationTechniqueReseauRows?: RealisationTechniqueReseauRow[]
-  situationReseauRows?: SituationReseauRow[]
-  traficDataRows?: TraficDataRow[]
-  ameliorationQualiteRows?: AmeliorationQualiteRow[]
-  couvertureReseauRows?: CouvertureReseauRow[]
-  actionNotableReseauRows?: ActionNotableReseauRow[]
-  disponibiliteReseauRows?: DisponibiliteReseauRow[]
-  desactivationResiliationRows?: DesactivationResiliationRow[]
-  parcAbonnesB2bRows?: ParcAbonnesB2BRow[]
-  mttrRows?: MttrRegionRow[]
-  creancesContentieusesRows?: CreancesContentieusesRow[]
-  fraisPersonnelRows?: FraisPersonnelRow[]
-  effectifGspRows?: EffectifGspRow[]
-  absenteismeRows?: AbsenteismeRow[]
-  mouvementEffectifsRows?: MouvementEffectifsRow[]
-  mouvementEffectifsDomaineRows?: MouvementEffectifsDomaineRow[]
-  compteResultatRows?: CompteResultatRow[]
-  effectifsFormesGspRows?: EffectifsFormesGspRow[]
-  formationsDomainesRows?: FormationsDomainesRow[]
-  parcAbonnesGpRows?: ParcAbonnesGpRow[]
-  totalParcAbonnesRows?: TotalParcAbonnesRow[]
-  totalParcAbonnesTechnologieRows?: TotalParcAbonnesTechnologieRow[]
-  activationRows?: ActivationRow[]
-  chiffreAffairesMdaRows?: ChiffreAffairesMdaRow[]
 }
 
 interface ApiFiscalDeclaration {
@@ -229,10 +120,31 @@ interface SavedRecap {
   rows: Record<string, string>[]
 }
 
+interface ReminderData {
+  direction: string
+  mois: string
+  annee: string
+  deadline: string
+  daysUntilDeadline: number
+  totalTabs: number
+  enteredTabs: number
+  approvedTabs: number
+  remainingToEnterTabs: number
+  remainingToApproveTabs: number
+}
+
 const toArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : [])
 
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.map((item) => String(item ?? "")) : []
+
+const getStoredToken = () => {
+  try {
+    return localStorage.getItem("jwt")
+  } catch {
+    return null
+  }
+}
 
 const mapApiDeclarationToSaved = (item: ApiFiscalDeclaration): SavedDeclaration => {
   const parsedData = (() => {
@@ -271,34 +183,6 @@ const mapApiDeclarationToSaved = (item: ApiFiscalDeclaration): SavedDeclaration 
     ibs14Rows: [],
     taxe15Rows: [],
     tva16Rows: [],
-    ePayementPopRows: [],
-    ePayementPrpRows: [],
-    totalEncaissementRows: [],
-    recouvrementRows: [],
-    realisationTechniqueReseauRows: [],
-    situationReseauRows: [],
-    traficDataRows: [],
-    ameliorationQualiteRows: [],
-    couvertureReseauRows: [],
-    actionNotableReseauRows: [],
-    disponibiliteReseauRows: [],
-    desactivationResiliationRows: [],
-    parcAbonnesB2bRows: [],
-    mttrRows: [],
-    creancesContentieusesRows: [],
-    fraisPersonnelRows: [],
-    effectifGspRows: [],
-    absenteismeRows: [],
-    mouvementEffectifsRows: [],
-    mouvementEffectifsDomaineRows: [],
-    compteResultatRows: [],
-    effectifsFormesGspRows: [],
-    formationsDomainesRows: [],
-    parcAbonnesGpRows: [],
-    totalParcAbonnesRows: [],
-    totalParcAbonnesTechnologieRows: [],
-    activationRows: [],
-    chiffreAffairesMdaRows: [],
   }
 
   switch ((item.tabKey ?? "").trim().toLowerCase()) {
@@ -351,94 +235,6 @@ const mapApiDeclarationToSaved = (item: ApiFiscalDeclaration): SavedDeclaration 
     case "tva_autoliq":
       declaration.tva16Rows = toArray<Tva16Row>(parsedData.tva16Rows)
       break
-    case "e_payement":
-      declaration.ePayementPopRows = toArray<EPayementRow>(parsedData.ePayementPopRows)
-      declaration.ePayementPrpRows = toArray<EPayementRow>(parsedData.ePayementPrpRows)
-      break
-    case "e_payement_pop":
-      declaration.ePayementPopRows = toArray<EPayementRow>(parsedData.ePayementPopRows)
-      break
-    case "e_payement_prp":
-      declaration.ePayementPrpRows = toArray<EPayementRow>(parsedData.ePayementPrpRows)
-      break
-    case "total_encaissement":
-      declaration.totalEncaissementRows = toArray<TotalEncaissementRow>(parsedData.totalEncaissementRows)
-      break
-    case "recouvrement":
-      declaration.recouvrementRows = toArray<RecouvrementRow>(parsedData.recouvrementRows)
-      break
-    case "realisation_technique_reseau":
-      declaration.realisationTechniqueReseauRows = toArray<RealisationTechniqueReseauRow>(parsedData.realisationTechniqueReseauRows)
-      break
-    case "situation_reseau":
-      declaration.situationReseauRows = toArray<SituationReseauRow>(parsedData.situationReseauRows)
-      break
-    case "trafic_data":
-      declaration.traficDataRows = toArray<TraficDataRow>(parsedData.traficDataRows)
-      break
-    case "amelioration_qualite":
-      declaration.ameliorationQualiteRows = toArray<AmeliorationQualiteRow>(parsedData.ameliorationQualiteRows)
-      break
-    case "couverture_reseau":
-      declaration.couvertureReseauRows = toArray<CouvertureReseauRow>(parsedData.couvertureReseauRows)
-      break
-    case "action_notable_reseau":
-      declaration.actionNotableReseauRows = toArray<ActionNotableReseauRow>(parsedData.actionNotableReseauRows)
-      break
-    case "disponibilite_reseau":
-      declaration.disponibiliteReseauRows = toArray<DisponibiliteReseauRow>(parsedData.disponibiliteReseauRows)
-      break
-    case "desactivation_resiliation":
-      declaration.desactivationResiliationRows = toArray<DesactivationResiliationRow>(parsedData.desactivationResiliationRows)
-      break
-    case "parc_abonnes_b2b":
-      declaration.parcAbonnesB2bRows = toArray<ParcAbonnesB2BRow>(parsedData.parcAbonnesB2bRows)
-      break
-    case "mttr":
-      declaration.mttrRows = toArray<MttrRegionRow>(parsedData.mttrRows)
-      break
-    case "creances_contentieuses":
-      declaration.creancesContentieusesRows = toArray<CreancesContentieusesRow>(parsedData.creancesContentieusesRows)
-      break
-    case "frais_personnel":
-      declaration.fraisPersonnelRows = toArray<FraisPersonnelRow>(parsedData.fraisPersonnelRows)
-      break
-    case "effectif_gsp":
-      declaration.effectifGspRows = toArray<EffectifGspRow>(parsedData.effectifGspRows)
-      break
-    case "absenteisme":
-      declaration.absenteismeRows = toArray<AbsenteismeRow>(parsedData.absenteismeRows)
-      break
-    case "mouvement_effectifs":
-      declaration.mouvementEffectifsRows = toArray<MouvementEffectifsRow>(parsedData.mouvementEffectifsRows)
-      break
-    case "mouvement_effectifs_domaine":
-      declaration.mouvementEffectifsDomaineRows = toArray<MouvementEffectifsDomaineRow>(parsedData.mouvementEffectifsDomaineRows)
-      break
-    case "compte_resultat":
-      declaration.compteResultatRows = toArray<CompteResultatRow>(parsedData.compteResultatRows)
-      break
-    case "effectifs_formes_gsp":
-      declaration.effectifsFormesGspRows = toArray<EffectifsFormesGspRow>(parsedData.effectifsFormesGspRows)
-      break
-    case "formations_domaines":
-      declaration.formationsDomainesRows = toArray<FormationsDomainesRow>(parsedData.formationsDomainesRows)
-      break
-    case "parc_abonnes_gp":
-      declaration.parcAbonnesGpRows = toArray<ParcAbonnesGpRow>(parsedData.parcAbonnesGpRows)
-      break
-    case "total_parc_abonnes":
-      declaration.totalParcAbonnesRows = toArray<TotalParcAbonnesRow>(parsedData.totalParcAbonnesRows)
-      break
-    case "total_parc_abonnes_technologie":
-      declaration.totalParcAbonnesTechnologieRows = toArray<TotalParcAbonnesTechnologieRow>(parsedData.totalParcAbonnesTechnologieRows)
-      break
-    case "activation":
-      declaration.activationRows = toArray<ActivationRow>(parsedData.activationRows)
-      break
-    case "chiffre_affaires_mda":
-      declaration.chiffreAffairesMdaRows = toArray<ChiffreAffairesMdaRow>(parsedData.chiffreAffairesMdaRows)
-      break
     default:
       break
   }
@@ -469,34 +265,6 @@ const DASH_TABS = [
   { key: "ibs",           label: "14 a IBS Fournisseurs Etrangers", color: "#7c2d12", title: "IBS SUR FOURNISSEURS ETRANGERS" },
   { key: "taxe_domicil",  label: "15 a Taxe Domiciliation", color: "#134e4a", title: "TAXE DOMICILIATION BANCAIRE" },
   { key: "tva_autoliq",   label: "16 a TVA Auto Liquidation", color: "#312e81", title: "TVA AUTO LIQUIDATION" },
-  { key: "e_payement_pop",label: "17 a E-PAYEMENT Pop", color: "#065f46", title: "E-PAYEMENT POP (MDA)" },
-  { key: "e_payement_prp",label: "18 a E-PAYEMENT Prp", color: "#0f766e", title: "E-PAYEMENT PRP (MDA)" },
-  { key: "total_encaissement", label: "19 a Totale des encaissment", color: "#1e40af", title: "TOTALE DES ENCAISSMENT" },
-  { key: "recouvrement", label: "20 a Recouvrement", color: "#166534", title: "RECOUVREMENT (MDA)" },
-  { key: "realisation_technique_reseau", label: "21 a Realisation technique Reseau", color: "#1d4ed8", title: "REALISATION TECHNIQUE RESEAU" },
-  { key: "situation_reseau", label: "22 a Situation Reseau", color: "#92400e", title: "SITUATION RESEAUX" },
-  { key: "trafic_data", label: "23 a Trafic Data", color: "#075985", title: "TRAFIC DATA (TB)" },
-  { key: "amelioration_qualite", label: "24 a Amelioration qualite", color: "#be185d", title: "AMELIORATION QUALITE" },
-  { key: "couverture_reseau", label: "25 a Couverture Reseau", color: "#7c3aed", title: "COUVERTURE RESEAU" },
-  { key: "action_notable_reseau", label: "26 a Action notable sur le reseau", color: "#a16207", title: "ACTION NOTABLE SUR LE RESEAU" },
-  { key: "disponibilite_reseau", label: "27 a Disponibilite reseau", color: "#0f766e", title: "DISPONIBILITE RESEAU" },
-  { key: "desactivation_resiliation", label: "28 a Desactivation / Resiliation", color: "#be123c", title: "DESACTIVATION / RESILIATION" },
-  { key: "parc_abonnes_b2b", label: "29 a Parc Abonnes B2B", color: "#0c4a6e", title: "PARC ABONNES B2B" },
-  { key: "mttr", label: "30 a MTTR", color: "#2db34b", title: "MTTR / DR" },
-  { key: "creances_contentieuses", label: "31 a Creances Contentieuses", color: "#be123c", title: "CREANCES CONTENTIEUSES" },
-  { key: "frais_personnel", label: "32 a Frais personnel", color: "#1d4ed8", title: "FRAIS PERSONNEL (MDA)" },
-  { key: "effectif_gsp", label: "33 a Effectif par GSP", color: "#0369a1", title: "EFFECTIF PAR GSP" },
-  { key: "absenteisme", label: "34 a Absenteisme", color: "#7c3aed", title: "ABSENTEISME (JOURS)" },
-  { key: "mouvement_effectifs", label: "35 a Mouvement des effectifs", color: "#166534", title: "MOUVEMENT DES EFFECTIFS" },
-  { key: "mouvement_effectifs_domaine", label: "36 a Mouvement des effectifs par domaine", color: "#0f766e", title: "MOUVEMENT DES EFFECTIFS PAR DOMAINE" },
-  { key: "compte_resultat", label: "37 a Compte de resultat", color: "#2db34b", title: "COMPTE DE RESULTAT" },
-  { key: "effectifs_formes_gsp", label: "38 a Effectifs formes par GSP", color: "#0369a1", title: "EFFECTIFS FORMES PAR GSP" },
-  { key: "formations_domaines", label: "39 a Formations realisees par domaines", color: "#0f766e", title: "FORMATIONS REALISEES PAR DOMAINES" },
-  { key: "parc_abonnes_gp", label: "40 a Parc Abonnes GP", color: "#1d4ed8", title: "PARC ABONNES GP" },
-  { key: "total_parc_abonnes", label: "41 a Total Parc Abonnes", color: "#0369a1", title: "TOTAL PARC ABONNES" },
-  { key: "total_parc_abonnes_technologie", label: "42 a Total Parc Abonnes parc technologie", color: "#0f766e", title: "TOTAL PARC ABONNES PARC TECHNOLOGIE" },
-  { key: "activation", label: "43 a Activation", color: "#be123c", title: "ACTIVATION" },
-  { key: "chiffre_affaires_mda", label: "44 a Chiffre d'Affaires (MDA)", color: "#2db34b", title: "CHIFFRE D'AFFAIRES (MDA)" },
 ]
 
 // aaa Shared styles & helpers aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -506,6 +274,86 @@ const fmt = (v: number | string) => {
   const [intPart, decPart] = num.toFixed(2).split(".")
   const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
   return `${formattedInt},${decPart}`
+}
+
+function RemindersCard({
+  reminders,
+  loading = false,
+  selectedMonth,
+  selectedYear,
+  onMonthChange,
+  onYearChange,
+}: {
+  reminders: ReminderData[]
+  loading?: boolean
+  userRole?: string
+  directionOptions?: string[]
+  selectedMonth?: string
+  selectedYear?: string
+  onMonthChange?: (value: string) => void
+  onYearChange?: (value: string) => void
+}) {
+  const currentPeriod = selectedMonth && selectedYear ? `${selectedMonth}/${selectedYear}` : "-"
+
+  const totals = reminders.reduce(
+    (acc, item) => {
+      acc.total += item.totalTabs
+      acc.entered += item.enteredTabs
+      acc.approved += item.approvedTabs
+      acc.pending += item.remainingToEnterTabs + item.remainingToApproveTabs
+      return acc
+    },
+    { total: 0, entered: 0, approved: 0, pending: 0 },
+  )
+
+  return (
+    <Card className="border-amber-200 bg-amber-50">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <CardTitle className="text-base flex items-center gap-2">
+            <CalendarDays size={18} className="text-amber-700" />
+            Rappels et delais fiscaux
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedMonth ?? ""}
+              onChange={(event) => onMonthChange?.(event.target.value)}
+              className="h-8 rounded border px-2 text-xs"
+            >
+              {Object.entries(MONTHS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <input
+              value={selectedYear ?? ""}
+              onChange={(event) => onYearChange?.(event.target.value)}
+              className="h-8 w-20 rounded border px-2 text-xs"
+              maxLength={4}
+              inputMode="numeric"
+            />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <p className="text-sm text-amber-900">Chargement des rappels...</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-amber-900">
+              Periode: <span className="font-semibold">{currentPeriod}</span>.
+              Directions suivies: <span className="font-semibold">{reminders.length}</span>.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div className="rounded border bg-white p-2"><span className="text-muted-foreground">Tableaux</span><div className="font-semibold">{totals.total}</div></div>
+              <div className="rounded border bg-white p-2"><span className="text-muted-foreground">Saisis</span><div className="font-semibold">{totals.entered}</div></div>
+              <div className="rounded border bg-white p-2"><span className="text-muted-foreground">Approuves</span><div className="font-semibold">{totals.approved}</div></div>
+              <div className="rounded border bg-white p-2"><span className="text-muted-foreground">En attente</span><div className="font-semibold">{totals.pending}</div></div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
 const num = (v: string | number | null | undefined) => {
   if (typeof v === "number") return Number.isFinite(v) ? v : 0
@@ -699,13 +547,16 @@ function CATable({ b12, b13 }: { b12: string; b13: string }) {
 }
 
 function TAPTable({ rows }: { rows: TAPRow[] }) {
+  const getWilayaName = (code: string) =>
+    WILAYAS_COMMUNES.find((entry: WilayaCommuneEntry) => entry.code === code)?.wilaya ?? "-"
+
   const totalImposable = rows.reduce((s, r) => s + num(r.tap2), 0)
   const totalTap = totalImposable * 0.015
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          {["Code Wilaya", "Montant Imposable", "TAP 1,5%"].map((h) => (
+          {["Code", "Wilaya", "Commune", "Montant Imposable", "TAP 1,5%"].map((h) => (
             <TableHead key={h} className={["Montant Imposable", "TAP 1,5%"].includes(h) ? "text-right" : undefined}>{h}</TableHead>
           ))}
         </TableRow>
@@ -714,12 +565,14 @@ function TAPTable({ rows }: { rows: TAPRow[] }) {
         {rows.map((r, i) => (
           <TableRow key={i}>
             <TableCell>{r.wilayaCode || "-"}</TableCell>
+            <TableCell>{getWilayaName(r.wilayaCode)}</TableCell>
+            <TableCell>{r.commune || "-"}</TableCell>
             <TableCell className="text-right font-semibold">{fmt(r.tap2)}</TableCell>
             <TableCell className="text-right font-semibold">{fmt(num(r.tap2) * 0.015)}</TableCell>
           </TableRow>
         ))}
         <TableRow className="font-bold bg-muted">
-          <TableCell>TOTAL</TableCell>
+          <TableCell colSpan={3}>TOTAL</TableCell>
           <TableCell className="text-right font-bold">{fmt(totalImposable)}</TableCell>
           <TableCell className="text-right font-bold">{fmt(totalTap)}</TableCell>
         </TableRow>
@@ -1038,840 +891,6 @@ function Tva16Table({ rows }: { rows: Tva16Row[] }) {
   )
 }
 
-function EPayementTable({ rows, title }: { rows: EPayementRow[]; title: string }) {
-  const normalizedRows = EPAYEMENT_CHANNELS.map((rechargement, index) => ({
-    rechargement,
-    m: rows[index]?.m ?? "",
-    m1: rows[index]?.m1 ?? "",
-    evol: rows[index]?.evol ?? "",
-  }))
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-muted/60">
-          <TableHead colSpan={4}>{title}</TableHead>
-        </TableRow>
-        <TableRow>
-          {[
-            "Rechargement",
-            "M",
-            "M+1",
-            "Evol",
-          ].map((header) => (
-            <TableHead key={header} className={header !== "Rechargement" ? "text-right" : undefined}>{header}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {normalizedRows.map((row, index) => (
-          <TableRow key={`e-payement-${index}`}>
-            <TableCell>{row.rechargement}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.evol)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function TotalEncaissementTable({ rows }: { rows: TotalEncaissementRow[] }) {
-  const row = rows[0] ?? { mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "-" }
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={3}>Encaissement (MDA)</TableHead>
-          <TableHead colSpan={2} className="text-center">M</TableHead>
-          <TableHead colSpan={2} className="text-center">M+1</TableHead>
-          <TableHead rowSpan={3} className="text-center">Evol</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead colSpan={2} className="text-center">Sous-colonnes</TableHead>
-          <TableHead colSpan={2} className="text-center">Sous-colonnes</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">GP</TableHead>
-          <TableHead className="text-right">B2B</TableHead>
-          <TableHead className="text-right">GP</TableHead>
-          <TableHead className="text-right">B2B</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <TableRow>
-          <TableCell>Encaissements</TableCell>
-          <TableCell className="text-right font-semibold">{fmt(row.mGp)}</TableCell>
-          <TableCell className="text-right font-semibold">{fmt(row.mB2b)}</TableCell>
-          <TableCell className="text-right font-semibold">{fmt(row.m1Gp)}</TableCell>
-          <TableCell className="text-right font-semibold">{fmt(row.m1B2b)}</TableCell>
-          <TableCell className="text-center">{row.evol || "-"}</TableCell>
-        </TableRow>
-        <TableRow className="font-bold bg-muted">
-          <TableCell>Total</TableCell>
-          <TableCell className="text-right font-bold">{fmt(row.mGp || "0")}</TableCell>
-          <TableCell className="text-right font-bold">{fmt(row.mB2b || "0")}</TableCell>
-          <TableCell className="text-right font-bold">{fmt(row.m1Gp || "0")}</TableCell>
-          <TableCell className="text-right font-bold">{fmt(row.m1B2b || "0")}</TableCell>
-          <TableCell className="text-center">{row.evol || "-"}</TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
-  )
-}
-
-function RecouvrementTable({ rows }: { rows: RecouvrementRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={3}>Recouvrement (MDA)</TableHead>
-          <TableHead colSpan={2} className="text-center">M</TableHead>
-          <TableHead colSpan={2} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead colSpan={2} className="text-center">Sous-colonnes</TableHead>
-          <TableHead colSpan={2} className="text-center">Sous-colonnes</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">GP</TableHead>
-          <TableHead className="text-right">B2B</TableHead>
-          <TableHead className="text-right">GP</TableHead>
-          <TableHead className="text-right">B2B</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`recouvrement-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.label}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mGp)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mB2b)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Gp)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1B2b)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function RealisationTechniqueReseauTable({ rows }: { rows: RealisationTechniqueReseauRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Realisations techniques</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`realisation-technique-${index}`}>
-            <TableCell>{row.label}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function SituationReseauTable({ rows }: { rows: SituationReseauRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Situation Reseaux</TableHead>
-          <TableHead>Equipements</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`situation-reseau-${index}`}>
-            <TableCell>{row.situation}</TableCell>
-            <TableCell className="whitespace-pre-line">{row.equipements}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function TraficDataTable({ rows }: { rows: TraficDataRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Trafic Data (TB)</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`trafic-data-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.label}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function AmeliorationQualiteTable({ rows }: { rows: AmeliorationQualiteRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Debit MBPS/wtilaya</TableHead>
-          <TableHead colSpan={2} className="text-center">M</TableHead>
-          <TableHead colSpan={2} className="text-center">M+1</TableHead>
-          <TableHead rowSpan={2} className="text-center">ecart</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`amelioration-qualite-${index}`}>
-            <TableCell>{row.wilaya}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mObjectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mRealise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Objectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Realise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.ecart)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function CouvertureReseauTable({ rows }: { rows: CouvertureReseauRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Debit Couverture Resau/wtilaya</TableHead>
-          <TableHead colSpan={2} className="text-center">M</TableHead>
-          <TableHead colSpan={2} className="text-center">M+1</TableHead>
-          <TableHead rowSpan={2} className="text-center">ecart</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`couverture-reseau-${index}`}>
-            <TableCell>{row.wilaya}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mObjectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mRealise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Objectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Realise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.ecart)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function ActionNotableReseauTable({ rows }: { rows: ActionNotableReseauRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Action</TableHead>
-          <TableHead rowSpan={2}>Objectif 2025</TableHead>
-          <TableHead colSpan={3} className="text-center">M</TableHead>
-          <TableHead colSpan={3} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`action-notable-reseau-${index}`}>
-            <TableCell>{row.action}</TableCell>
-            <TableCell>{row.objectif2025}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mObjectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mRealise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mTaux)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Objectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Realise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Taux)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function DisponibiliteReseauTable({ rows }: { rows: DisponibiliteReseauRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Designations</TableHead>
-          <TableHead colSpan={3} className="text-center">M</TableHead>
-          <TableHead colSpan={3} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`disponibilite-reseau-${index}`}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mObjectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mRealise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mTaux)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Objectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Realise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Taux)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function DesactivationResiliationTable({ rows }: { rows: DesactivationResiliationRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Desactivation / Resiliation</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Evol</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`desactivation-resiliation-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.evol)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function ParcAbonnesB2BTable({ rows }: { rows: ParcAbonnesB2BRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Parc Abonnes B2B</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Evol</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`parc-abonnes-b2b-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.evol)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function MttrTable({ rows }: { rows: MttrRegionRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>MTTR / DR</TableHead>
-          <TableHead colSpan={3} className="text-center">M</TableHead>
-          <TableHead colSpan={3} className="text-center">M+1</TableHead>
-          <TableHead rowSpan={2} className="text-right">Ecart</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead>Wilaya</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead>Wilaya</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((region, regionIndex) =>
-          (region.cities ?? []).map((city, cityIndex) => (
-            <TableRow key={`mttr-${regionIndex}-${cityIndex}`}>
-              {cityIndex === 0 && <TableCell rowSpan={region.cities.length}>{region.region}</TableCell>}
-              <TableCell>{city.wilayaM}</TableCell>
-              <TableCell className="text-right font-semibold">{fmt(city.objectifM)}</TableCell>
-              <TableCell className="text-right font-semibold">{fmt(city.realiseM)}</TableCell>
-              <TableCell>{city.wilayaM1}</TableCell>
-              <TableCell className="text-right font-semibold">{fmt(city.objectifM1)}</TableCell>
-              <TableCell className="text-right font-semibold">{fmt(city.realiseM1)}</TableCell>
-              <TableCell className="text-right font-semibold">{fmt(city.ecart)}</TableCell>
-            </TableRow>
-          )),
-        )}
-      </TableBody>
-    </Table>
-  )
-}
-
-function CreancesContentieusesTable({ rows }: { rows: CreancesContentieusesRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Creances Contentieuses</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Evol</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`creances-contentieuses-${index}`}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.evol)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function FraisPersonnelTable({ rows }: { rows: FraisPersonnelRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Frais personnel (MDA)</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`frais-personnel-${index}`}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function EffectifGspTable({ rows }: { rows: EffectifGspRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>GSP</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Part %</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`effectif-gsp-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.gsp}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.part)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function AbsenteismeTable({ rows }: { rows: AbsenteismeRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Absenteisme (jours)</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Part %</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`absenteisme-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.motif}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.part)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function MouvementEffectifsTable({ rows }: { rows: MouvementEffectifsRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Mouvement des effectifs</TableHead>
-          <TableHead rowSpan={2}>Type d'operation</TableHead>
-          <TableHead colSpan={4} className="text-center">M</TableHead>
-          <TableHead colSpan={4} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Cadres Sup</TableHead>
-          <TableHead className="text-right">Cadres</TableHead>
-          <TableHead className="text-right">Maitrise</TableHead>
-          <TableHead className="text-right">Execution</TableHead>
-          <TableHead className="text-right">Cadres Sup</TableHead>
-          <TableHead className="text-right">Cadres</TableHead>
-          <TableHead className="text-right">Maitrise</TableHead>
-          <TableHead className="text-right">Execution</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`mouvement-effectifs-${index}`} className={row.operation === "TOTAL" ? "font-bold bg-muted" : ""}>
-            {index === 0 && <TableCell rowSpan={6}>Arrives</TableCell>}
-            {index === 6 && <TableCell rowSpan={10}>Departs</TableCell>}
-            <TableCell>{row.operation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mCadresSup)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mCadres)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mMaitrise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mExecution)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1CadresSup)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Cadres)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Maitrise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Execution)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function MouvementEffectifsDomaineTable({ rows }: { rows: MouvementEffectifsDomaineRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Mouvement des effectifs par Domaine</TableHead>
-          <TableHead rowSpan={2}>Domaine</TableHead>
-          <TableHead colSpan={3} className="text-center">M</TableHead>
-          <TableHead colSpan={3} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">CDI</TableHead>
-          <TableHead className="text-right">CDD</TableHead>
-          <TableHead className="text-right">CTA</TableHead>
-          <TableHead className="text-right">CDI</TableHead>
-          <TableHead className="text-right">CDD</TableHead>
-          <TableHead className="text-right">CTA</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`mouvement-effectifs-domaine-${index}`} className={row.domaine === "TOTAL" ? "font-bold bg-muted" : ""}>
-            {index === 0 && <TableCell rowSpan={5}>Recrutement</TableCell>}
-            {index === 5 && <TableCell rowSpan={5}>Sortant</TableCell>}
-            <TableCell>{row.domaine}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mCdi)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mCdd)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mCta)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Cdi)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Cdd)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Cta)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function CompteResultatTable({ rows }: { rows: CompteResultatRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Designations</TableHead>
-          <TableHead colSpan={3} className="text-center">M</TableHead>
-          <TableHead colSpan={3} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Budget</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-          <TableHead className="text-right">Budget</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`compte-resultat-${index}`}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mBudget)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mRealise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mTaux)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Budget)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Realise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Taux)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function EffectifsFormesGspTable({ rows }: { rows: EffectifsFormesGspRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Effectifs Formes par GSP</TableHead>
-          <TableHead colSpan={3} className="text-center">M</TableHead>
-          <TableHead colSpan={3} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`effectifs-formes-gsp-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.gsp}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mObjectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mRealise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mTaux)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Objectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Realise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Taux)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function FormationsDomainesTable({ rows }: { rows: FormationsDomainesRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Domaines</TableHead>
-          <TableHead colSpan={3} className="text-center">M</TableHead>
-          <TableHead colSpan={3} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`formations-domaines-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.domaine}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mObjectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mRealise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mTaux)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Objectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Realise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Taux)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function ParcAbonnesGpTable({ rows }: { rows: ParcAbonnesGpRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Parc Abonnes GP</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Evol</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`parc-abonnes-gp-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.evol)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function TotalParcAbonnesTable({ rows }: { rows: TotalParcAbonnesRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Total Parc Abonnes</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Evol</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`total-parc-abonnes-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.evol)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function TotalParcAbonnesTechnologieTable({ rows }: { rows: TotalParcAbonnesTechnologieRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Total Parc Abonnes parc technologie</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Evol</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`total-parc-abonnes-tech-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.evol)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function ActivationTable({ rows }: { rows: ActivationRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Activation</TableHead>
-          <TableHead className="text-right">M</TableHead>
-          <TableHead className="text-right">M+1</TableHead>
-          <TableHead className="text-right">Evol</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`activation-${index}`} className={index === (rows.length - 1) ? "font-bold bg-muted" : ""}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.evol)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function ChiffreAffairesMdaTable({ rows }: { rows: ChiffreAffairesMdaRow[] }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead rowSpan={2}>Chiffre d'Affaires (MDA)</TableHead>
-          <TableHead colSpan={3} className="text-center">M</TableHead>
-          <TableHead colSpan={3} className="text-center">M+1</TableHead>
-        </TableRow>
-        <TableRow>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-          <TableHead className="text-right">Objectif</TableHead>
-          <TableHead className="text-right">Realise</TableHead>
-          <TableHead className="text-right">Taux</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {(rows ?? []).map((row, index) => (
-          <TableRow key={`chiffre-affaires-mda-${index}`}>
-            <TableCell>{row.designation}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mObjectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mRealise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.mTaux)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Objectif)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Realise)}</TableCell>
-            <TableCell className="text-right font-semibold">{fmt(row.m1Taux)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
 function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: SavedDeclaration; color: string }) {
   switch (tabKey) {
     case "encaissement":  return <EncTable rows={decl.encRows ?? []} />
@@ -1890,35 +909,6 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: SavedDecla
     case "ibs":           return <Ibs14Table rows={decl.ibs14Rows ?? []} />
     case "taxe_domicil":  return <Taxe15Table rows={decl.taxe15Rows ?? []} />
     case "tva_autoliq":   return <Tva16Table rows={decl.tva16Rows ?? []} />
-    case "e_payement_pop": return <EPayementTable rows={decl.ePayementPopRows ?? []} title="E-PAYEMENT Pop (MDA)" />
-    case "e_payement_prp": return <EPayementTable rows={decl.ePayementPrpRows ?? []} title="E-PAYEMENT Prp (MDA)" />
-    case "e_payement":     return <EPayementTable rows={decl.ePayementPopRows ?? []} title="E-PAYEMENT Pop (MDA)" />
-    case "total_encaissement": return <TotalEncaissementTable rows={decl.totalEncaissementRows ?? []} />
-    case "recouvrement": return <RecouvrementTable rows={decl.recouvrementRows ?? []} />
-    case "realisation_technique_reseau": return <RealisationTechniqueReseauTable rows={decl.realisationTechniqueReseauRows ?? []} />
-    case "situation_reseau": return <SituationReseauTable rows={decl.situationReseauRows ?? []} />
-    case "trafic_data": return <TraficDataTable rows={decl.traficDataRows ?? []} />
-    case "amelioration_qualite": return <AmeliorationQualiteTable rows={decl.ameliorationQualiteRows ?? []} />
-    case "couverture_reseau": return <CouvertureReseauTable rows={decl.couvertureReseauRows ?? []} />
-    case "action_notable_reseau": return <ActionNotableReseauTable rows={decl.actionNotableReseauRows ?? []} />
-    case "disponibilite_reseau": return <DisponibiliteReseauTable rows={decl.disponibiliteReseauRows ?? []} />
-    case "desactivation_resiliation": return <DesactivationResiliationTable rows={decl.desactivationResiliationRows ?? []} />
-    case "parc_abonnes_b2b": return <ParcAbonnesB2BTable rows={decl.parcAbonnesB2bRows ?? []} />
-    case "mttr": return <MttrTable rows={decl.mttrRows ?? []} />
-    case "creances_contentieuses": return <CreancesContentieusesTable rows={decl.creancesContentieusesRows ?? []} />
-    case "frais_personnel": return <FraisPersonnelTable rows={decl.fraisPersonnelRows ?? []} />
-    case "effectif_gsp": return <EffectifGspTable rows={decl.effectifGspRows ?? []} />
-    case "absenteisme": return <AbsenteismeTable rows={decl.absenteismeRows ?? []} />
-    case "mouvement_effectifs": return <MouvementEffectifsTable rows={decl.mouvementEffectifsRows ?? []} />
-    case "mouvement_effectifs_domaine": return <MouvementEffectifsDomaineTable rows={decl.mouvementEffectifsDomaineRows ?? []} />
-    case "compte_resultat": return <CompteResultatTable rows={decl.compteResultatRows ?? []} />
-    case "effectifs_formes_gsp": return <EffectifsFormesGspTable rows={decl.effectifsFormesGspRows ?? []} />
-    case "formations_domaines": return <FormationsDomainesTable rows={decl.formationsDomainesRows ?? []} />
-    case "parc_abonnes_gp": return <ParcAbonnesGpTable rows={decl.parcAbonnesGpRows ?? []} />
-    case "total_parc_abonnes": return <TotalParcAbonnesTable rows={decl.totalParcAbonnesRows ?? []} />
-    case "total_parc_abonnes_technologie": return <TotalParcAbonnesTechnologieTable rows={decl.totalParcAbonnesTechnologieRows ?? []} />
-    case "activation": return <ActivationTable rows={decl.activationRows ?? []} />
-    case "chiffre_affaires_mda": return <ChiffreAffairesMdaTable rows={decl.chiffreAffairesMdaRows ?? []} />
     default:              return null
   }
 }
@@ -2050,72 +1040,16 @@ export default function FiscaDashboardPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [sortCol, setSortCol] = useState<"type"|"direction"|"periode"|"date">("date")
   const [sortDir, setSortDir] = useState<"asc"|"desc">("desc")
+  const [reminders, setReminders] = useState<ReminderData[]>([])
   const [regions, setRegions] = useState<Array<{ id: number; name: string }>>([])
   const [refreshRevision, setRefreshRevision] = useState(0)
-  const isAdminRole = true
-  const canApproveRegionalDeclarations = true
-  const canApproveFinanceDeclarations = true
+  const normalizedRole = (user?.role ?? "").trim().toLowerCase()
+  const normalizedRegion = (user?.region ?? "").trim().toLowerCase()
+  const isFinanceRole = normalizedRole === "finance" || normalizedRole === "comptabilite"
+  const isAdminRole = normalizedRole === "admin"
+  const canApproveRegionalDeclarations = normalizedRole === "regionale" && !!user?.isRegionalApprover
+  const canApproveFinanceDeclarations = isFinanceRole && !!user?.isFinanceApprover
 
-  useEffect(() => {
-    if (!user || status !== "authenticated") {
-      setRecaps([])
-      return
-    }
-
-    let cancelled = false
-
-    const loadRecaps = async () => {
-      try {
-        const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-        const response = await fetch(`${API_BASE}/api/fiscal-recaps`, {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        })
-
-        if (!response.ok) {
-          if (!cancelled) setRecaps([])
-          return
-        }
-
-        const payload = await response.json().catch(() => null)
-        const nextRecaps: SavedRecap[] = Array.isArray(payload)
-          ? (payload as ApiFiscalRecap[]).map((item) => {
-              let rows: Record<string, string>[] = []
-              try {
-                const parsedRows = JSON.parse(item.rowsJson ?? "[]")
-                rows = Array.isArray(parsedRows) ? (parsedRows as Record<string, string>[]) : []
-              } catch {
-                rows = []
-              }
-
-              return {
-                id: String(item.id),
-                key: String(item.key ?? ""),
-                title: String(item.title ?? ""),
-                mois: String(item.mois ?? ""),
-                annee: String(item.annee ?? ""),
-                createdAt: String(item.updatedAt ?? item.createdAt ?? new Date().toISOString()),
-                rows,
-              }
-            })
-          : []
-
-        if (!cancelled) {
-          setRecaps(nextRecaps)
-        }
-      } catch {
-        if (!cancelled) setRecaps([])
-      }
-    }
-
-    loadRecaps()
-
-    return () => {
-      cancelled = true
-    }
-  }, [status, user])
 
   useEffect(() => {
     if (!user || status !== "authenticated") {
@@ -2168,6 +1102,34 @@ export default function FiscaDashboardPage() {
   useEffect(() => {
     if (!user || status !== "authenticated") {
       return
+    }
+
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${API_BASE}/hubs/check-updates`, {
+        withCredentials: true,
+        accessTokenFactory: () => getStoredToken() ?? "",
+      })
+      .withAutomaticReconnect([0, 2000, 5000, 10000])
+      .build()
+
+    const handleFiscalDeclarationChanged = () => {
+      setRefreshRevision((prev) => prev + 1)
+    }
+
+    connection.on("fiscalDeclarationChanged", handleFiscalDeclarationChanged)
+
+    const timeoutId = setTimeout(() => {
+      connection.start().catch((error) => {
+        console.error("SignalR fiscal connection error:", error)
+      })
+    }, 500)
+
+    return () => {
+      clearTimeout(timeoutId)
+      connection.off("fiscalDeclarationChanged", handleFiscalDeclarationChanged)
+      connection
+        .stop()
+        .catch((error) => console.error("SignalR fiscal stop error:", error))
     }
   }, [status, user])
 
@@ -2227,22 +1189,9 @@ export default function FiscaDashboardPage() {
     )
   }
 
-  const isDeclarationLocked = (decl: SavedDeclaration) => isFiscalPeriodLocked(decl.mois, decl.annee, user.role)
-
-  const showPeriodLockedToast = (decl: SavedDeclaration, actionLabel: "modifier" | "supprimer") => {
-    toast({
-      title: "Période clôturée",
-      description: `${getFiscalPeriodLockMessage(decl.mois, decl.annee, user.role)} Impossible de ${actionLabel} cette déclaration.`,
-      variant: "destructive",
-    })
-  }
+  const isDeclarationLocked = (_decl: SavedDeclaration) => false
 
   const handleDelete = async (decl: SavedDeclaration) => {
-    if (isDeclarationLocked(decl)) {
-      showPeriodLockedToast(decl, "supprimer")
-      return
-    }
-
     try {
       const declarationId = Number(decl.id)
       if (!Number.isFinite(declarationId)) {
@@ -2607,13 +1556,14 @@ export default function FiscaDashboardPage() {
                   5: { halign: "center", cellWidth: 38 },
                   6: { halign: "center", cellWidth: 42 },
                 }
-              : Array(tableHead[0]?.length ?? 0)
-                  .fill(null)
-                  .map((_, i) =>
+              : Object.fromEntries(
+                  Array.from({ length: tableHead[0]?.length ?? 0 }, (_, i) => [
+                    String(i),
                     i === 0
                       ? { halign: "left", cellWidth: "auto" }
-                      : { halign: "center", cellWidth: "auto" }
-                  ),
+                      : { halign: "center", cellWidth: "auto" },
+                  ]),
+                ),
           didParseCell: (data) => {
             if (!(tabKey === "ibs" && data.section === "head")) {
               data.cell.text = data.cell.text.map((line) =>
@@ -2660,11 +1610,6 @@ export default function FiscaDashboardPage() {
   }
 
   const handleEdit = (decl: SavedDeclaration, tabKey: string) => {
-    if (isDeclarationLocked(decl)) {
-      showPeriodLockedToast(decl, "modifier")
-      return
-    }
-
     router.push(`/declaration?editId=${encodeURIComponent(decl.id)}&tab=${encodeURIComponent(tabKey)}`)
   }
 
@@ -2747,34 +1692,6 @@ export default function FiscaDashboardPage() {
     if ((decl.ibs14Rows?.length ?? 0) > 0) return { key: "ibs", label: "IBS Fournisseurs Etrangers", color: "#7c2d12" }
     if ((decl.taxe15Rows?.length ?? 0) > 0) return { key: "taxe_domicil", label: "Taxe Domiciliation", color: "#134e4a" }
     if ((decl.tva16Rows?.length ?? 0) > 0) return { key: "tva_autoliq", label: "TVA Auto Liquidation", color: "#312e81" }
-    if ((decl.ePayementPopRows?.length ?? 0) > 0) return { key: "e_payement_pop", label: "E-PAYEMENT Pop", color: "#065f46" }
-    if ((decl.ePayementPrpRows?.length ?? 0) > 0) return { key: "e_payement_prp", label: "E-PAYEMENT Prp", color: "#0f766e" }
-    if ((decl.totalEncaissementRows?.length ?? 0) > 0) return { key: "total_encaissement", label: "Totale des encaissment", color: "#1e40af" }
-    if ((decl.recouvrementRows?.length ?? 0) > 0) return { key: "recouvrement", label: "Recouvrement", color: "#166534" }
-    if ((decl.realisationTechniqueReseauRows?.length ?? 0) > 0) return { key: "realisation_technique_reseau", label: "Realisation technique Reseau", color: "#1d4ed8" }
-    if ((decl.situationReseauRows?.length ?? 0) > 0) return { key: "situation_reseau", label: "Situation Reseau", color: "#92400e" }
-    if ((decl.traficDataRows?.length ?? 0) > 0) return { key: "trafic_data", label: "Trafic Data", color: "#075985" }
-    if ((decl.ameliorationQualiteRows?.length ?? 0) > 0) return { key: "amelioration_qualite", label: "Amelioration qualite", color: "#be185d" }
-    if ((decl.couvertureReseauRows?.length ?? 0) > 0) return { key: "couverture_reseau", label: "Couverture Reseau", color: "#7c3aed" }
-    if ((decl.actionNotableReseauRows?.length ?? 0) > 0) return { key: "action_notable_reseau", label: "Action notable sur le reseau", color: "#a16207" }
-    if ((decl.disponibiliteReseauRows?.length ?? 0) > 0) return { key: "disponibilite_reseau", label: "Disponibilite reseau", color: "#0f766e" }
-    if ((decl.desactivationResiliationRows?.length ?? 0) > 0) return { key: "desactivation_resiliation", label: "Desactivation / Resiliation", color: "#be123c" }
-    if ((decl.parcAbonnesB2bRows?.length ?? 0) > 0) return { key: "parc_abonnes_b2b", label: "Parc Abonnes B2B", color: "#0c4a6e" }
-    if ((decl.mttrRows?.length ?? 0) > 0) return { key: "mttr", label: "MTTR", color: "#2db34b" }
-    if ((decl.creancesContentieusesRows?.length ?? 0) > 0) return { key: "creances_contentieuses", label: "Creances Contentieuses", color: "#be123c" }
-    if ((decl.fraisPersonnelRows?.length ?? 0) > 0) return { key: "frais_personnel", label: "Frais personnel", color: "#1d4ed8" }
-    if ((decl.effectifGspRows?.length ?? 0) > 0) return { key: "effectif_gsp", label: "Effectif par GSP", color: "#0369a1" }
-    if ((decl.absenteismeRows?.length ?? 0) > 0) return { key: "absenteisme", label: "Absenteisme", color: "#7c3aed" }
-    if ((decl.mouvementEffectifsRows?.length ?? 0) > 0) return { key: "mouvement_effectifs", label: "Mouvement des effectifs", color: "#166534" }
-    if ((decl.mouvementEffectifsDomaineRows?.length ?? 0) > 0) return { key: "mouvement_effectifs_domaine", label: "Mouvement des effectifs par domaine", color: "#0f766e" }
-    if ((decl.compteResultatRows?.length ?? 0) > 0) return { key: "compte_resultat", label: "Compte de resultat", color: "#2db34b" }
-    if ((decl.effectifsFormesGspRows?.length ?? 0) > 0) return { key: "effectifs_formes_gsp", label: "Effectifs formes par GSP", color: "#0369a1" }
-    if ((decl.formationsDomainesRows?.length ?? 0) > 0) return { key: "formations_domaines", label: "Formations realisees par domaines", color: "#0f766e" }
-    if ((decl.parcAbonnesGpRows?.length ?? 0) > 0) return { key: "parc_abonnes_gp", label: "Parc Abonnes GP", color: "#1d4ed8" }
-    if ((decl.totalParcAbonnesRows?.length ?? 0) > 0) return { key: "total_parc_abonnes", label: "Total Parc Abonnes", color: "#0369a1" }
-    if ((decl.totalParcAbonnesTechnologieRows?.length ?? 0) > 0) return { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnes parc technologie", color: "#0f766e" }
-    if ((decl.activationRows?.length ?? 0) > 0) return { key: "activation", label: "Activation", color: "#be123c" }
-    if ((decl.chiffreAffairesMdaRows?.length ?? 0) > 0) return { key: "chiffre_affaires_mda", label: "Chiffre d'Affaires (MDA)", color: "#2db34b" }
     return { key: "encaissement", label: "Non défini", color: "#6b7280" }
   }
 
@@ -2985,6 +1902,33 @@ export default function FiscaDashboardPage() {
       ? sortDir === "asc" ? <ChevronUp size={13} className="inline ml-0.5" /> : <ChevronDown size={13} className="inline ml-0.5" />
       : <span className="inline-block w-3" />
 
+  const reminderDirectionOptions = (() => {
+    const normalizeDirection = (value: string) => {
+      const normalized = value.trim().toLowerCase()
+      if (!normalized) return ""
+      if (normalized === "siege" || normalized === "siège" || normalized.includes("siege") || normalized.includes("siège")) {
+        return "Siège"
+      }
+      return value.trim()
+    }
+
+    const declarationDirections = declarations
+      .map((declaration) => normalizeDirection(declaration.direction ?? ""))
+      .filter(Boolean)
+
+    if (declarationDirections.length > 0) {
+      return Array.from(new Set(declarationDirections)).sort((a, b) => a.localeCompare(b, "fr"))
+    }
+
+    const fallbackDirections = [
+      ...reminders.map((reminder) => normalizeDirection(reminder.direction ?? "")),
+      ...regions.map((region) => normalizeDirection(region.name)),
+      "Siège",
+    ].filter(Boolean)
+
+    return Array.from(new Set(fallbackDirections)).sort((a, b) => a.localeCompare(b, "fr"))
+  })()
+
   const viewTab = DASH_TABS.find((t) => t.key === viewTabKey)
   const viewTabColor = viewTab?.color ?? "#000"
   const viewTabTitle = viewTab?.title ?? ""
@@ -3128,34 +2072,6 @@ export default function FiscaDashboardPage() {
                     <option value="ibs">IBS Etrangers</option>
                     <option value="taxe_domicil">Taxe Domiciliation</option>
                     <option value="tva_autoliq">TVA Auto Liquidation</option>
-                    <option value="e_payement_pop">E-PAYEMENT Pop</option>
-                    <option value="e_payement_prp">E-PAYEMENT Prp</option>
-                    <option value="total_encaissement">Totale des encaissment</option>
-                    <option value="recouvrement">Recouvrement</option>
-                    <option value="realisation_technique_reseau">Realisation technique Reseau</option>
-                    <option value="situation_reseau">Situation Reseau</option>
-                    <option value="trafic_data">Trafic Data</option>
-                    <option value="amelioration_qualite">Amelioration qualite</option>
-                    <option value="couverture_reseau">Couverture Reseau</option>
-                    <option value="action_notable_reseau">Action notable sur le reseau</option>
-                    <option value="disponibilite_reseau">Disponibilite reseau</option>
-                    <option value="desactivation_resiliation">Desactivation / Resiliation</option>
-                    <option value="parc_abonnes_b2b">Parc Abonnes B2B</option>
-                    <option value="mttr">MTTR</option>
-                    <option value="creances_contentieuses">Creances Contentieuses</option>
-                    <option value="frais_personnel">Frais personnel</option>
-                    <option value="effectif_gsp">Effectif par GSP</option>
-                    <option value="absenteisme">Absenteisme</option>
-                    <option value="mouvement_effectifs">Mouvement des effectifs</option>
-                    <option value="mouvement_effectifs_domaine">Mouvement des effectifs par domaine</option>
-                    <option value="compte_resultat">Compte de resultat</option>
-                    <option value="effectifs_formes_gsp">Effectifs formes par GSP</option>
-                    <option value="formations_domaines">Formations realisees par domaines</option>
-                    <option value="parc_abonnes_gp">Parc Abonnes GP</option>
-                    <option value="total_parc_abonnes">Total Parc Abonnes</option>
-                    <option value="total_parc_abonnes_technologie">Total Parc Abonnes parc technologie</option>
-                    <option value="activation">Activation</option>
-                    <option value="chiffre_affaires_mda">Chiffre d'Affaires (MDA)</option>
                   </select>
                 </div>
                 <div>
@@ -3323,132 +2239,6 @@ export default function FiscaDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <CardTitle className="text-base">
-                Etats de sortie
-                {recaps.length > 0 && (
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({filteredRecaps.length}{hasActiveRecapFilters ? ` / ${recaps.length}` : ""})
-                  </span>
-                )}
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                {hasActiveRecapFilters && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 text-xs text-muted-foreground hover:text-emerald-600"
-                    onClick={() => {
-                      setRecapFilterMois("")
-                      setRecapFilterAnnee("")
-                    }}
-                  >
-                    <X size={14} className="mr-1" /> Effacer filtres
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant={showRecapFilters ? "secondary" : "outline"}
-                  className="h-8 text-xs"
-                  onClick={() => setShowRecapFilters(!showRecapFilters)}
-                >
-                  <Filter size={14} className="mr-1" /> Filtrer
-                </Button>
-              </div>
-            </div>
-            {showRecapFilters && (
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Mois</label>
-                  <select
-                    value={recapFilterMois}
-                    onChange={(event) => setRecapFilterMois(event.target.value)}
-                    className="w-full border rounded px-2 py-1.5 text-xs"
-                  >
-                    <option value="">Tous</option>
-                    {Object.entries(MONTHS).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Année</label>
-                  <input
-                    type="number"
-                    placeholder="ex: 2026"
-                    value={recapFilterAnnee}
-                    onChange={(event) => setRecapFilterAnnee(event.target.value)}
-                    className="w-full border rounded px-2 py-1.5 text-xs"
-                  />
-                </div>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            {recaps.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Aucun etat de sortie pour le moment.
-              </p>
-            ) : filteredRecaps.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Aucun etat de sortie ne correspond aux filtres.
-              </p>
-            ) : (
-              <div className="max-h-[540px] overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type de recap</TableHead>
-                      <TableHead>Periode</TableHead>
-                      <TableHead>Date de sauvegarde</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRecaps.map((recap) => (
-                      <TableRow
-                        key={recap.id}
-                        className="hover:bg-gray-50 cursor-pointer"
-                        onClick={() => handleViewRecap(recap)}
-                        title="Cliquer pour consulter"
-                      >
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">{recap.title}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {MONTHS[recap.mois] || recap.mois} {recap.annee}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {new Date(recap.createdAt).toLocaleString("fr-DZ", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                void handleDeleteRecap(recap)
-                              }}
-                              title="Supprimer"
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* aa Consult Dialog aa */}
@@ -3516,98 +2306,6 @@ export default function FiscaDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showRecapDialog} onOpenChange={setShowRecapDialog}>
-        <DialogContent className="!w-[95vw] sm:!w-[90vw] xl:!w-[74vw] !max-w-[1200px] h-[82vh] p-0 overflow-hidden [&_[data-slot=table-head]]:border-r [&_[data-slot=table-head]]:border-border [&_[data-slot=table-head]:last-child]:border-r-0 [&_[data-slot=table-cell]]:border-r [&_[data-slot=table-cell]]:border-border [&_[data-slot=table-cell]:last-child]:border-r-0">
-          <div className="border-b bg-gradient-to-r from-slate-50 to-white px-6 py-4">
-            <DialogHeader className="space-y-3">
-              <DialogTitle className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-base font-semibold leading-tight">
-                    {viewRecap?.title ?? "Recap"}
-                  </p>
-                </div>
-              </DialogTitle>
-              {viewRecap && (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="secondary" className="gap-1.5 font-normal">
-                    <CalendarDays size={12} /> {MONTHS[viewRecap.mois] ?? viewRecap.mois} {viewRecap.annee}
-                  </Badge>
-                </div>
-              )}
-            </DialogHeader>
-          </div>
-
-          {viewRecap && (
-            <div className="h-[calc(82vh-140px)] overflow-auto bg-slate-50/60 px-6 py-5">
-              <div className="rounded-xl border bg-white p-4 shadow-sm">
-                <div className="overflow-x-auto">
-                  {(() => {
-                    const columns = Array.from(new Set(viewRecap.rows.flatMap((row) => Object.keys(row))))
-                    const orderedColumns = [
-                      ...(columns.includes("designation") ? ["designation"] : []),
-                      ...columns.filter((column) => column !== "designation"),
-                    ]
-
-                    if (orderedColumns.length === 0) {
-                      return <p className="text-sm text-muted-foreground">Aucune donnée pour ce recap.</p>
-                    }
-
-                    return (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            {orderedColumns.map((column) => (
-                              <TableHead key={column} className={column === "designation" ? "text-left" : "text-right"}>
-                                {column}
-                              </TableHead>
-                            ))}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {viewRecap.rows.map((row, index) => (
-                            <TableRow key={`${viewRecap.id}-${index}`}>
-                              {orderedColumns.map((column) => (
-                                <TableCell key={column} className={column === "designation" ? "text-left" : "text-right font-semibold"}>
-                                  {String(row[column] ?? "")}
-                                </TableCell>
-                              ))}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )
-                  })()}
-                </div>
-              </div>
-
-              <div className="mt-4 flex justify-end gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 text-xs h-8 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  onClick={() => {
-                    setShowRecapDialog(false)
-                    handlePrintRecap(viewRecap)
-                  }}
-                >
-                  <Printer size={13} /> Imprimer
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 text-xs h-8 border-sky-300 text-sky-700 hover:bg-sky-50"
-                  onClick={() => {
-                    setShowRecapDialog(false)
-                    handleEditRecap(viewRecap)
-                  }}
-                >
-                  <Pencil size={13} /> Modifier
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </LayoutWrapper>
   )
 }

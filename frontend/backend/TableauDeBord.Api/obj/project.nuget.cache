@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "a9RfHp3My3k=",
+  "dgSpecHash": "CyU7lUBURWk=",
   "success": true,
-  "projectFilePath": "c:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj",
+  "projectFilePath": "C:\\Users\\nazim_mouzaoui\\Projets\\Mobilis\\Digitalisation-des-Tableaux-de-Bord\\frontend\\backend\\TableauDeBord.Api\\TableauDeBord.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\nazim_mouzaoui\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\nazim_mouzaoui\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",
