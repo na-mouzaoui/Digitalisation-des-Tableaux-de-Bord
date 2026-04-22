@@ -212,10 +212,10 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 
     // Safety net: if migration history is out of sync, ensure tableu settings table exists.
-    db.Database.ExecuteSqlRaw(@"
-IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NULL
+   db.Database.ExecuteSqlRaw(@"
+IF OBJECT_ID(N'[dbo].[Tableau]', N'U') IS NULL
 BEGIN
-    CREATE TABLE [dbo].[Tableu] (
+    CREATE TABLE [dbo].[Tableau] (
         [Id] INT IDENTITY(1,1) NOT NULL,
         [UserId] INT NOT NULL,
         [TabKey] NVARCHAR(50) NOT NULL,
@@ -223,20 +223,20 @@ BEGIN
         [Annee] NVARCHAR(10) NULL,
         [Direction] NVARCHAR(200) NULL,
         [DataJson] NVARCHAR(MAX) NOT NULL,
-        [IsApproved] BIT NOT NULL CONSTRAINT [DF_Tableu_IsApproved] DEFAULT(0),
+        [IsApproved] BIT NOT NULL CONSTRAINT [DF_Tableau_IsApproved] DEFAULT(0),
         [ApprovedByUserId] INT NULL,
         [ApprovedAt] DATETIME2 NULL,
         [CreatedAt] DATETIME2 NOT NULL,
         [UpdatedAt] DATETIME2 NOT NULL,
-        CONSTRAINT [PK_Tableu] PRIMARY KEY ([Id])
+        CONSTRAINT [PK_Tableau] PRIMARY KEY ([Id])
     );
 
-    ALTER TABLE [dbo].[Tableu] WITH CHECK
-    ADD CONSTRAINT [FK_Tableu_Users_UserId]
+    ALTER TABLE [dbo].[Tableau] WITH CHECK
+    ADD CONSTRAINT [FK_Tableau_Users_UserId]
         FOREIGN KEY([UserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE CASCADE;
 
-    ALTER TABLE [dbo].[Tableu] WITH CHECK
-    ADD CONSTRAINT [FK_Tableu_Users_ApprovedByUserId]
+    ALTER TABLE [dbo].[Tableau] WITH CHECK
+    ADD CONSTRAINT [FK_Tableau_Users_ApprovedByUserId]
         FOREIGN KEY([ApprovedByUserId]) REFERENCES [dbo].[Users]([Id]);
 END
 ");
