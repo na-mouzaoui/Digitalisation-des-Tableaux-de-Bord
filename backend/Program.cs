@@ -213,75 +213,32 @@ using (var scope = app.Services.CreateScope())
 
     // Safety net: if migration history is out of sync, ensure tableu settings table exists.
     db.Database.ExecuteSqlRaw(@"
-IF OBJECT_ID(N'[dbo].[AdminTableuSettings]', N'U') IS NULL
-BEGIN
-    CREATE TABLE [dbo].[AdminTableuSettings] (
-        [Id] INT NOT NULL,
-        [IsTable6Enabled] BIT NOT NULL CONSTRAINT [DF_AdminTableuSettings_IsTable6Enabled] DEFAULT(1),
-        [UpdatedAt] DATETIME2 NOT NULL,
-        CONSTRAINT [PK_AdminTableuSettings] PRIMARY KEY ([Id])
-    );
-
-    INSERT INTO [dbo].[AdminTableuSettings] ([Id], [IsTable6Enabled], [UpdatedAt])
-    VALUES (1, 1, GETUTCDATE());
-END
-ELSE IF NOT EXISTS (SELECT 1 FROM [dbo].[AdminTableuSettings] WHERE [Id] = 1)
-BEGIN
-    INSERT INTO [dbo].[AdminTableuSettings] ([Id], [IsTable6Enabled], [UpdatedAt])
-    VALUES (1, 1, GETUTCDATE());
-END
-
--- Safety net: keep tableu tableu table aligned with EF mapping (Tableu).
 IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NULL
 BEGIN
-    IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-    BEGIN
-        EXEC sp_rename N'[dbo].[Tableu]', N'Tableu';
-    END
-    ELSE
-    BEGIN
-        CREATE TABLE [dbo].[Tableu] (
-            [Id] INT IDENTITY(1,1) NOT NULL,
-            [UserId] INT NOT NULL,
-            [TabKey] NVARCHAR(50) NOT NULL,
-            [Mois] NVARCHAR(10) NULL,
-            [Annee] NVARCHAR(10) NULL,
-            [Direction] NVARCHAR(200) NULL,
-            [DataJson] NVARCHAR(MAX) NOT NULL,
-            [IsApproved] BIT NOT NULL CONSTRAINT [DF_Tableu_IsApproved] DEFAULT(0),
-            [ApprovedByUserId] INT NULL,
-            [ApprovedAt] DATETIME2 NULL,
-            [CreatedAt] DATETIME2 NOT NULL,
-            [UpdatedAt] DATETIME2 NOT NULL,
-            CONSTRAINT [PK_Tableu] PRIMARY KEY ([Id])
-        );
+    CREATE TABLE [dbo].[Tableu] (
+        [Id] INT IDENTITY(1,1) NOT NULL,
+        [UserId] INT NOT NULL,
+        [TabKey] NVARCHAR(50) NOT NULL,
+        [Mois] NVARCHAR(10) NULL,
+        [Annee] NVARCHAR(10) NULL,
+        [Direction] NVARCHAR(200) NULL,
+        [DataJson] NVARCHAR(MAX) NOT NULL,
+        [IsApproved] BIT NOT NULL CONSTRAINT [DF_Tableu_IsApproved] DEFAULT(0),
+        [ApprovedByUserId] INT NULL,
+        [ApprovedAt] DATETIME2 NULL,
+        [CreatedAt] DATETIME2 NOT NULL,
+        [UpdatedAt] DATETIME2 NOT NULL,
+        CONSTRAINT [PK_Tableu] PRIMARY KEY ([Id])
+    );
 
-        ALTER TABLE [dbo].[Tableu] WITH CHECK
-        ADD CONSTRAINT [FK_Tableu_Users_UserId]
-            FOREIGN KEY([UserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE CASCADE;
+    ALTER TABLE [dbo].[Tableu] WITH CHECK
+    ADD CONSTRAINT [FK_Tableu_Users_UserId]
+        FOREIGN KEY([UserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE CASCADE;
 
-        ALTER TABLE [dbo].[Tableu] WITH CHECK
-        ADD CONSTRAINT [FK_Tableu_Users_ApprovedByUserId]
-            FOREIGN KEY([ApprovedByUserId]) REFERENCES [dbo].[Users]([Id]);
-    END
+    ALTER TABLE [dbo].[Tableu] WITH CHECK
+    ADD CONSTRAINT [FK_Tableu_Users_ApprovedByUserId]
+        FOREIGN KEY([ApprovedByUserId]) REFERENCES [dbo].[Users]([Id]);
 END
-
-IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Tableu_UserId' AND [object_id] = OBJECT_ID(N'[dbo].[Tableu]'))
-        CREATE INDEX [IX_Tableu_UserId] ON [dbo].[Tableu]([UserId]);
-
-    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Tableu_UserId_TabKey_Mois_Annee' AND [object_id] = OBJECT_ID(N'[dbo].[Tableu]'))
-        CREATE INDEX [IX_Tableu_UserId_TabKey_Mois_Annee] ON [dbo].[Tableu]([UserId], [TabKey], [Mois], [Annee]);
-
-    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Tableu_IsApproved' AND [object_id] = OBJECT_ID(N'[dbo].[Tableu]'))
-        CREATE INDEX [IX_Tableu_IsApproved] ON [dbo].[Tableu]([IsApproved]);
-
-    IF COL_LENGTH(N'[dbo].[Tableu]', N'ApprovedByUserId') IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'IX_Tableu_ApprovedByUserId' AND [object_id] = OBJECT_ID(N'[dbo].[Tableu]'))
-        CREATE INDEX [IX_Tableu_ApprovedByUserId] ON [dbo].[Tableu]([ApprovedByUserId]);
-END
-
 ");
 }
 
