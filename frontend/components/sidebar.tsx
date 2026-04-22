@@ -21,7 +21,7 @@ const tableuLinks = [
   { name: "Commercial", href: "/tableu/commercial" },
   { name: "Reseaux technique(DVDRS)", href: "/tableu/DVDRS" },
   { name: "Qualité reseau(DQRPC)", href: "/tableu/DQRPC" },
-  { name: "Pilotage et Performance", href: "/tableu/pilotage-performance" },
+  { name: "Support", href: "/tableu/Support" },
   { name: "Finances", href: "/tableu/finances" },
   { name: "Direction regionale", href: "/tableu/regionale" },
 ]
