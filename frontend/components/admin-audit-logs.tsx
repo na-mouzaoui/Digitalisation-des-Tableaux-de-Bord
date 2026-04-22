@@ -47,52 +47,52 @@ const actionLabels: Record<string, string> = {
   UPDATE_BANK: "Modification d'une banque",
   DELETE_BANK: "Suppression d'une banque",
   
-  // Régions
-  CREATE_REGION: "Ajout d'une région",
-  UPDATE_REGION: "Modification d'une région",
-  DELETE_REGION: "Suppression d'une région",
+  // RÃ©gions
+  CREATE_REGION: "Ajout d'une rÃ©gion",
+  UPDATE_REGION: "Modification d'une rÃ©gion",
+  DELETE_REGION: "Suppression d'une rÃ©gion",
   
   // Utilisateurs
   CREATE_USER: "Ajout d'un utilisateur",
   UPDATE_USER: "Modification d'un utilisateur",
   DELETE_USER: "Suppression d'un utilisateur",
-  RESET_PASSWORD: "Réinitialiser le mot de passe d'un utilisateur",
+  RESET_PASSWORD: "RÃ©initialiser le mot de passe d'un utilisateur",
   
-  // Déclarations
-  FISCAL_SAVE: "Enregistrement d'une déclaration",
-  FISCAL_APPROVE: "Approuver une déclaration",
-  FISCAL_DELETE: "Suppression d'une déclaration",
-  FISCAL_PRINT: "Exporter une déclaration en PDF",
-  CREATE_DECLARATION: "Ajout d'une déclaration",
-  UPDATE_DECLARATION: "Modification d'une déclaration",
-  DELETE_DECLARATION: "Suppression d'une déclaration",
-  SUBMIT_DECLARATION: "Soumettre une déclaration",
-  APPROVE_DECLARATION: "Approuver une déclaration",
-  REJECT_DECLARATION: "Rejeter une déclaration",
-  EXPORT_DECLARATION: "Exporter une déclaration en PDF",
+  // Tableaux
+  TABLEU_SAVE: "Enregistrement d'un tableu",
+  TABLEU_APPROVE: "Approuver un tableu",
+  TABLEU_DELETE: "Suppression d'un tableu",
+  TABLEU_PRINT: "Exporter un tableu en PDF",
+  CREATE_TABLEU: "Ajout d'un tableu",
+  UPDATE_TABLEU: "Modification d'un tableu",
+  DELETE_TABLEU: "Suppression d'un tableu",
+  SUBMIT_TABLEU: "Soumettre un tableu",
+  APPROVE_TABLEU: "Approuver un tableu",
+  REJECT_TABLEU: "Rejeter un tableu",
+  EXPORT_TABLEU: "Exporter un tableu en PDF",
 
-  // Déclarations fiscales
-  CREATE_FISCAL_DECLARATION: "Ajout d'une déclaration fiscale",
-  UPDATE_FISCAL_DECLARATION: "Modification d'une déclaration fiscale",
-  DELETE_FISCAL_DECLARATION: "Suppression d'une déclaration fiscale",
-  LOCK_PERIOD: "Verrouiller une période",
-  UNLOCK_PERIOD: "Déverrouiller une période",
+  // Tableaux Ã©tendus
+  CREATE_TABLEU_TABLEU: "Ajout d'un tableu Ã©tendu",
+  UPDATE_TABLEU_TABLEU: "Modification d'un tableu Ã©tendu",
+  DELETE_TABLEU_TABLEU: "Suppression d'un tableu Ã©tendu",
+  LOCK_PERIOD: "Verrouiller une pÃ©riode",
+  UNLOCK_PERIOD: "DÃ©verrouiller une pÃ©riode",
 
-  // Paramètres fiscaux
-  UPDATE_FISCAL_SETTING: "Activer / désactiver le Tableau 6",
+  // ParamÃ¨tres tableuux
+  UPDATE_TABLEU_SETTING: "Activer / dÃ©sactiver le Tableau 6",
   
-  // Génériques (fallback)
-  CREATE: "Création",
+  // GÃ©nÃ©riques (fallback)
+  CREATE: "CrÃ©ation",
   UPDATE: "Modification",
   DELETE: "Suppression"
 };
 
 const actionGroups: Record<string, string[]> = {
   "Banques": ["CREATE_BANK", "UPDATE_BANK", "DELETE_BANK"],
-  "Régions": ["CREATE_REGION", "UPDATE_REGION", "DELETE_REGION"],
+  "RÃ©gions": ["CREATE_REGION", "UPDATE_REGION", "DELETE_REGION"],
   "Utilisateurs": ["CREATE_USER", "UPDATE_USER", "DELETE_USER", "RESET_PASSWORD"],
-  "Déclarations": ["FISCAL_SAVE", "FISCAL_APPROVE", "FISCAL_DELETE", "FISCAL_PRINT"],
-  "Paramètres fiscaux": ["UPDATE_FISCAL_SETTING"]
+  "Tableaux": ["TABLEU_SAVE", "TABLEU_APPROVE", "TABLEU_DELETE", "TABLEU_PRINT"],
+  "ParamÃ¨tres tableuux": ["UPDATE_TABLEU_SETTING"]
 };
 
 const fieldLabels: Record<string, string> = {
@@ -100,44 +100,44 @@ const fieldLabels: Record<string, string> = {
   id: "ID",
   name: "Nom",
   code: "Code",
-  createdAt: "Créé le",
-  updatedAt: "Modifié le",
+  createdAt: "CrÃ©Ã© le",
+  updatedAt: "ModifiÃ© le",
   
   // Banques
   bankId: "Banque",
   bankName: "Nom de la banque",
   bankCode: "Code de la banque",
   
-  // Régions
-  regionId: "Région",
-  regionName: "Nom de la région",
-  regionCode: "Code de la région",
+  // RÃ©gions
+  regionId: "RÃ©gion",
+  regionName: "Nom de la rÃ©gion",
+  regionCode: "Code de la rÃ©gion",
   wilayaId: "Wilaya",
   wilayaName: "Wilaya",
   wilayaCode: "Code Wilaya",
   ville: "Ville",
   
-  // Déclarations
-  declarationId: "Déclaration",
+  // Tableaux
+  tableuId: "Tableu",
   direction: "Direction",
   mois: "Mois",
-  annee: "Année",
-  period: "Période",
-  declarationStatus: "Statut de la déclaration",
-  settingName: "Paramètre",
+  annee: "AnnÃ©e",
+  period: "PÃ©riode",
+  tableuStatus: "Statut du tableu",
+  settingName: "ParamÃ¨tre",
   oldValue: "Ancienne valeur",
   newValue: "Nouvelle valeur",
   
-  // Récapitulatifs TVA
-  recapId: "Récapitulatif",
+  // RÃ©capitulatifs TVA
+  recapId: "RÃ©capitulatif",
   tvaType: "Type de TVA",
   totalBase: "Base totale",
   totalAmount: "Montant total",
   
-  // Déclarations fiscales
-  fiscalDeclarationId: "Déclaration fiscale",
-  fiscalYear: "Année fiscale",
-  fiscalStatus: "Statut fiscal",
+  // Tableaux Ã©tendus
+  tableuTableuId: "Tableu Ã©tendu",
+  tableuYear: "AnnÃ©e tableue",
+  tableuStatus: "Statut tableu",
   
   // Calibrage
   x: "Position X",
@@ -149,7 +149,7 @@ const fieldLabels: Record<string, string> = {
   userId: "Utilisateur",
   username: "Nom d'utilisateur",
   fullName: "Nom complet",
-  role: "Rôle",
+  role: "RÃ´le",
   password: "Mot de passe",
   UserEmail: "Email utilisateur",
   NewPassword: "Nouveau mot de passe",
@@ -167,7 +167,7 @@ const getActionLabel = (action: string): string => {
   const explicit = actionLabels[action];
   if (explicit) return explicit;
 
-  // Fallback lisible en français pour les actions non mappées
+  // Fallback lisible en franÃ§ais pour les actions non mappÃ©es
   return action
     .toLowerCase()
     .split("_")
@@ -374,7 +374,7 @@ export default function AdminAuditLogs() {
 
       {showFilters && (
         <div className="rounded-lg border bg-muted/50 p-4">
-          <h3 className="mb-4 text-sm font-semibold">Filtres Avancés</h3>
+          <h3 className="mb-4 text-sm font-semibold">Filtres AvancÃ©s</h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <Label>Utilisateur</Label>
@@ -418,7 +418,7 @@ export default function AdminAuditLogs() {
             </div>
 
             <div>
-              <Label>Date début</Label>
+              <Label>Date dÃ©but</Label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -438,7 +438,7 @@ export default function AdminAuditLogs() {
 
           <div className="mt-4 flex justify-end">
             <Button onClick={handleReset} variant="outline" size="sm">
-              Réinitialiser
+              RÃ©initialiser
             </Button>
           </div>
         </div>
@@ -447,7 +447,7 @@ export default function AdminAuditLogs() {
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4" style={{ color: '#e82c2a' }} />
         <Input
-          placeholder="Rechercher par utilisateur, action ou détails..."
+          placeholder="Rechercher par utilisateur, action ou dÃ©tails..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -459,7 +459,7 @@ export default function AdminAuditLogs() {
         <div className="text-center py-8">Chargement...</div>
       ) : filteredLogs.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          Aucun log trouvé
+          Aucun log trouvÃ©
         </div>
       ) : (
         <div className="border rounded-lg overflow-x-auto">
@@ -483,7 +483,7 @@ export default function AdminAuditLogs() {
                 </TableHead>
                 <TableHead>
                   <Button variant="ghost" size="sm" onClick={() => handleSort('details')} className="h-8 p-0 font-semibold hover:underline">
-                    Détails
+                    DÃ©tails
                   </Button>
                 </TableHead>
               </TableRow>
@@ -539,16 +539,16 @@ export default function AdminAuditLogs() {
 
       {/* Statistiques */}
       <div className="text-sm text-muted-foreground">
-        Total: {filteredLogs.length} entrée{filteredLogs.length > 1 ? "s" : ""}
+        Total: {filteredLogs.length} entrÃ©e{filteredLogs.length > 1 ? "s" : ""}
       </div>
 
-      {/* Dialog détails */}
+      {/* Dialog dÃ©tails */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Détails de l'action</DialogTitle>
+            <DialogTitle>DÃ©tails de l'action</DialogTitle>
             <DialogDescription>
-              Informations complètes sur cette action d'audit
+              Informations complÃ¨tes sur cette action d'audit
             </DialogDescription>
           </DialogHeader>
           {selectedLog && (
@@ -572,23 +572,23 @@ export default function AdminAuditLogs() {
                     {(() => {
                       const timestamp = new Date(selectedLog.createdAt);
                       const isValidDate = !isNaN(timestamp.getTime());
-                      return isValidDate ? format(timestamp, "dd MMMM yyyy 'à' HH:mm:ss", { locale: fr }) : selectedLog.createdAt;
+                      return isValidDate ? format(timestamp, "dd MMMM yyyy 'Ã ' HH:mm:ss", { locale: fr }) : selectedLog.createdAt;
                     })()}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold text-muted-foreground">Type d'entité</Label>
+                  <Label className="text-sm font-semibold text-muted-foreground">Type d'entitÃ©</Label>
                   <p className="mt-1">{selectedLog.entityType || "-"}</p>
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-semibold text-muted-foreground">Détails complets</Label>
+                <Label className="text-sm font-semibold text-muted-foreground">DÃ©tails complets</Label>
                 <div className="mt-1 p-3 bg-muted rounded-md max-h-96 overflow-y-auto">
                   {(() => {
                     const parsedDetails = parseDetails(selectedLog.details);
                     
                     if (!parsedDetails) {
-                      return <p className="text-sm text-muted-foreground">Aucun détail disponible</p>;
+                      return <p className="text-sm text-muted-foreground">Aucun dÃ©tail disponible</p>;
                     }
                     
                     if (typeof parsedDetails === 'object' && parsedDetails !== null) {

@@ -3,12 +3,12 @@ import type { Metadata } from "next"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
-// Polices Google supprimées pour compatibilité VM entreprise
-// Les polices système (sans-serif, monospace) sont utilisées via globals.css
+// Polices Google supprimÃ©es pour compatibilitÃ© VM entreprise
+// Les polices systÃ¨me (sans-serif, monospace) sont utilisÃ©es via globals.css
 
 export const metadata: Metadata = {
   title: "Tableau de bord",
-  description: "Tableau de bord - Application de gestion des declarations fiscales",
+  description: "Tableau de bord - Application de gestion des tableus tableues",
   generator: "v0.app",
   icons: {
     icon: "/favicon.ico",
@@ -26,7 +26,7 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         {children}
         <Toaster />
-        {/* Vercel Analytics supprimé */}
+        {/* Vercel Analytics supprimÃ© */}
       </body>
     </html>
   )

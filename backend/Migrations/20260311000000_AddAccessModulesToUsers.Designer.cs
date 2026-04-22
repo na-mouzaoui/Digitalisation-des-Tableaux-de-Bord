@@ -198,7 +198,7 @@ namespace CheckFillingAPI.Migrations
                     b.ToTable("Checkbooks");
                 });
 
-            modelBuilder.Entity("CheckFillingAPI.Models.FiscalDeclaration", b =>
+            modelBuilder.Entity("CheckFillingAPI.Models.TableuTableu", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -243,10 +243,10 @@ namespace CheckFillingAPI.Migrations
 
                     b.HasIndex("UserId", "TabKey", "Mois", "Annee");
 
-                    b.ToTable("FiscalDeclarations");
+                    b.ToTable("Tableu");
                 });
 
-            modelBuilder.Entity("CheckFillingAPI.Models.FiscalFournisseur", b =>
+            modelBuilder.Entity("CheckFillingAPI.Models.TableuFournisseur", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -282,7 +282,7 @@ namespace CheckFillingAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("FiscalFournisseurs");
+                    b.ToTable("TableuFournisseurs");
                 });
 
             modelBuilder.Entity("CheckFillingAPI.Models.Region", b =>
@@ -441,7 +441,7 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("Bank");
                 });
 
-            modelBuilder.Entity("CheckFillingAPI.Models.FiscalDeclaration", b =>
+            modelBuilder.Entity("CheckFillingAPI.Models.TableuTableu", b =>
                 {
                     b.HasOne("CheckFillingAPI.Models.User", "User")
                         .WithMany()
@@ -452,7 +452,7 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CheckFillingAPI.Models.FiscalFournisseur", b =>
+            modelBuilder.Entity("CheckFillingAPI.Models.TableuFournisseur", b =>
                 {
                     b.HasOne("CheckFillingAPI.Models.User", "User")
                         .WithMany()

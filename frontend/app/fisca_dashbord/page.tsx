@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { HubConnectionBuilder } from "@microsoft/signalr"
@@ -54,7 +54,7 @@ const TAXE2_LABELS = ["Taxe sur l'importation des biens et services"]
 const TAXE12_LABELS = ["Taxe de Formation Professionnelle 1%", "Taxe d'Apprentissage 1%"]
 const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Août","Sept","Oct","Nov","Déc"]
 
-interface SavedDeclaration {
+interface SavedTableu {
   id: string
   userId?: number
   createdAt: string
@@ -83,7 +83,7 @@ interface SavedDeclaration {
   tva16Rows?: Tva16Row[]
 }
 
-interface ApiFiscalDeclaration {
+interface ApiTableuTableu {
   id: number
   userId: number
   tabKey: string
@@ -97,7 +97,7 @@ interface ApiFiscalDeclaration {
   createdAt: string
 }
 
-interface ApiFiscalRecap {
+interface ApiTableuRecap {
   id: number
   key: string
   title: string
@@ -146,7 +146,7 @@ const getStoredToken = () => {
   }
 }
 
-const mapApiDeclarationToSaved = (item: ApiFiscalDeclaration): SavedDeclaration => {
+const mapApiTableuToSaved = (item: ApiTableuTableu): SavedTableu => {
   const parsedData = (() => {
     try {
       const payload = JSON.parse(item.dataJson ?? "{}")
@@ -156,7 +156,7 @@ const mapApiDeclarationToSaved = (item: ApiFiscalDeclaration): SavedDeclaration 
     }
   })()
 
-  const declaration: SavedDeclaration = {
+  const tableu: SavedTableu = {
     id: String(item.id),
     userId: item.userId,
     createdAt: item.createdAt,
@@ -187,59 +187,59 @@ const mapApiDeclarationToSaved = (item: ApiFiscalDeclaration): SavedDeclaration 
 
   switch ((item.tabKey ?? "").trim().toLowerCase()) {
     case "encaissement":
-      declaration.encRows = toArray<EncRow>(parsedData.encRows)
+      tableu.encRows = toArray<EncRow>(parsedData.encRows)
       break
     case "tva_immo":
-      declaration.tvaImmoRows = toArray<TvaRow>(parsedData.tvaImmoRows)
+      tableu.tvaImmoRows = toArray<TvaRow>(parsedData.tvaImmoRows)
       break
     case "tva_biens":
-      declaration.tvaBiensRows = toArray<TvaRow>(parsedData.tvaBiensRows)
+      tableu.tvaBiensRows = toArray<TvaRow>(parsedData.tvaBiensRows)
       break
     case "droits_timbre":
-      declaration.timbreRows = toArray<TimbreRow>(parsedData.timbreRows)
+      tableu.timbreRows = toArray<TimbreRow>(parsedData.timbreRows)
       break
     case "ca_tap":
-      declaration.b12 = String(parsedData.b12 ?? "")
-      declaration.b13 = String(parsedData.b13 ?? "")
+      tableu.b12 = String(parsedData.b12 ?? "")
+      tableu.b13 = String(parsedData.b13 ?? "")
       break
     case "etat_tap":
-      declaration.tapRows = toArray<TAPRow>(parsedData.tapRows)
+      tableu.tapRows = toArray<TAPRow>(parsedData.tapRows)
       break
     case "ca_siege":
-      declaration.caSiegeRows = toArray<SiegeEncRow>(parsedData.caSiegeRows)
+      tableu.caSiegeRows = toArray<SiegeEncRow>(parsedData.caSiegeRows)
       break
     case "irg":
-      declaration.irgRows = toArray<IrgRow>(parsedData.irgRows)
+      tableu.irgRows = toArray<IrgRow>(parsedData.irgRows)
       break
     case "taxe2":
-      declaration.taxe2Rows = toArray<Taxe2Row>(parsedData.taxe2Rows)
+      tableu.taxe2Rows = toArray<Taxe2Row>(parsedData.taxe2Rows)
       break
     case "taxe_masters":
-      declaration.masterRows = toArray<MasterRow>(parsedData.masterRows)
+      tableu.masterRows = toArray<MasterRow>(parsedData.masterRows)
       break
     case "taxe_vehicule":
-      declaration.taxe11Montant = String(parsedData.taxe11Montant ?? "")
+      tableu.taxe11Montant = String(parsedData.taxe11Montant ?? "")
       break
     case "taxe_formation":
-      declaration.taxe12Rows = toArray<Taxe12Row>(parsedData.taxe12Rows)
+      tableu.taxe12Rows = toArray<Taxe12Row>(parsedData.taxe12Rows)
       break
     case "acompte":
-      declaration.acompteMonths = toStringArray(parsedData.acompteMonths)
+      tableu.acompteMonths = toStringArray(parsedData.acompteMonths)
       break
     case "ibs":
-      declaration.ibs14Rows = toArray<Ibs14Row>(parsedData.ibs14Rows)
+      tableu.ibs14Rows = toArray<Ibs14Row>(parsedData.ibs14Rows)
       break
     case "taxe_domicil":
-      declaration.taxe15Rows = toArray<Taxe15Row>(parsedData.taxe15Rows)
+      tableu.taxe15Rows = toArray<Taxe15Row>(parsedData.taxe15Rows)
       break
     case "tva_autoliq":
-      declaration.tva16Rows = toArray<Tva16Row>(parsedData.tva16Rows)
+      tableu.tva16Rows = toArray<Tva16Row>(parsedData.tva16Rows)
       break
     default:
       break
   }
 
-  return declaration
+  return tableu
 }
 
 const MONTHS: Record<string, string> = {
@@ -312,7 +312,7 @@ function RemindersCard({
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <CardTitle className="text-base flex items-center gap-2">
             <CalendarDays size={18} className="text-amber-700" />
-            Rappels et delais fiscaux
+            Rappels et delais tableuux
           </CardTitle>
           <div className="flex items-center gap-2">
             <select
@@ -375,7 +375,7 @@ const resolveEncaissementAmounts = (row: EncRow) => {
     return { ht, tva, ttc: ht + tva }
   }
 
-  // Backward compatibility for declarations saved with TTC as input.
+  // Backward compatibility for tableus saved with TTC as input.
   const ttc = num(row.ttc ?? "")
   const ht = ttc / 1.19
   return { ht, tva: ttc - ht, ttc }
@@ -891,7 +891,7 @@ function Tva16Table({ rows }: { rows: Tva16Row[] }) {
   )
 }
 
-function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: SavedDeclaration; color: string }) {
+function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: SavedTableu; color: string }) {
   switch (tabKey) {
     case "encaissement":  return <EncTable rows={decl.encRows ?? []} />
     case "tva_immo":      return <TvaTable rows={decl.tvaImmoRows ?? []} totalLabel="TOTAL TVA SUR IMMOBILISATION 445620" />
@@ -915,7 +915,7 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: SavedDecla
 
 // aaa Print Zone aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 function DashPrintZone({ decl, tabKey, tabTitle }: {
-  decl: SavedDeclaration | null; tabKey: string; tabTitle: string; color: string
+  decl: SavedTableu | null; tabKey: string; tabTitle: string; color: string
 }) {
   if (!decl) return null
   const moisLabel = MONTHS[decl.mois] ?? decl.mois
@@ -985,7 +985,7 @@ function DashPrintZone({ decl, tabKey, tabTitle }: {
               color: "#000",
             }}
           >
-            Déclaration Mois : {moisLabel}
+            Tableu Mois : {moisLabel}
           </div>
           <div
             style={{
@@ -1015,15 +1015,15 @@ function DashPrintZone({ decl, tabKey, tabTitle }: {
   )
 }
 
-export default function FiscaDashboardPage() {
+export default function TableuDashboardPage() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const router = useRouter()
   const { toast } = useToast()
-  const [declarations, setDeclarations] = useState<SavedDeclaration[]>([])
+  const [tableus, setTableus] = useState<SavedTableu[]>([])
   const [recaps, setRecaps] = useState<SavedRecap[]>([])
-  const [viewDecl, setViewDecl] = useState<SavedDeclaration | null>(null)
+  const [viewDecl, setViewDecl] = useState<SavedTableu | null>(null)
   const [viewRecap, setViewRecap] = useState<SavedRecap | null>(null)
-  const [printDecl, setPrintDecl] = useState<SavedDeclaration | null>(null)
+  const [printDecl, setPrintDecl] = useState<SavedTableu | null>(null)
   const [showDialog, setShowDialog] = useState(false)
   const [showRecapDialog, setShowRecapDialog] = useState(false)
   const [showRecapFilters, setShowRecapFilters] = useState(false)
@@ -1047,22 +1047,22 @@ export default function FiscaDashboardPage() {
   const normalizedRegion = (user?.region ?? "").trim().toLowerCase()
   const isFinanceRole = normalizedRole === "finance" || normalizedRole === "comptabilite"
   const isAdminRole = normalizedRole === "admin"
-  const canApproveRegionalDeclarations = normalizedRole === "regionale" && !!user?.isRegionalApprover
-  const canApproveFinanceDeclarations = isFinanceRole && !!user?.isFinanceApprover
+  const canApproveRegionalTableus = normalizedRole === "regionale" && !!user?.isRegionalApprover
+  const canApproveFinanceTableus = isFinanceRole && !!user?.isFinanceApprover
 
 
   useEffect(() => {
     if (!user || status !== "authenticated") {
-      setDeclarations([])
+      setTableus([])
       return
     }
 
     let cancelled = false
 
-    const loadDeclarations = async () => {
+    const loadTableus = async () => {
       try {
         const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-        const response = await fetch(`${API_BASE}/api/fiscal`, {
+        const response = await fetch(`${API_BASE}/api/tableu`, {
           method: "GET",
           credentials: "include",
           cache: "no-store",
@@ -1070,29 +1070,29 @@ export default function FiscaDashboardPage() {
         })
 
         if (!response.ok) {
-          if (!cancelled) setDeclarations([])
+          if (!cancelled) setTableus([])
           return
         }
 
         const payload = await response.json().catch(() => null)
-        const nextDeclarations = Array.isArray(payload)
-          ? (payload as ApiFiscalDeclaration[]).map(mapApiDeclarationToSaved)
+        const nextTableus = Array.isArray(payload)
+          ? (payload as ApiTableuTableu[]).map(mapApiTableuToSaved)
           : []
 
         if (!cancelled) {
-          setDeclarations(nextDeclarations)
+          setTableus(nextTableus)
           try {
-            localStorage.setItem("fiscal_declarations", JSON.stringify(nextDeclarations))
+            localStorage.setItem("tableu_tableus", JSON.stringify(nextTableus))
           } catch {
             // Ignore storage errors.
           }
         }
       } catch {
-        if (!cancelled) setDeclarations([])
+        if (!cancelled) setTableus([])
       }
     }
 
-    loadDeclarations()
+    loadTableus()
 
     return () => {
       cancelled = true
@@ -1112,24 +1112,24 @@ export default function FiscaDashboardPage() {
       .withAutomaticReconnect([0, 2000, 5000, 10000])
       .build()
 
-    const handleFiscalDeclarationChanged = () => {
+    const handleTableuTableuChanged = () => {
       setRefreshRevision((prev) => prev + 1)
     }
 
-    connection.on("fiscalDeclarationChanged", handleFiscalDeclarationChanged)
+    connection.on("tableuTableuChanged", handleTableuTableuChanged)
 
     const timeoutId = setTimeout(() => {
       connection.start().catch((error) => {
-        console.error("SignalR fiscal connection error:", error)
+        console.error("SignalR tableu connection error:", error)
       })
     }, 500)
 
     return () => {
       clearTimeout(timeoutId)
-      connection.off("fiscalDeclarationChanged", handleFiscalDeclarationChanged)
+      connection.off("tableuTableuChanged", handleTableuTableuChanged)
       connection
         .stop()
-        .catch((error) => console.error("SignalR fiscal stop error:", error))
+        .catch((error) => console.error("SignalR tableu stop error:", error))
     }
   }, [status, user])
 
@@ -1189,17 +1189,17 @@ export default function FiscaDashboardPage() {
     )
   }
 
-  const isDeclarationLocked = (_decl: SavedDeclaration) => false
+  const isTableuLocked = (_decl: SavedTableu) => false
 
-  const handleDelete = async (decl: SavedDeclaration) => {
+  const handleDelete = async (decl: SavedTableu) => {
     try {
-      const declarationId = Number(decl.id)
-      if (!Number.isFinite(declarationId)) {
-        throw new Error("ID de déclaration invalide")
+      const tableuId = Number(decl.id)
+      if (!Number.isFinite(tableuId)) {
+        throw new Error("ID de tableu invalide")
       }
 
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-      const response = await fetch(`${API_BASE}/api/fiscal/${declarationId}`, {
+      const response = await fetch(`${API_BASE}/api/tableu/${tableuId}`, {
         method: "DELETE",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1213,32 +1213,32 @@ export default function FiscaDashboardPage() {
         throw new Error(message || "Suppression impossible")
       }
 
-      const updated = declarations.filter((d) => d.id !== decl.id)
-      setDeclarations(updated)
+      const updated = tableus.filter((d) => d.id !== decl.id)
+      setTableus(updated)
       try {
-        localStorage.setItem("fiscal_declarations", JSON.stringify(updated))
+        localStorage.setItem("tableu_tableus", JSON.stringify(updated))
       } catch {
         // Ignore storage errors.
       }
       setRefreshRevision((prev) => prev + 1)
 
-      toast({ title: "Déclaration supprimée" })
+      toast({ title: "Tableu supprimée" })
     } catch (error) {
       toast({
         title: "Erreur de suppression",
-        description: error instanceof Error ? error.message : "Impossible de supprimer la déclaration.",
+        description: error instanceof Error ? error.message : "Impossible de supprimer la tableu.",
         variant: "destructive",
       })
     }
   }
 
-  const handleView = (decl: SavedDeclaration, tabKey: string) => {
+  const handleView = (decl: SavedTableu, tabKey: string) => {
     setViewDecl(decl)
     setViewTabKey(tabKey)
     setShowDialog(true)
   }
 
-  const handlePrint = (decl: SavedDeclaration, tabKey: string) => {
+  const handlePrint = (decl: SavedTableu, tabKey: string) => {
     setPrintDecl(decl)
     setViewTabKey(tabKey)
     setTimeout(async () => {
@@ -1254,7 +1254,7 @@ export default function FiscaDashboardPage() {
 
         const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
         const periodText = `${MONTHS[decl.mois] ?? decl.mois} ${decl.annee}`
-        const tableTitle = DASH_TABS.find((t) => t.key === tabKey)?.title ?? "TABLEAU FISCAL"
+        const tableTitle = DASH_TABS.find((t) => t.key === tabKey)?.title ?? "TABLEAU TABLEU"
         const pdfTableTitle =
           tabKey === "ca_tap"
             ? "ETAT DU CHIFFRE D'AFFAIRES RECHARGEMENT HT (7%) et CHIFFRE D'AFFAIRES GLOBAL HT (1%)"
@@ -1445,7 +1445,7 @@ export default function FiscaDashboardPage() {
         pdf.setFontSize(11)
         drawUnderlinedText("ATM MOBILIS SPA", 10, 33 + layoutShiftY)
         drawUnderlinedText("DIRECTION DES FINANCES ET DE LA COMPTABILITE", 10, 38 + layoutShiftY)
-        drawUnderlinedText("SOUS DIRECTION FISCALITE", 10, 43 + layoutShiftY)
+        drawUnderlinedText("SOUS DIRECTION TABLEUITE", 10, 43 + layoutShiftY)
         pdf.setFontSize(14)
         drawUnderlinedText(headerTitle, 10, 64 + layoutShiftY)
 
@@ -1609,29 +1609,29 @@ export default function FiscaDashboardPage() {
     }, 200)
   }
 
-  const handleEdit = (decl: SavedDeclaration, tabKey: string) => {
-    router.push(`/declaration?editId=${encodeURIComponent(decl.id)}&tab=${encodeURIComponent(tabKey)}`)
+  const handleEdit = (decl: SavedTableu, tabKey: string) => {
+    router.push(`/tableu?editId=${encodeURIComponent(decl.id)}&tab=${encodeURIComponent(tabKey)}`)
   }
 
-  const handleApprove = async (decl: SavedDeclaration) => {
-    if (!isAdminRole && !canApproveRegionalDeclarations && !canApproveFinanceDeclarations) {
+  const handleApprove = async (decl: SavedTableu) => {
+    if (!isAdminRole && !canApproveRegionalTableus && !canApproveFinanceTableus) {
       toast({
         title: "Accès refusé",
-        description: "Seuls les comptes admin ou approbateurs (régional/finance) peuvent valider les déclarations.",
+        description: "Seuls les comptes admin ou approbateurs (régional/finance) peuvent valider les tableus.",
         variant: "destructive",
       })
       return
     }
 
-    const declarationId = Number(decl.id)
-    if (!Number.isFinite(declarationId)) {
-      toast({ title: "Erreur", description: "ID de déclaration invalide", variant: "destructive" })
+    const tableuId = Number(decl.id)
+    if (!Number.isFinite(tableuId)) {
+      toast({ title: "Erreur", description: "ID de tableu invalide", variant: "destructive" })
       return
     }
 
     try {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-      const response = await fetch(`${API_BASE}/api/fiscal/${declarationId}/approve`, {
+      const response = await fetch(`${API_BASE}/api/tableu/${tableuId}/approve`, {
         method: "POST",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1646,7 +1646,7 @@ export default function FiscaDashboardPage() {
       }
 
       const nowIso = new Date().toISOString()
-      const updated = declarations.map((item) =>
+      const updated = tableus.map((item) =>
         item.id === decl.id
           ? {
               ...item,
@@ -1657,25 +1657,25 @@ export default function FiscaDashboardPage() {
           : item,
       )
 
-      setDeclarations(updated)
+      setTableus(updated)
       try {
-        localStorage.setItem("fiscal_declarations", JSON.stringify(updated))
+        localStorage.setItem("tableu_tableus", JSON.stringify(updated))
       } catch {
         // Ignore storage errors.
       }
       setRefreshRevision((prev) => prev + 1)
 
-      toast({ title: "Déclaration approuvée" })
+      toast({ title: "Tableu approuvée" })
     } catch (error) {
       toast({
         title: "Erreur d'approbation",
-        description: error instanceof Error ? error.message : "Impossible d'approuver la déclaration.",
+        description: error instanceof Error ? error.message : "Impossible d'approuver la tableu.",
         variant: "destructive",
       })
     }
   }
 
-  const getDeclarationType = (decl: SavedDeclaration) => {
+  const getTableuType = (decl: SavedTableu) => {
     if ((decl.encRows?.length ?? 0) > 0) return { key: "encaissement", label: "Encaissement", color: "#2db34b" }
     if ((decl.tvaImmoRows?.length ?? 0) > 0) return { key: "tva_immo", label: "TVA / IMMO", color: "#1d6fb8" }
     if ((decl.tvaBiensRows?.length ?? 0) > 0) return { key: "tva_biens", label: "TVA / Biens & Serv", color: "#7c3aed" }
@@ -1697,8 +1697,8 @@ export default function FiscaDashboardPage() {
 
   const hasActiveFilters = !!(filterType || filterMois || filterAnnee || filterDirection || filterStatus || filterDateFrom || filterDateTo)
 
-  const filteredDeclarations = declarations.filter((decl) => {
-    const declType = getDeclarationType(decl)
+  const filteredTableus = tableus.filter((decl) => {
+    const declType = getTableuType(decl)
     if (filterType && declType.key !== filterType) return false
     if (filterMois && decl.mois !== filterMois) return false
     if (filterAnnee && decl.annee !== filterAnnee) return false
@@ -1710,12 +1710,12 @@ export default function FiscaDashboardPage() {
     return true
   })
 
-  const recentDeclarations = [...filteredDeclarations].sort((a, b) => {
+  const recentTableus = [...filteredTableus].sort((a, b) => {
     let cmp = 0
     if (sortCol === "date") {
       cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     } else if (sortCol === "type") {
-      cmp = getDeclarationType(a).label.localeCompare(getDeclarationType(b).label, "fr")
+      cmp = getTableuType(a).label.localeCompare(getTableuType(b).label, "fr")
     } else if (sortCol === "direction") {
       cmp = (a.direction ?? "").localeCompare(b.direction ?? "", "fr")
     } else if (sortCol === "periode") {
@@ -1750,7 +1750,7 @@ export default function FiscaDashboardPage() {
       mois: recap.mois,
       annee: recap.annee,
     })
-    router.push(`/declaration?${params.toString()}`)
+    router.push(`/tableu?${params.toString()}`)
   }
 
   const handlePrintRecap = (recap: SavedRecap) => {
@@ -1765,7 +1765,7 @@ export default function FiscaDashboardPage() {
     void (async () => {
       try {
         const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-        await fetch(`${API_BASE}/api/fiscal-recaps/${recap.id}/print`, {
+        await fetch(`${API_BASE}/api/tableu-recaps/${recap.id}/print`, {
           method: "POST",
           credentials: "include",
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1801,7 +1801,7 @@ export default function FiscaDashboardPage() {
         pdf.setFontSize(11)
         drawUnderlinedText("ATM MOBILIS SPA", 10, 33)
         drawUnderlinedText("DIRECTION DES FINANCES ET DE LA COMPTABILITE", 10, 38)
-        drawUnderlinedText("SOUS DIRECTION FISCALITE", 10, 43)
+        drawUnderlinedText("SOUS DIRECTION TABLEUITE", 10, 43)
         pdf.setFontSize(14)
         drawUnderlinedText(`${recap.title} ${period}`.trim(), 10, 64)
 
@@ -1876,7 +1876,7 @@ export default function FiscaDashboardPage() {
   const handleDeleteRecap = async (recap: SavedRecap) => {
     try {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-      await fetch(`${API_BASE}/api/fiscal-recaps/${recap.id}`, {
+      await fetch(`${API_BASE}/api/tableu-recaps/${recap.id}`, {
         method: "DELETE",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1912,12 +1912,12 @@ export default function FiscaDashboardPage() {
       return value.trim()
     }
 
-    const declarationDirections = declarations
-      .map((declaration) => normalizeDirection(declaration.direction ?? ""))
+    const tableuDirections = tableus
+      .map((tableu) => normalizeDirection(tableu.direction ?? ""))
       .filter(Boolean)
 
-    if (declarationDirections.length > 0) {
-      return Array.from(new Set(declarationDirections)).sort((a, b) => a.localeCompare(b, "fr"))
+    if (tableuDirections.length > 0) {
+      return Array.from(new Set(tableuDirections)).sort((a, b) => a.localeCompare(b, "fr"))
     }
 
     const fallbackDirections = [
@@ -2011,21 +2011,21 @@ export default function FiscaDashboardPage() {
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Fiscal</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard Tableu</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Déclarations fiscales récentes
+            Tableus tableues récentes
           </p>
         </div>
 
-        {/* Recent declarations */}
+        {/* Recent tableus */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-base">
-                Déclarations récentes
-                {declarations.length > 0 && (
+                Tableus récentes
+                {tableus.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({filteredDeclarations.length}{hasActiveFilters ? ` / ${declarations.length}` : ""})
+                    ({filteredTableus.length}{hasActiveFilters ? ` / ${tableus.length}` : ""})
                   </span>
                 )}
               </CardTitle>
@@ -2114,9 +2114,9 @@ export default function FiscaDashboardPage() {
             )}
           </CardHeader>
           <CardContent>
-            {recentDeclarations.length === 0 ? (
+            {recentTableus.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Aucune déclaration fiscale enregistrée pour le moment.
+                Aucune tableu tableue enregistrée pour le moment.
               </p>
             ) : (
               <div className="max-h-[540px] overflow-auto">
@@ -2124,7 +2124,7 @@ export default function FiscaDashboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("type")}>
-                        Type de déclaration <SortIcon col="type" />
+                        Type de tableu <SortIcon col="type" />
                       </TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("direction")}>
                         Direction <SortIcon col="direction" />
@@ -2140,23 +2140,23 @@ export default function FiscaDashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentDeclarations.map((decl) => {
-                      const declType = getDeclarationType(decl)
-                      const isLocked = isDeclarationLocked(decl)
-                      const declarationDirection = (decl.direction ?? "").trim().toLowerCase()
-                      const isSiegeDeclaration = declarationDirection === "siège"
-                        || declarationDirection === "siege"
-                        || declarationDirection.includes("siège")
-                        || declarationDirection.includes("siege")
-                      const isOwnDeclaration = String(decl.userId ?? "") === String(user.id)
-                      const canApproveAsRegional = canApproveRegionalDeclarations
+                    {recentTableus.map((decl) => {
+                      const declType = getTableuType(decl)
+                      const isLocked = isTableuLocked(decl)
+                      const tableuDirection = (decl.direction ?? "").trim().toLowerCase()
+                      const isSiegeTableu = tableuDirection === "siège"
+                        || tableuDirection === "siege"
+                        || tableuDirection.includes("siège")
+                        || tableuDirection.includes("siege")
+                      const isOwnTableu = String(decl.userId ?? "") === String(user.id)
+                      const canApproveAsRegional = canApproveRegionalTableus
                         && !decl.isApproved
-                        && (isOwnDeclaration || (!!normalizedRegion && declarationDirection === normalizedRegion))
-                      const canApproveAsFinance = canApproveFinanceDeclarations
+                        && (isOwnTableu || (!!normalizedRegion && tableuDirection === normalizedRegion))
+                      const canApproveAsFinance = canApproveFinanceTableus
                         && !decl.isApproved
-                        && (isOwnDeclaration || isSiegeDeclaration)
+                        && (isOwnTableu || isSiegeTableu)
                       const canApproveAsAdmin = isAdminRole && !decl.isApproved
-                      const canApproveThisDeclaration = canApproveAsAdmin || canApproveAsRegional || canApproveAsFinance
+                      const canApproveThisTableu = canApproveAsAdmin || canApproveAsRegional || canApproveAsFinance
                       return (
                         <TableRow
                           key={decl.id}
@@ -2198,17 +2198,17 @@ export default function FiscaDashboardPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
-                              {(isAdminRole || canApproveRegionalDeclarations || canApproveFinanceDeclarations) && (
+                              {(isAdminRole || canApproveRegionalTableus || canApproveFinanceTableus) && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="h-8 w-8 p-0 border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                  disabled={!canApproveThisDeclaration}
+                                  disabled={!canApproveThisTableu}
                                   onClick={(event) => {
                                     event.stopPropagation()
                                     handleApprove(decl)
                                   }}
-                                  title={decl.isApproved ? "Déclaration déjà approuvée" : !canApproveThisDeclaration ? "Action non autorisée pour cette déclaration" : "Approuver"}
+                                  title={decl.isApproved ? "Tableu déjà approuvée" : !canApproveThisTableu ? "Action non autorisée pour cette tableu" : "Approuver"}
                                 >
                                   <CheckCircle size={16} />
                                 </Button>
@@ -2274,7 +2274,7 @@ export default function FiscaDashboardPage() {
               </div>
               <div className="mt-4 flex justify-end gap-2">
                 {(() => {
-                  const isLocked = isDeclarationLocked(viewDecl)
+                  const isLocked = isTableuLocked(viewDecl)
 
                   return (
                     <Button

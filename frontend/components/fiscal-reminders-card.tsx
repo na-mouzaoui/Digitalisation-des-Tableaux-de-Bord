@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ReminderData } from "@/lib/fiscal-reminders"
+import { ReminderData } from "@/lib/tableu-reminders"
 
 const normalizeDirectionKey = (value: string) => {
   const normalized = (value ?? "").trim().toLowerCase()
   if (!normalized) return ""
-  if (normalized === "siege" || normalized === "siège" || normalized.includes("siege") || normalized.includes("siège")) {
-    return "siège"
+  if (normalized === "siege" || normalized === "siÃ¨ge" || normalized.includes("siege") || normalized.includes("siÃ¨ge")) {
+    return "siÃ¨ge"
   }
   return normalized
 }
@@ -120,7 +120,7 @@ export function RemindersCard({
 
   const remindersForDisplay = useMemo(() => {
     // Utiliser directement les rappels du backend sans recalcul local
-    // Le backend calcule correctement la période fiscale et le deadline
+    // Le backend calcule correctement la pÃ©riode tableue et le deadline
 
     if (isAdmin && selectedDirection === "all") {
       if (availableDirectionOptions.length === 0) {
@@ -137,7 +137,7 @@ export function RemindersCard({
         .filter((reminder) => reminder !== undefined) as ReminderData[]
     }
 
-    // Pour les non-admins ou quand une direction est sélectionnée, retourner les rappels directement
+    // Pour les non-admins ou quand une direction est sÃ©lectionnÃ©e, retourner les rappels directement
     return filteredReminders
   }, [availableDirectionOptions, filteredReminders, isAdmin, selectedDirection])
 
@@ -256,13 +256,13 @@ export function RemindersCard({
       {hasActiveReminder ? (
         <div className="rounded-md bg-red-700 px-3 py-2">
           <p className="text-sm font-semibold text-yellow-300 whitespace-nowrap overflow-hidden text-ellipsis">
-            Rappel: delai proche. Verifiez et completez vos declarations fiscales en attente ({lastDeadlineLabel})
+            Rappel: delai proche. Verifiez et completez vos tableus tableues en attente ({lastDeadlineLabel})
           </p>
         </div>
       ) : (
         <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2">
           <p className="text-sm font-medium text-green-800">
-            Les declarations de la direction sont a jour. Dernier delai: {lastDeadlineLabel}.
+            Les tableus de la direction sont a jour. Dernier delai: {lastDeadlineLabel}.
           </p>
         </div>
       )}
@@ -282,7 +282,7 @@ function ReminderKpiRow({
     return (
       <Card className="border-amber-200 bg-amber-50">
         <CardContent className="pt-6">
-          <p className="text-sm text-amber-800">Aucun rappel disponible pour cette période.</p>
+          <p className="text-sm text-amber-800">Aucun rappel disponible pour cette pÃ©riode.</p>
         </CardContent>
       </Card>
     )
@@ -325,7 +325,7 @@ function ReminderKpiRow({
         </div>
         <div>
           <IndicatorBrick
-            label="tableaux approuvés"
+            label="tableaux approuvÃ©s"
             value={`${approvedTabs}/${totalTabs}`}
             icon={<ShieldCheck className="h-4 w-4 text-green-500" />}
             valueClassName="text-green-600"

@@ -28,19 +28,19 @@ export function exportToExcel(
 ) {
   const wb = XLSX.utils.book_new()
 
-  // Feuille 1: Statistiques générales
+  // Feuille 1: Statistiques gÃ©nÃ©rales
   const statsData = [
     ["Statistique", "Valeur"],
     ["Montant Total (DZD)", stats.totalAmount.toFixed(2)],
-    ["Nombre de Chèques", stats.totalChecks],
+    ["Nombre de ChÃ¨ques", stats.totalChecks],
     ["Montant Moyen (DZD)", stats.totalChecks > 0 ? (stats.totalAmount / stats.totalChecks).toFixed(2) : "0"],
     ["Nombre de Banques", Object.keys(stats.checksByBank).length],
   ]
   const ws1 = XLSX.utils.aoa_to_sheet(statsData)
   XLSX.utils.book_append_sheet(wb, ws1, "Statistiques")
 
-  // Feuille 2: Chèques par banque
-  const bankData = [["Banque", "Nombre de Chèques"], ...Object.entries(stats.checksByBank)]
+  // Feuille 2: ChÃ¨ques par banque
+  const bankData = [["Banque", "Nombre de ChÃ¨ques"], ...Object.entries(stats.checksByBank)]
   const ws2 = XLSX.utils.aoa_to_sheet(bankData)
   XLSX.utils.book_append_sheet(wb, ws2, "Par Banque")
 
@@ -53,7 +53,7 @@ export function exportToExcel(
     {} as Record<string, string>,
   )
   const userAmountData = [
-    ["Utilisateur", "Montant Total (DZD)", "Nombre de Chèques", "Montant Moyen (DZD)"],
+    ["Utilisateur", "Montant Total (DZD)", "Nombre de ChÃ¨ques", "Montant Moyen (DZD)"],
     ...Object.entries(stats.amountByUser).map(([userId, amount]) => {
       const userChecks = checks.filter((c) => c.userId === userId)
       const avgAmount = userChecks.length > 0 ? amount / userChecks.length : 0
@@ -63,9 +63,9 @@ export function exportToExcel(
   const ws3 = XLSX.utils.aoa_to_sheet(userAmountData)
   XLSX.utils.book_append_sheet(wb, ws3, "Par Utilisateur")
 
-  // Feuille 4: Tous les chèques
+  // Feuille 4: Tous les chÃ¨ques
   const checksData = [
-    ["Date", "Utilisateur", "Banque", "Montant (DZD)", "À l'ordre de", "Ville", "Référence"],
+    ["Date", "Utilisateur", "Banque", "Montant (DZD)", "Ã€ l'ordre de", "Ville", "RÃ©fÃ©rence"],
     ...checks.map((check) => [
       new Date(check.createdAt).toLocaleString("fr-FR"),
       userMap[check.userId] || "Inconnu",
@@ -77,7 +77,7 @@ export function exportToExcel(
     ]),
   ]
   const ws4 = XLSX.utils.aoa_to_sheet(checksData)
-  XLSX.utils.book_append_sheet(wb, ws4, "Tous les Chèques")
+  XLSX.utils.book_append_sheet(wb, ws4, "Tous les ChÃ¨ques")
 
   XLSX.writeFile(wb, `tableau_bord_cheques_${new Date().toISOString().split("T")[0]}.xlsx`)
 }
@@ -103,7 +103,7 @@ export function exportStatsToPDF(
   })
 
   logo.then((logoImg) => {
-    // Logo en haut à droite
+    // Logo en haut Ã  droite
     if (logoImg) {
       const pageWidth = doc.internal.pageSize.getWidth()
       doc.addImage(logoImg, "PNG", pageWidth - 48, 8, 40, 20)
@@ -111,19 +111,19 @@ export function exportStatsToPDF(
 
     // Titre
     doc.setFontSize(18)
-    doc.text("Tableau de Bord - Statistiques des Chèques", 14, 22)
+    doc.text("Tableau de Bord - Statistiques des ChÃ¨ques", 14, 22)
 
     // Date
     doc.setFontSize(10)
-    doc.text(`Généré le: ${new Date().toLocaleString("fr-FR")}`, 14, 30)
+    doc.text(`GÃ©nÃ©rÃ© le: ${new Date().toLocaleString("fr-FR")}`, 14, 30)
 
-    // Statistiques générales
+    // Statistiques gÃ©nÃ©rales
     doc.setFontSize(14)
-    doc.text("Statistiques Générales", 14, 42)
+    doc.text("Statistiques GÃ©nÃ©rales", 14, 42)
 
     const statsTable = [
       ["Montant Total", `${stats.totalAmount.toFixed(2)} DZD`],
-      ["Nombre de Chèques", stats.totalChecks.toString()],
+      ["Nombre de ChÃ¨ques", stats.totalChecks.toString()],
       ["Montant Moyen", stats.totalChecks > 0 ? `${(stats.totalAmount / stats.totalChecks).toFixed(2)} DZD` : "0 DZD"],
       ["Nombre de Banques", Object.keys(stats.checksByBank).length.toString()],
     ]
@@ -135,20 +135,20 @@ export function exportStatsToPDF(
       theme: "grid",
     })
 
-    // Chèques par banque
+    // ChÃ¨ques par banque
     doc.addPage()
     if (logoImg) {
       const pageWidth = doc.internal.pageSize.getWidth()
       doc.addImage(logoImg, "PNG", pageWidth - 48, 8, 40, 20)
     }
     doc.setFontSize(14)
-    doc.text("Répartition par Banque", 14, 22)
+    doc.text("RÃ©partition par Banque", 14, 22)
 
     const bankTable = Object.entries(stats.checksByBank).map(([bank, count]) => [bank, count.toString()])
 
     autoTable(doc, {
       startY: 28,
-      head: [["Banque", "Nombre de Chèques"]],
+      head: [["Banque", "Nombre de ChÃ¨ques"]],
       body: bankTable,
       theme: "grid",
     })
@@ -204,7 +204,7 @@ export function exportHistoryToPDF(checks: Check[], users: User[], banks: Bank[]
   })
 
   logo.then((logoImg) => {
-    // Logo en haut à droite
+    // Logo en haut Ã  droite
     if (logoImg) {
       const pageWidth = doc.internal.pageSize.getWidth()
       doc.addImage(logoImg, "PNG", pageWidth - 48, 8, 40, 20)
@@ -212,11 +212,11 @@ export function exportHistoryToPDF(checks: Check[], users: User[], banks: Bank[]
 
     // Titre
     doc.setFontSize(18)
-    doc.text("Historique des Chèques", 14, 22)
+    doc.text("Historique des ChÃ¨ques", 14, 22)
 
     // Date
     doc.setFontSize(10)
-    doc.text(`Généré le: ${new Date().toLocaleString("fr-FR")}`, 14, 30)
+    doc.text(`GÃ©nÃ©rÃ© le: ${new Date().toLocaleString("fr-FR")}`, 14, 30)
 
     const userMap = users.reduce(
       (acc, user) => {
@@ -226,7 +226,7 @@ export function exportHistoryToPDF(checks: Check[], users: User[], banks: Bank[]
       {} as Record<string, string>,
     )
 
-    // Aligner avec les colonnes Excel (même ordre)
+    // Aligner avec les colonnes Excel (mÃªme ordre)
     const sortedChecks = [...checks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     const checksData = sortedChecks.map((check, index) => {
@@ -235,7 +235,7 @@ export function exportHistoryToPDF(checks: Check[], users: User[], banks: Bank[]
       const bankCode = getBankCode(check.bank, banks)
       return [
         index + 1,
-        check.reference || "—",
+        check.reference || "â€”",
         createdDate.toLocaleDateString("fr-FR", { year: "2-digit", month: "2-digit", day: "2-digit" }),
         createdDate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
         emissionDate ? emissionDate.toLocaleDateString("fr-FR", { year: "2-digit", month: "2-digit", day: "2-digit" }) : "",
@@ -252,14 +252,14 @@ export function exportHistoryToPDF(checks: Check[], users: User[], banks: Bank[]
     autoTable(doc, {
       startY: 38,
       head: [[
-        "N°",
-        "Référence",
-        "Date Création",
-        "Heure Création",
+        "NÂ°",
+        "RÃ©fÃ©rence",
+        "Date CrÃ©ation",
+        "Heure CrÃ©ation",
         "Date",
         "Utilisateur",
         "Banque",
-        "Bénéficiaire",
+        "BÃ©nÃ©ficiaire",
         "Ville",
         "Montant",
         "Statut",
@@ -287,20 +287,20 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
     {} as Record<string, string>,
   )
 
-  // Trier les chèques par date de création (plus récents en premier)
+  // Trier les chÃ¨ques par date de crÃ©ation (plus rÃ©cents en premier)
   const sortedChecks = [...checks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   
-  // En-tête avec toutes les colonnes
+  // En-tÃªte avec toutes les colonnes
   const checksData = [
     [
-      "N°", 
-      "Référence", 
-      "Date Création", 
-      "Heure Création",
-      "Date Émission",
+      "NÂ°", 
+      "RÃ©fÃ©rence", 
+      "Date CrÃ©ation", 
+      "Heure CrÃ©ation",
+      "Date Ã‰mission",
       "Utilisateur", 
       "Banque", 
-      "Bénéficiaire (À l'ordre de)", 
+      "BÃ©nÃ©ficiaire (Ã€ l'ordre de)", 
       "Ville",
       "Montant (DZD)", 
       "Statut",
@@ -310,8 +310,8 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
       const createdDate = new Date(check.createdAt)
       const emissionDate = parseFlexibleDate(check.date)
       return [
-        index + 1, // Numéro de ligne
-        check.reference || "—",
+        index + 1, // NumÃ©ro de ligne
+        check.reference || "â€”",
           createdDate.toLocaleDateString("fr-FR", { year: '2-digit', month: '2-digit', day: '2-digit' }),
         createdDate.toLocaleTimeString("fr-FR", { hour: '2-digit', minute: '2-digit' }),
           emissionDate ? emissionDate.toLocaleDateString("fr-FR", { year: '2-digit', month: '2-digit', day: '2-digit' }) : "",
@@ -328,23 +328,23 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
 
   const ws = XLSX.utils.aoa_to_sheet(checksData)
 
-  // Définir les largeurs de colonnes optimisées
+  // DÃ©finir les largeurs de colonnes optimisÃ©es
   ws['!cols'] = [
-    { wch: 5 },   // N°
-    { wch: 18 },  // Référence
-    { wch: 13 },  // Date Création
-    { wch: 10 },  // Heure Création
-    { wch: 13 },  // Date Émission
+    { wch: 5 },   // NÂ°
+    { wch: 18 },  // RÃ©fÃ©rence
+    { wch: 13 },  // Date CrÃ©ation
+    { wch: 10 },  // Heure CrÃ©ation
+    { wch: 13 },  // Date Ã‰mission
     { wch: 28 },  // Utilisateur
     { wch: 18 },  // Banque
-    { wch: 30 },  // Bénéficiaire
+    { wch: 30 },  // BÃ©nÃ©ficiaire
     { wch: 15 },  // Ville
     { wch: 16 },  // Montant
     { wch: 12 },  // Statut
     { wch: 28 },  // Motif
   ]
 
-  // Style de l'en-tête avec couleur verte de l'entreprise
+  // Style de l'en-tÃªte avec couleur verte de l'entreprise
   const headerStyle = {
     font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
     fill: { fgColor: { rgb: "e82c2a" } },
@@ -359,21 +359,21 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
 
   const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
   
-  // Appliquer le style à l'en-tête
+  // Appliquer le style Ã  l'en-tÃªte
   for (let col = range.s.c; col <= range.e.c; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
     if (!ws[cellAddress]) continue
     ws[cellAddress].s = headerStyle
   }
 
-  // Définir la hauteur de l'en-tête
+  // DÃ©finir la hauteur de l'en-tÃªte
   ws['!rows'] = [{ hpt: 30 }]
 
-  // Appliquer des styles aux lignes de données
+  // Appliquer des styles aux lignes de donnÃ©es
   for (let row = 1; row <= range.e.r; row++) {
     const isEvenRow = row % 2 === 0
     
-    // Calculer le total pour ajouter une ligne de total à la fin
+    // Calculer le total pour ajouter une ligne de total Ã  la fin
     const isLastRow = row === range.e.r
     
     for (let col = range.s.c; col <= range.e.c; col++) {
@@ -392,7 +392,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
         },
       }
 
-      // Colonne N° (0) - centré
+      // Colonne NÂ° (0) - centrÃ©
       if (col === 0) {
         ws[cellAddress].s = {
           ...baseStyle,
@@ -401,7 +401,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
           fill: { fgColor: { rgb: isEvenRow ? "e5e7eb" : "f3f4f6" } },
         }
       }
-      // Colonne Référence (1) - centré, police mono
+      // Colonne RÃ©fÃ©rence (1) - centrÃ©, police mono
       else if (col === 1) {
         ws[cellAddress].s = {
           ...baseStyle,
@@ -409,7 +409,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
           alignment: { horizontal: "center", vertical: "center" },
         }
       }
-      // Colonnes Date et Heure (2, 3, 4) - centré
+      // Colonnes Date et Heure (2, 3, 4) - centrÃ©
       else if (col === 2 || col === 3 || col === 4) {
         ws[cellAddress].s = {
           ...baseStyle,
@@ -425,7 +425,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
           font: { sz: 10 },
         }
       }
-      // Colonne Banque (6) - centré
+      // Colonne Banque (6) - centrÃ©
       else if (col === 6) {
         ws[cellAddress].s = {
           ...baseStyle,
@@ -434,7 +434,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
           fill: { fgColor: { rgb: isEvenRow ? "dbeafe" : "eff6ff" } },
         }
       }
-      // Colonne Bénéficiaire (7)
+      // Colonne BÃ©nÃ©ficiaire (7)
       else if (col === 7) {
         ws[cellAddress].s = {
           ...baseStyle,
@@ -442,7 +442,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
           font: { sz: 10 },
         }
       }
-      // Colonne Ville (8) - centré
+      // Colonne Ville (8) - centrÃ©
       else if (col === 8) {
         ws[cellAddress].s = {
           ...baseStyle,
@@ -450,7 +450,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
           font: { sz: 10 },
         }
       }
-      // Colonne Montant (9) - aligné à droite, vert, gras
+      // Colonne Montant (9) - alignÃ© Ã  droite, vert, gras
       else if (col === 9) {
         ws[cellAddress].s = {
           ...baseStyle,
@@ -484,7 +484,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
   const totalRow = range.e.r + 2
   const totalAmount = sortedChecks.reduce((sum, check) => sum + check.amount, 0)
   
-  ws[XLSX.utils.encode_cell({ r: totalRow, c: 7 })] = { v: "TOTAL GÉNÉRAL:", t: "s" }
+  ws[XLSX.utils.encode_cell({ r: totalRow, c: 7 })] = { v: "TOTAL GÃ‰NÃ‰RAL:", t: "s" }
   ws[XLSX.utils.encode_cell({ r: totalRow, c: 9 })] = { v: totalAmount, t: "n" }
   
   // Style pour la ligne de total
@@ -513,7 +513,7 @@ export function exportHistoryToExcel(checks: Check[], users: User[], banks: Bank
     },
   }
 
-  // Fusionner les cellules pour le label "TOTAL GÉNÉRAL"
+  // Fusionner les cellules pour le label "TOTAL GÃ‰NÃ‰RAL"
   if (!ws['!merges']) ws['!merges'] = []
   ws['!merges'].push({
     s: { r: totalRow, c: 7 },

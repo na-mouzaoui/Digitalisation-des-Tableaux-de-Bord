@@ -1,6 +1,6 @@
-import { getCachedFiscalPolicy } from "./fiscal-policy"
+import { getCachedTableuPolicy } from "./tableu-policy"
 
-export const REGIONAL_FISCAL_TAB_KEYS = [
+export const REGIONAL_TABLEU_TAB_KEYS = [
   "encaissement",
   "tva_immo",
   "tva_biens",
@@ -9,7 +9,7 @@ export const REGIONAL_FISCAL_TAB_KEYS = [
   "etat_tap",
 ] as const
 
-export const FINANCE_FISCAL_TAB_KEYS = [
+export const FINANCE_TABLEU_TAB_KEYS = [
   "ca_siege",
   "irg",
   "taxe2",
@@ -26,51 +26,51 @@ const normalizeRole = (role?: string | null) => (role ?? "").trim().toLowerCase(
 const normalizeDirection = (direction?: string | null) => (direction ?? "").trim().toLowerCase()
 const normalizeTabKey = (tabKey?: string | null) => (tabKey ?? "").trim().toLowerCase()
 
-export const isAdminFiscalRole = (role?: string | null) => normalizeRole(role) === "admin"
-export const isRegionalFiscalRole = (role?: string | null) => normalizeRole(role) === "regionale"
-export const isFinanceFiscalRole = (role?: string | null) => {
+export const isAdminTableuRole = (role?: string | null) => normalizeRole(role) === "admin"
+export const isRegionalTableuRole = (role?: string | null) => normalizeRole(role) === "regionale"
+export const isFinanceTableuRole = (role?: string | null) => {
   const normalizedRole = normalizeRole(role)
   return normalizedRole === "comptabilite" || normalizedRole === "finance"
 }
 
 export const isHeadOfficeDirection = (direction?: string | null) => {
   const normalizedDirection = normalizeDirection(direction)
-  return normalizedDirection === "siege" || normalizedDirection === "siège"
+  return normalizedDirection === "siege" || normalizedDirection === "siÃ¨ge"
 }
 
 const getPolicyForRole = (role?: string | null) => {
-  const policy = getCachedFiscalPolicy()
+  const policy = getCachedTableuPolicy()
   if (!policy) return null
   if (normalizeRole(policy.role) !== normalizeRole(role)) return null
   return policy
 }
 
-export const getManageableFiscalTabKeys = (role?: string | null): string[] => {
+export const getManageableTableuTabKeys = (role?: string | null): string[] => {
   const policy = getPolicyForRole(role)
   if (policy) {
     return [...policy.manageableTabKeys]
   }
 
-  if (isAdminFiscalRole(role)) {
-    return [...REGIONAL_FISCAL_TAB_KEYS, ...FINANCE_FISCAL_TAB_KEYS]
+  if (isAdminTableuRole(role)) {
+    return [...REGIONAL_TABLEU_TAB_KEYS, ...FINANCE_TABLEU_TAB_KEYS]
   }
 
-  if (isRegionalFiscalRole(role)) {
-    return [...REGIONAL_FISCAL_TAB_KEYS]
+  if (isRegionalTableuRole(role)) {
+    return [...REGIONAL_TABLEU_TAB_KEYS]
   }
 
-  if (isFinanceFiscalRole(role)) {
-    return [...FINANCE_FISCAL_TAB_KEYS]
+  if (isFinanceTableuRole(role)) {
+    return [...FINANCE_TABLEU_TAB_KEYS]
   }
 
   return []
 }
 
-export const getManageableFiscalTabKeysForDirection = (role?: string | null, direction?: string | null): string[] => {
-  const roleBasedKeys = getManageableFiscalTabKeys(role)
+export const getManageableTableuTabKeysForDirection = (role?: string | null, direction?: string | null): string[] => {
+  const roleBasedKeys = getManageableTableuTabKeys(role)
   const policy = getPolicyForRole(role)
 
-  if (!isAdminFiscalRole(role)) {
+  if (!isAdminTableuRole(role)) {
     return roleBasedKeys
   }
 
@@ -80,22 +80,22 @@ export const getManageableFiscalTabKeysForDirection = (role?: string | null, dir
   }
 
   const directionScopedKeys: readonly string[] = isHeadOfficeDirection(direction)
-    ? policy?.financeTabKeys ?? FINANCE_FISCAL_TAB_KEYS
-    : policy?.regionalTabKeys ?? REGIONAL_FISCAL_TAB_KEYS
+    ? policy?.financeTabKeys ?? FINANCE_TABLEU_TAB_KEYS
+    : policy?.regionalTabKeys ?? REGIONAL_TABLEU_TAB_KEYS
   return roleBasedKeys.filter((tabKey) => directionScopedKeys.includes(tabKey))
 }
 
-export const canManageFiscalTab = (role: string | null | undefined, tabKey: string | null | undefined): boolean => {
+export const canManageTableuTab = (role: string | null | undefined, tabKey: string | null | undefined): boolean => {
   const normalizedTabKey = normalizeTabKey(tabKey)
   if (!normalizedTabKey) return false
-  return getManageableFiscalTabKeys(role).includes(normalizedTabKey)
+  return getManageableTableuTabKeys(role).includes(normalizedTabKey)
 }
 
-export const isFiscalTabDisabledByPolicy = (tabKey: string | null | undefined): boolean => {
+export const isTableuTabDisabledByPolicy = (tabKey: string | null | undefined): boolean => {
   const normalizedTabKey = normalizeTabKey(tabKey)
   if (!normalizedTabKey) return false
 
-  const policy = getCachedFiscalPolicy()
+  const policy = getCachedTableuPolicy()
   if (!policy) return false
 
   return policy.disabledTabKeys.map((key) => normalizeTabKey(key)).includes(normalizedTabKey)

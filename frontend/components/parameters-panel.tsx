@@ -9,7 +9,7 @@ export function ParametersPanel({ preSelectedBankId }: ParametersPanelProps) {
 
   return (
     <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-      Aucun paramètre disponible.
+      Aucun paramÃ¨tre disponible.
     </div>
   )
 }

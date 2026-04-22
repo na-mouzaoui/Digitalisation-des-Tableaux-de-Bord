@@ -1,4 +1,4 @@
-import { getPolicyDeadlineDay } from "./fiscal-policy"
+import { getPolicyDeadlineDay } from "./tableu-policy"
 
 const MONTH_LABELS: Record<string, string> = {
   "01": "Janvier",
@@ -35,7 +35,7 @@ const getDeadlineDayForRole = (role?: string | null): number => {
   return 10
 }
 
-export const getCurrentFiscalPeriod = (now: Date = new Date()) => {
+export const getCurrentTableuPeriod = (now: Date = new Date()) => {
   const referenceDate = now.getDate() >= 11 ? now : new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
   return {
@@ -44,7 +44,7 @@ export const getCurrentFiscalPeriod = (now: Date = new Date()) => {
   }
 }
 
-export const getFiscalPeriodDeadline = (mois: string, annee: string, role?: string | null): Date | null => {
+export const getTableuPeriodDeadline = (mois: string, annee: string, role?: string | null): Date | null => {
   const normalizedMonth = normalizeMonth(mois)
   const normalizedYear = normalizeYear(annee)
   if (!normalizedMonth || !normalizedYear) return null
@@ -57,19 +57,19 @@ export const getFiscalPeriodDeadline = (mois: string, annee: string, role?: stri
   return new Date(deadlineYear, deadlineMonth - 1, deadlineDay, 23, 59, 59, 0)
 }
 
-export const isFiscalPeriodLocked = (mois: string, annee: string, role?: string | null, now: Date = new Date()): boolean => {
-  const deadline = getFiscalPeriodDeadline(mois, annee, role)
+export const isTableuPeriodLocked = (mois: string, annee: string, role?: string | null, now: Date = new Date()): boolean => {
+  const deadline = getTableuPeriodDeadline(mois, annee, role)
   if (!deadline) return false
   return now.getTime() > deadline.getTime()
 }
 
-export const formatFiscalPeriod = (mois: string, annee: string): string => {
+export const formatTableuPeriod = (mois: string, annee: string): string => {
   const normalizedMonth = normalizeMonth(mois)
   if (!normalizedMonth) return `${mois}/${annee}`
   return `${MONTH_LABELS[normalizedMonth] ?? normalizedMonth} ${annee}`
 }
 
-export const formatFiscalPeriodDeadline = (deadline: Date): string => {
+export const formatTableuPeriodDeadline = (deadline: Date): string => {
   return deadline.toLocaleString("fr-DZ", {
     day: "2-digit",
     month: "2-digit",
@@ -80,11 +80,11 @@ export const formatFiscalPeriodDeadline = (deadline: Date): string => {
   })
 }
 
-export const getFiscalPeriodLockMessage = (mois: string, annee: string, role?: string | null): string => {
-  const deadline = getFiscalPeriodDeadline(mois, annee, role)
+export const getTableuPeriodLockMessage = (mois: string, annee: string, role?: string | null): string => {
+  const deadline = getTableuPeriodDeadline(mois, annee, role)
   if (!deadline) {
     return `La periode ${mois}/${annee} est invalide.`
   }
 
-  return `La periode ${formatFiscalPeriod(mois, annee)} est cloturee depuis le ${formatFiscalPeriodDeadline(deadline)}.`
+  return `La periode ${formatTableuPeriod(mois, annee)} est cloturee depuis le ${formatTableuPeriodDeadline(deadline)}.`
 }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { API_BASE } from "@/lib/config";
@@ -45,8 +45,8 @@ const ROLE_OPTIONS = [
     label: "Global",
     privileges: [
       "Accès complet à toutes les régions",
-      "Accès aux déclarations fiscales de toutes les directions",
-      "Supervision des workflows fiscaux",
+      "Accès aux tableus tableues de toutes les directions",
+      "Supervision des workflows tableuux",
     ],
   },
   {
@@ -54,8 +54,8 @@ const ROLE_OPTIONS = [
     label: "Finance",
     privileges: [
       "Accès aux fonctionnalités financières",
-      "Gestion des déclarations fiscales",
-      "Validation des déclarations siège",
+      "Gestion des tableus tableues",
+      "Validation des tableus siège",
     ],
   },
   {
@@ -64,7 +64,7 @@ const ROLE_OPTIONS = [
     privileges: [
       "Accès limité à sa région assignée uniquement",
       "Consultation de l'historique de sa région",
-      "Validation des déclarations régionales",
+      "Validation des tableus régionales",
     ],
   },
 ];
@@ -168,7 +168,7 @@ export default function AdminUserManagement() {
     region: "",
     isRegionalApprover: false,
     isFinanceApprover: false,
-    accessModules: ["fisca"] as string[],
+    accessModules: ["tableu"] as string[],
   });
 
   useEffect(() => {
@@ -398,7 +398,7 @@ export default function AdminUserManagement() {
       region: user.region || "",
       isRegionalApprover: !!user.isRegionalApprover,
       isFinanceApprover: !!user.isFinanceApprover,
-      accessModules: ["fisca"],
+      accessModules: ["tableu"],
     });
     setIsEditOpen(true);
   };
@@ -415,7 +415,7 @@ export default function AdminUserManagement() {
       region: "",
       isRegionalApprover: false,
       isFinanceApprover: false,
-      accessModules: ["fisca"],
+      accessModules: ["tableu"],
     });
     setShowPassword(false);
   };
@@ -536,7 +536,7 @@ export default function AdminUserManagement() {
               <div className="space-y-2">
                 <Label>Accès aux modules *</Label>
                 <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                  Fiscalité
+                  Tableuité
                 </div>
               </div>
               {formData.role === "regionale" && (
@@ -563,7 +563,7 @@ export default function AdminUserManagement() {
                       checked={formData.isRegionalApprover}
                       onChange={(e) => setFormData({ ...formData, isRegionalApprover: e.target.checked })}
                     />
-                    Compte approbateur régional (peut approuver les déclarations de la même région)
+                    Compte approbateur régional (peut approuver les tableus de la même région)
                   </label>
                 </div>
               )}
@@ -575,7 +575,7 @@ export default function AdminUserManagement() {
                     checked={formData.isFinanceApprover}
                     onChange={(e) => setFormData({ ...formData, isFinanceApprover: e.target.checked })}
                   />
-                  Compte approbateur finance (peut approuver les déclarations du niveau Siège)
+                  Compte approbateur finance (peut approuver les tableus du niveau Siège)
                 </label>
               )}
             </div>
@@ -631,9 +631,9 @@ export default function AdminUserManagement() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1 flex-wrap">
-                    {(user.accessModules || "fisca").split(",").map((m) => (
+                    {(user.accessModules || "tableu").split(",").map((m) => (
                       <Badge key={m} variant="outline" className="text-xs">
-                        {m.trim() === "fisca" ? "Fisca" : m.trim()}
+                        {m.trim() === "tableu" ? "Tableu" : m.trim()}
                       </Badge>
                     ))}
                   </div>
@@ -739,7 +739,7 @@ export default function AdminUserManagement() {
             <div className="space-y-2">
               <Label>Accès aux modules</Label>
               <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                Fiscalité
+                Tableuité
               </div>
             </div>
             {formData.role === "regionale" && (

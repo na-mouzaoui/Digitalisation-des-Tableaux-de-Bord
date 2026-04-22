@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -15,8 +15,12 @@ export default function AdminPage() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
 
   useEffect(() => {
-    if (!isLoading && status === "authenticated" && (user as { role?: string } | null)?.role !== "admin") {
-      router.replace("/fisca_dashbord")
+    if (
+      !isLoading &&
+      status === "authenticated" &&
+      (user as { role?: string } | null)?.role !== "admin"
+    ) {
+      router.replace("/tableu_dashbord")
     }
   }, [isLoading, status, user, router])
 
@@ -36,26 +40,35 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto">
+        
+        {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Administration</h1>
           </div>
+
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => router.push("/fisca_dashbord")}>
-              Retour à la plateforme
+            <Button
+              variant="outline"
+              onClick={() => router.push("/tableu_dashbord")}
+            >
+              Retour Ã  la plateforme
             </Button>
+
             <Button variant="outline" onClick={handleLogout}>
-              Déconnexion
+              DÃ©connexion
             </Button>
           </div>
         </div>
 
+        {/* TABS */}
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="users">Utilisateurs</TabsTrigger>
             <TabsTrigger value="audit">Audit</TabsTrigger>
           </TabsList>
 
+          {/* USERS */}
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
@@ -67,6 +80,7 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
+          {/* AUDIT */}
           <TabsContent value="audit" className="space-y-4">
             <Card>
               <CardHeader>
@@ -77,6 +91,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
         </Tabs>
       </div>
     </div>

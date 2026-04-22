@@ -78,7 +78,7 @@ export function CheckCanvas({
 
       {!normalizedPdfUrl && (
         <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-          <p className="text-muted-foreground">Aucun PDF téléchargé pour cette banque</p>
+          <p className="text-muted-foreground">Aucun PDF tÃ©lÃ©chargÃ© pour cette banque</p>
         </div>
       )}
 
@@ -124,7 +124,7 @@ export function CheckCanvas({
             </div>
           </div>
 
-          {/* Bénéficiaire */}
+          {/* BÃ©nÃ©ficiaire */}
           <div
             className="absolute border-2 border-purple-500 bg-purple-100/30"
             style={{
@@ -209,7 +209,7 @@ export function CheckCanvas({
       ) : (
         <>
           {/* Mode sans rectangles - affichage simple du texte */}
-          {/* Mode sans rectangles - affichage simple du texte, relatif à la page */}
+          {/* Mode sans rectangles - affichage simple du texte, relatif Ã  la page */}
           <div
             className="check-text absolute font-medium text-gray-900"
             style={{

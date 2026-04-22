@@ -64,7 +64,7 @@ export function BankManagement({ onChange }: BankManagementProps) {
 
   const notifyBanksUpdated = () => {
     onChange?.()
-    // Inform other screens (chèques, calibrage) to reload without a manual refresh
+    // Inform other screens (chÃ¨ques, calibrage) to reload without a manual refresh
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("banks-updated"))
     }
@@ -88,8 +88,8 @@ export function BankManagement({ onChange }: BankManagementProps) {
     if (response.ok) {
       const scanMessage = pdfFile ? "avec scan PDF" : "sans scan PDF"
       toast({
-        title: "✓ Banque ajoutée",
-        description: `La banque "${newBank.name}" a été ajoutée ${scanMessage}.`,
+        title: "âœ“ Banque ajoutÃ©e",
+        description: `La banque "${newBank.name}" a Ã©tÃ© ajoutÃ©e ${scanMessage}.`,
       })
       setNewBank({ code: "", name: "" })
       setPdfFile(null)
@@ -98,7 +98,7 @@ export function BankManagement({ onChange }: BankManagementProps) {
       notifyBanksUpdated()
     } else {
       toast({
-        title: "✗ Erreur",
+        title: "âœ— Erreur",
         description: "Impossible d'ajouter la banque.",
         variant: "destructive",
       })
@@ -123,8 +123,8 @@ export function BankManagement({ onChange }: BankManagementProps) {
     if (response.ok) {
       const scanMessage = pdfFile ? "avec nouveau scan PDF" : "sans modification du scan"
       toast({
-        title: "✓ Banque modifiée",
-        description: `La banque "${newBank.name}" a été modifiée ${scanMessage}.`,
+        title: "âœ“ Banque modifiÃ©e",
+        description: `La banque "${newBank.name}" a Ã©tÃ© modifiÃ©e ${scanMessage}.`,
       })
       setNewBank({ code: "", name: "" })
       setPdfFile(null)
@@ -134,7 +134,7 @@ export function BankManagement({ onChange }: BankManagementProps) {
       notifyBanksUpdated()
     } else {
       toast({
-        title: "✗ Erreur",
+        title: "âœ— Erreur",
         description: "Impossible de modifier la banque.",
         variant: "destructive",
       })
@@ -166,14 +166,14 @@ export function BankManagement({ onChange }: BankManagementProps) {
 
     if (response.ok) {
       toast({
-        title: "✓ Banque supprimée",
-        description: `La banque "${bankToDelete?.name || 'inconnue'}" a été supprimée.`,
+        title: "âœ“ Banque supprimÃ©e",
+        description: `La banque "${bankToDelete?.name || 'inconnue'}" a Ã©tÃ© supprimÃ©e.`,
       })
       await loadBanks()
       notifyBanksUpdated()
     } else {
       toast({
-        title: "✗ Erreur",
+        title: "âœ— Erreur",
         description: "Impossible de supprimer la banque.",
         variant: "destructive",
       })
@@ -213,13 +213,13 @@ export function BankManagement({ onChange }: BankManagementProps) {
               <Label htmlFor="name">Nom complet</Label>
               <Input
                 id="name"
-                placeholder="Ex: BDL - Banque de Développement Local"
+                placeholder="Ex: BDL - Banque de DÃ©veloppement Local"
                 value={newBank.name}
                 onChange={(e) => setNewBank({ ...newBank, name: e.target.value })}
               />
             </div>
             <div>
-              <Label htmlFor="pdf">Modèle de chèque (PDF)</Label>
+              <Label htmlFor="pdf">ModÃ¨le de chÃ¨que (PDF)</Label>
               <div className="flex items-center gap-2">
                 <Input id="pdf" type="file" accept=".pdf" onChange={handleFileChange} />
                 <Upload className="h-5 w-5 text-muted-foreground" />
@@ -245,7 +245,7 @@ export function BankManagement({ onChange }: BankManagementProps) {
               <div>
                 <h3 className="font-semibold text-gray-900">{bank.code}</h3>
                 <p className="text-sm text-muted-foreground">{bank.name}</p>
-                {bank.pdfUrl && <p className="mt-2 text-xs text-green-600">✓ Modèle PDF chargé</p>}
+                {bank.pdfUrl && <p className="mt-2 text-xs text-green-600">âœ“ ModÃ¨le PDF chargÃ©</p>}
               </div>
               <div className="flex gap-1">
                 <Button
@@ -275,8 +275,8 @@ export function BankManagement({ onChange }: BankManagementProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer cette banque ? Cette action est irréversible et supprimera également
-              tous les calibrages associés.
+              ÃŠtes-vous sÃ»r de vouloir supprimer cette banque ? Cette action est irrÃ©versible et supprimera Ã©galement
+              tous les calibrages associÃ©s.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

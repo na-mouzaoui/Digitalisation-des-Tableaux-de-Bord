@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CheckFillingAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddFiscalRecapsTable : Migration
+    public partial class AddTableuRecapsTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "FiscalRecaps",
+                name: "TableuRecaps",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -31,9 +31,9 @@ namespace CheckFillingAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_FiscalRecaps", x => x.Id);
+                    table.PrimaryKey("PK_TableuRecaps", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_FiscalRecaps_Users_UserId",
+                        name: "FK_TableuRecaps_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -41,14 +41,14 @@ namespace CheckFillingAPI.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_FiscalRecaps_Key_Mois_Annee",
-                table: "FiscalRecaps",
+                name: "IX_TableuRecaps_Key_Mois_Annee",
+                table: "TableuRecaps",
                 columns: new[] { "Key", "Mois", "Annee" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_FiscalRecaps_UserId",
-                table: "FiscalRecaps",
+                name: "IX_TableuRecaps_UserId",
+                table: "TableuRecaps",
                 column: "UserId");
         }
 
@@ -56,7 +56,7 @@ namespace CheckFillingAPI.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "FiscalRecaps");
+                name: "TableuRecaps");
         }
     }
 }

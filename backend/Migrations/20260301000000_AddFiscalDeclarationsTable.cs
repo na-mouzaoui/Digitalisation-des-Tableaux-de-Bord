@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CheckFillingAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddFiscalDeclarationsTable : Migration
+    public partial class AddTableuTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "FiscalDeclarations",
+                name: "Tableu",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -28,9 +28,9 @@ namespace CheckFillingAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_FiscalDeclarations", x => x.Id);
+                    table.PrimaryKey("PK_Tableu", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_FiscalDeclarations_Users_UserId",
+                        name: "FK_Tableu_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -38,20 +38,20 @@ namespace CheckFillingAPI.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_FiscalDeclarations_UserId",
-                table: "FiscalDeclarations",
+                name: "IX_Tableu_UserId",
+                table: "Tableu",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_FiscalDeclarations_UserId_TabKey_Mois_Annee",
-                table: "FiscalDeclarations",
+                name: "IX_Tableu_UserId_TabKey_Mois_Annee",
+                table: "Tableu",
                 columns: new[] { "UserId", "TabKey", "Mois", "Annee" });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "FiscalDeclarations");
+            migrationBuilder.DropTable(name: "Tableu");
         }
     }
 }

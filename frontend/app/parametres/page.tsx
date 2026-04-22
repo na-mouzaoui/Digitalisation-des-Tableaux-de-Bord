@@ -34,15 +34,15 @@ function ParametresContent() {
     <LayoutWrapper user={user}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Paramètres</h1>
+          <h1 className="text-3xl font-bold text-gray-900">ParamÃ¨tres</h1>
         </div>
         {hasAccess ? (
           <ParametersPanel preSelectedBankId={preSelectedBankId} />
         ) : (
           <AccessDeniedDialog
-            title="Accès refusé"
-            message="Votre rôle ne vous permet pas de créer, modifier ou supprimer des banques, ni de modifier les paramètres de calibrage. Seuls les utilisateurs avec le rôle 'Finance', 'Régionale' ou 'Admin' peuvent effectuer cette action."
-            redirectTo="/fisca_dashbord"
+            title="AccÃ¨s refusÃ©"
+            message="Votre rÃ´le ne vous permet pas de crÃ©er, modifier ou supprimer des banques, ni de modifier les paramÃ¨tres de calibrage. Seuls les utilisateurs avec le rÃ´le 'Finance', 'RÃ©gionale' ou 'Admin' peuvent effectuer cette action."
+            redirectTo="/tableu_dashbord"
           />
         )}
       </div>

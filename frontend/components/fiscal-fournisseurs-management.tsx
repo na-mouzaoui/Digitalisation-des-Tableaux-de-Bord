@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, Trash2, Upload, Download, Search, Loader2 } from "lucide-react"
 
-interface FiscalFournisseur {
+interface TableuFournisseur {
   id: number
   raisonSociale: string
   adresse: string
@@ -57,7 +57,7 @@ interface FormData {
 type ConflictDecision = "update" | "keep"
 
 interface ImportConflict {
-  existing: FiscalFournisseur
+  existing: TableuFournisseur
   incoming: FormData
 }
 
@@ -98,11 +98,11 @@ const parseCsvLine = (line: string) => {
 const normalizeCsvHeader = (value: string) =>
   value
     .toLowerCase()
-    .replace(/[àâä]/g, "a")
-    .replace(/[éèêë]/g, "e")
-    .replace(/[îï]/g, "i")
-    .replace(/[ôö]/g, "o")
-    .replace(/[ùûü]/g, "u")
+    .replace(/[Ã Ã¢Ã¤]/g, "a")
+    .replace(/[Ã©Ã¨ÃªÃ«]/g, "e")
+    .replace(/[Ã®Ã¯]/g, "i")
+    .replace(/[Ã´Ã¶]/g, "o")
+    .replace(/[Ã¹Ã»Ã¼]/g, "u")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
 
@@ -150,7 +150,7 @@ const fileToBase64Data = (file: Blob) =>
     reader.readAsDataURL(file)
   })
 
-const hasDifferentSupplierDetails = (existing: FiscalFournisseur, incoming: FormData) => {
+const hasDifferentSupplierDetails = (existing: TableuFournisseur, incoming: FormData) => {
   return (
     normalizeField(existing.adresse) !== normalizeField(incoming.adresse) ||
     normalizeField(existing.nif) !== normalizeField(incoming.nif) ||
@@ -160,19 +160,19 @@ const hasDifferentSupplierDetails = (existing: FiscalFournisseur, incoming: Form
   )
 }
 
-export function FiscalFournisseursManagement() {
+export function TableuFournisseursManagement() {
   const { toast } = useToast()
 
-  const [fournisseurs, setFournisseurs] = useState<FiscalFournisseur[]>([])
+  const [fournisseurs, setFournisseurs] = useState<TableuFournisseur[]>([])
   const [fetching, setFetching] = useState(false)
   const [search, setSearch] = useState("")
 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<FiscalFournisseur | null>(null)
+  const [editTarget, setEditTarget] = useState<TableuFournisseur | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
 
-  const [deleteTarget, setDeleteTarget] = useState<FiscalFournisseur | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<TableuFournisseur | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const [importDialogOpen, setImportDialogOpen] = useState(false)
@@ -202,7 +202,7 @@ export function FiscalFournisseursManagement() {
   const fetchFournisseurs = async () => {
     setFetching(true)
     try {
-      const res = await authFetch("/api/fiscal-fournisseurs")
+      const res = await authFetch("/api/tableu-fournisseurs")
       if (!res.ok) throw new Error()
       setFournisseurs(await res.json())
     } catch {
@@ -215,7 +215,7 @@ export function FiscalFournisseursManagement() {
   useEffect(() => { fetchFournisseurs() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCreate = () => { setEditTarget(null); setForm(EMPTY_FORM); setDialogOpen(true) }
-  const openEdit = (f: FiscalFournisseur) => {
+  const openEdit = (f: TableuFournisseur) => {
     setEditTarget(f)
     setForm({
       raisonSociale: f.raisonSociale,
@@ -241,7 +241,7 @@ export function FiscalFournisseursManagement() {
     if (duplicate) {
       toast({
         title: "Validation",
-        description: "Un fournisseur avec ce Nom / Raison Sociale existe déjà.",
+        description: "Un fournisseur avec ce Nom / Raison Sociale existe dÃ©jÃ .",
         variant: "destructive",
       })
       return
@@ -250,7 +250,7 @@ export function FiscalFournisseursManagement() {
     setSaving(true)
     try {
       const method = editTarget ? "PUT" : "POST"
-      const url = editTarget ? `/api/fiscal-fournisseurs/${editTarget.id}` : "/api/fiscal-fournisseurs"
+      const url = editTarget ? `/api/tableu-fournisseurs/${editTarget.id}` : "/api/tableu-fournisseurs"
       const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -260,7 +260,7 @@ export function FiscalFournisseursManagement() {
         const err = await res.json().catch(() => ({}))
         throw new Error((err as { message?: string }).message ?? "Erreur lors de l'enregistrement.")
       }
-      toast({ title: editTarget ? "Fournisseur modifié" : "Fournisseur créé", description: `${form.raisonSociale} a été ${editTarget ? "mis à jour" : "ajouté"}.` })
+      toast({ title: editTarget ? "Fournisseur modifiÃ©" : "Fournisseur crÃ©Ã©", description: `${form.raisonSociale} a Ã©tÃ© ${editTarget ? "mis Ã  jour" : "ajoutÃ©"}.` })
       setDialogOpen(false)
       fetchFournisseurs()
     } catch (e: unknown) {
@@ -275,9 +275,9 @@ export function FiscalFournisseursManagement() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      const res = await authFetch(`/api/fiscal-fournisseurs/${deleteTarget.id}`, { method: "DELETE" })
+      const res = await authFetch(`/api/tableu-fournisseurs/${deleteTarget.id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
-      toast({ title: "Supprimé", description: `${deleteTarget.raisonSociale} a été supprimé.` })
+      toast({ title: "SupprimÃ©", description: `${deleteTarget.raisonSociale} a Ã©tÃ© supprimÃ©.` })
       setDeleteTarget(null)
       fetchFournisseurs()
     } catch {
@@ -302,7 +302,7 @@ export function FiscalFournisseursManagement() {
 
     for (const supplier of creates) {
       try {
-        const res = await authFetch("/api/fiscal-fournisseurs", {
+        const res = await authFetch("/api/tableu-fournisseurs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(toSupplierPayload(supplier)),
@@ -322,7 +322,7 @@ export function FiscalFournisseursManagement() {
       }
 
       try {
-        const res = await authFetch(`/api/fiscal-fournisseurs/${conflict.existing.id}`, {
+        const res = await authFetch(`/api/tableu-fournisseurs/${conflict.existing.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(toSupplierPayload(conflict.incoming)),
@@ -335,15 +335,15 @@ export function FiscalFournisseursManagement() {
     }
 
     const summary: string[] = []
-    if (created > 0) summary.push(`${created} importé(s)`)
-    if (updated > 0) summary.push(`${updated} modifié(s)`)
-    if (kept > 0) summary.push(`${kept} conservé(s)`)
-    if (unchangedCount > 0) summary.push(`${unchangedCount} déjà existant(s)`)
-    if (ignoredCount > 0) summary.push(`${ignoredCount} ligne(s) ignorée(s)`)
+    if (created > 0) summary.push(`${created} importÃ©(s)`)
+    if (updated > 0) summary.push(`${updated} modifiÃ©(s)`)
+    if (kept > 0) summary.push(`${kept} conservÃ©(s)`)
+    if (unchangedCount > 0) summary.push(`${unchangedCount} dÃ©jÃ  existant(s)`)
+    if (ignoredCount > 0) summary.push(`${ignoredCount} ligne(s) ignorÃ©e(s)`)
     if (summary.length === 0) summary.push("Aucun changement")
 
     try {
-      await authFetch("/api/fiscal-fournisseurs/import-audit", {
+      await authFetch("/api/tableu-fournisseurs/import-audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -361,7 +361,7 @@ export function FiscalFournisseursManagement() {
     }
 
     toast({
-      title: "Import terminé",
+      title: "Import terminÃ©",
       description: `${summary.join(", ")}${errors > 0 ? `, ${errors} erreur(s)` : ""}.`,
       variant: errors > 0 ? "destructive" : "default",
     })
@@ -387,7 +387,7 @@ export function FiscalFournisseursManagement() {
       workbook.creator = "DFC Portal"
       workbook.created = new Date()
 
-      const worksheet = workbook.addWorksheet("Fournisseurs fiscaux", {
+      const worksheet = workbook.addWorksheet("Fournisseurs tableuux", {
         pageSetup: {
           orientation: "landscape",
           paperSize: 9,
@@ -446,7 +446,7 @@ export function FiscalFournisseursManagement() {
       const titleRowIndex = 7
       worksheet.mergeCells(`A${titleRowIndex}:F${titleRowIndex}`)
       const titleCell = worksheet.getCell(`A${titleRowIndex}`)
-      titleCell.value = "LISTE DES FOURNISSEURS FISCAUX"
+      titleCell.value = "LISTE DES FOURNISSEURS TABLEUUX"
       titleCell.font = { bold: true, size: 14, color: { argb: "FF000000" }, name: "Calibri" }
       titleCell.alignment = { horizontal: "center", vertical: "middle" }
 
@@ -463,8 +463,8 @@ export function FiscalFournisseursManagement() {
         "Adresse",
         "NIF",
         "Auth. NIF",
-        "N° RC",
-        "Auth. N° RC",
+        "NÂ° RC",
+        "Auth. NÂ° RC",
       ]
       headerRow.height = 22
 
@@ -524,7 +524,7 @@ export function FiscalFournisseursManagement() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = "fournisseurs-fiscaux.xlsx"
+      a.download = "fournisseurs-tableuux.xlsx"
       a.click()
       URL.revokeObjectURL(url)
     } catch {
@@ -609,13 +609,13 @@ export function FiscalFournisseursManagement() {
       if (parsedRows.length === 0) {
         toast({
           title: "Import CSV",
-          description: ignoredCount > 0 ? "Aucune ligne valide à importer." : "Aucun fournisseur trouvé dans le fichier.",
+          description: ignoredCount > 0 ? "Aucune ligne valide Ã  importer." : "Aucun fournisseur trouvÃ© dans le fichier.",
           variant: "destructive",
         })
         return
       }
 
-      const existingByName = new Map<string, FiscalFournisseur>()
+      const existingByName = new Map<string, TableuFournisseur>()
       for (const fournisseur of fournisseurs) {
         const key = normalizeSupplierName(fournisseur.raisonSociale)
         if (key && !existingByName.has(key)) {
@@ -705,8 +705,8 @@ export function FiscalFournisseursManagement() {
               <TableHead>Adresse</TableHead>
               <TableHead>NIF</TableHead>
               <TableHead>Auth. NIF</TableHead>
-              <TableHead>N° RC</TableHead>
-              <TableHead>Auth. N° RC</TableHead>
+              <TableHead>NÂ° RC</TableHead>
+              <TableHead>Auth. NÂ° RC</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -714,17 +714,17 @@ export function FiscalFournisseursManagement() {
             {fetching ? (
               <TableRow><TableCell colSpan={8} className="h-32 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" /></TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">{search ? "Aucun résultat." : "Aucun fournisseur enregistré."}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">{search ? "Aucun rÃ©sultat." : "Aucun fournisseur enregistrÃ©."}</TableCell></TableRow>
             ) : (
               filtered.map((f, idx) => (
                 <TableRow key={f.id}>
                   <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
                   <TableCell className="font-medium">{f.raisonSociale}</TableCell>
-                  <TableCell>{f.adresse || "—"}</TableCell>
-                  <TableCell>{f.nif || "—"}</TableCell>
-                  <TableCell>{f.authNif || "—"}</TableCell>
-                  <TableCell>{f.rc || "—"}</TableCell>
-                  <TableCell>{f.authRc || "—"}</TableCell>
+                  <TableCell>{f.adresse || "â€”"}</TableCell>
+                  <TableCell>{f.nif || "â€”"}</TableCell>
+                  <TableCell>{f.authNif || "â€”"}</TableCell>
+                  <TableCell>{f.rc || "â€”"}</TableCell>
+                  <TableCell>{f.authRc || "â€”"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(f)} title="Modifier"><Pencil className="h-4 w-4" /></Button>
@@ -737,7 +737,7 @@ export function FiscalFournisseursManagement() {
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs text-muted-foreground">{filtered.length} fournisseur{filtered.length !== 1 ? "s" : ""}{search && ` (filtrés sur ${fournisseurs.length} au total)`}</p>
+      <p className="text-xs text-muted-foreground">{filtered.length} fournisseur{filtered.length !== 1 ? "s" : ""}{search && ` (filtrÃ©s sur ${fournisseurs.length} au total)`}</p>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -746,14 +746,14 @@ export function FiscalFournisseursManagement() {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label htmlFor="raisonSociale">Nom / Raison Sociale <span className="text-destructive">*</span></Label>
-              <Input id="raisonSociale" value={form.raisonSociale} onChange={(e) => setForm({ ...form, raisonSociale: e.target.value })} placeholder="Ex: SARL ALGÉRIE TÉLÉCOMS" />
+              <Input id="raisonSociale" value={form.raisonSociale} onChange={(e) => setForm({ ...form, raisonSociale: e.target.value })} placeholder="Ex: SARL ALGÃ‰RIE TÃ‰LÃ‰COMS" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="adresse">Adresse</Label>
               <Input id="adresse" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} placeholder="Ex: Alger Centre" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="nif">Numéro d'Identification Fiscale (NIF)</Label>
+              <Label htmlFor="nif">NumÃ©ro d'Identification Tableue (NIF)</Label>
               <Input id="nif" value={form.nif} onChange={(e) => setForm({ ...form, nif: e.target.value })} placeholder="Ex: 000016001234567" />
             </div>
             <div className="space-y-1.5">
@@ -761,11 +761,11 @@ export function FiscalFournisseursManagement() {
               <Input id="authNif" value={form.authNif} onChange={(e) => setForm({ ...form, authNif: e.target.value })} placeholder="Ex: 2026/00123" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="rc">N° RC</Label>
+              <Label htmlFor="rc">NÂ° RC</Label>
               <Input id="rc" value={form.rc} onChange={(e) => setForm({ ...form, rc: e.target.value })} placeholder="Ex: 16B123456" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="authRc">Auth. N° RC</Label>
+              <Label htmlFor="authRc">Auth. NÂ° RC</Label>
               <Input id="authRc" value={form.authRc} onChange={(e) => setForm({ ...form, authRc: e.target.value })} placeholder="Ex: RC/2026/0145" />
             </div>
           </div>
@@ -773,7 +773,7 @@ export function FiscalFournisseursManagement() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Annuler</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editTarget ? "Enregistrer" : "Créer"}
+              {editTarget ? "Enregistrer" : "CrÃ©er"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -790,15 +790,15 @@ export function FiscalFournisseursManagement() {
       >
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Conflits détectés lors de l'import</DialogTitle>
+            <DialogTitle>Conflits dÃ©tectÃ©s lors de l'import</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              {importConflicts.length} conflit(s) détecté(s), {pendingImportCreates.length} nouveau(x) fournisseur(s), {pendingUnchanged} déjà identique(s).
+              {importConflicts.length} conflit(s) dÃ©tectÃ©(s), {pendingImportCreates.length} nouveau(x) fournisseur(s), {pendingUnchanged} dÃ©jÃ  identique(s).
             </p>
             {pendingIgnoredCount > 0 && (
-              <p className="text-muted-foreground">{pendingIgnoredCount} ligne(s) CSV ont été ignorée(s) (nom vide).</p>
+              <p className="text-muted-foreground">{pendingIgnoredCount} ligne(s) CSV ont Ã©tÃ© ignorÃ©e(s) (nom vide).</p>
             )}
 
             {importConflicts.map((conflict) => {
@@ -832,19 +832,19 @@ export function FiscalFournisseursManagement() {
                   <div className="grid gap-2 text-xs sm:grid-cols-2">
                     <div className="rounded border bg-muted/30 p-2">
                       <p className="mb-1 font-medium text-emerald-700">Existant (base actuelle)</p>
-                      <p>Adresse existante: {conflict.existing.adresse || "—"}</p>
-                      <p>NIF existant: {conflict.existing.nif || "—"}</p>
-                      <p>Auth. NIF existant: {conflict.existing.authNif || "—"}</p>
-                      <p>N° RC existant: {conflict.existing.rc || "—"}</p>
-                      <p>Auth. N° RC existant: {conflict.existing.authRc || "—"}</p>
+                      <p>Adresse existante: {conflict.existing.adresse || "â€”"}</p>
+                      <p>NIF existant: {conflict.existing.nif || "â€”"}</p>
+                      <p>Auth. NIF existant: {conflict.existing.authNif || "â€”"}</p>
+                      <p>NÂ° RC existant: {conflict.existing.rc || "â€”"}</p>
+                      <p>Auth. NÂ° RC existant: {conflict.existing.authRc || "â€”"}</p>
                     </div>
                     <div className="rounded border bg-muted/30 p-2">
                       <p className="mb-1 font-medium text-blue-700">Import (fichier CSV)</p>
-                      <p>Adresse importée: {conflict.incoming.adresse || "—"}</p>
-                      <p>NIF importé: {conflict.incoming.nif || "—"}</p>
-                      <p>Auth. NIF importé: {conflict.incoming.authNif || "—"}</p>
-                      <p>N° RC importé: {conflict.incoming.rc || "—"}</p>
-                      <p>Auth. N° RC importé: {conflict.incoming.authRc || "—"}</p>
+                      <p>Adresse importÃ©e: {conflict.incoming.adresse || "â€”"}</p>
+                      <p>NIF importÃ©: {conflict.incoming.nif || "â€”"}</p>
+                      <p>Auth. NIF importÃ©: {conflict.incoming.authNif || "â€”"}</p>
+                      <p>NÂ° RC importÃ©: {conflict.incoming.rc || "â€”"}</p>
+                      <p>Auth. NÂ° RC importÃ©: {conflict.incoming.authRc || "â€”"}</p>
                     </div>
                   </div>
                 </div>
@@ -867,7 +867,7 @@ export function FiscalFournisseursManagement() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le fournisseur ?</AlertDialogTitle>
-            <AlertDialogDescription>Cette action est irréversible. <strong>{deleteTarget?.raisonSociale}</strong> sera définitivement supprimé.</AlertDialogDescription>
+            <AlertDialogDescription>Cette action est irrÃ©versible. <strong>{deleteTarget?.raisonSociale}</strong> sera dÃ©finitivement supprimÃ©.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>

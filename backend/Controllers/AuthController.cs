@@ -50,9 +50,6 @@ public class AuthController : ControllerBase
                 phoneNumber = user.PhoneNumber,
                 role = user.Role,
                 region = user.Region,
-                isRegionalApprover = user.IsRegionalApprover,
-                isFinanceApprover = user.IsFinanceApprover,
-                accessModules = user.AccessModules,
                 createdAt = user.CreatedAt
             }
         });
@@ -120,9 +117,6 @@ public class AuthController : ControllerBase
                 phoneNumber = user.PhoneNumber,
                 role = user.Role,
                 region = user.Region,
-                isRegionalApprover = user.IsRegionalApprover,
-                isFinanceApprover = user.IsFinanceApprover,
-                accessModules = user.AccessModules,
                 createdAt = user.CreatedAt
             }
         });
@@ -171,3 +165,4 @@ public class AuthController : ControllerBase
 public record LoginRequest(string Email, string Password);
 public record RegisterRequest(string Email, string Password);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+

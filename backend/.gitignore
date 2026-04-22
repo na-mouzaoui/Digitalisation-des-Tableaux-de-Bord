@@ -1,2 +1,24 @@
+# Build
 bin/
 obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Database / runtime
+*.db
+*.sqlite
+
+# Files generated
+*.pdb
+*.cache
+
+
+# OS
+.DS_Store
+Thumbs.db

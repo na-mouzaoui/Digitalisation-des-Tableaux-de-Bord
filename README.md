@@ -1,37 +1,37 @@
 # Tableau de bord - Documentation fonctionnelle
 
 Ce document décrit le contenu de l'application en 3 parties :
-1. Fisca
-2. Recap Fiscaux
+1. Tableu
+2. Recap Tableuux
 3. Page Admin
 
-## 1. Fisca
+## 1. Tableu
 
 ### Objectif
-Saisir, sauvegarder, modifier, consulter, imprimer et historiser les déclarations fiscales.
+Saisir, sauvegarder, modifier, consulter, imprimer et historiser les déclarations tableues.
 
 ### Fonctionnalités principales
-- Saisie des déclarations par onglet/tableau fiscal.
+- Saisie des déclarations par onglet/tableau tableu.
 - Gestion de la période (mois/année) et de la direction.
-- Filtrage automatique des tableaux fiscaux selon le profil et la direction sélectionnée.
+- Filtrage automatique des tableaux tableuux selon le profil et la direction sélectionnée.
 - Sauvegarde d'une déclaration (création et modification).
-- Consultation des déclarations récentes dans le dashboard fiscal.
-- Rappels fiscaux et indicateurs de complétude/approbation dans le dashboard fiscal.
+- Consultation des déclarations récentes dans le dashboard tableu.
+- Rappels tableuux et indicateurs de complétude/approbation dans le dashboard tableu.
 - Consultation détaillée au clic ligne, impression PDF, modification, suppression.
-- Validation (approbation) des déclarations via bouton dédié dans le dashboard fiscal pour les comptes approbateurs (régional et finance).
+- Validation (approbation) des déclarations via bouton dédié dans le dashboard tableu pour les comptes approbateurs (régional et finance).
 - Filtres avancés (type, période, direction, date) et tri dans le dashboard.
 - Tableau 1 (Encaissement) en saisie HT avec calcul automatique de la TVA et du TTC.
 - Formatage des montants en temps réel (séparateurs de milliers) lors de la saisie.
 - Affichage des montants de total en sens droite-vers-gauche pour homogénéité visuelle.
-- Gestion des fournisseurs fiscaux :
+- Gestion des fournisseurs tableuux :
   - CRUD,
   - export CSV,
   - import CSV intelligent avec déduplication,
   - résolution des conflits (garder l'existant ou remplacer par CSV).
 - Gestion des wilayas/communes (tableau TAP) via une source TypeScript dédiée.
 
-### Fonctionnalités de rappel fiscal
-- Endpoint dédié : `GET /api/fiscal/reminders`.
+### Fonctionnalités de rappel tableu
+- Endpoint dédié : `GET /api/tableu/reminders`.
 - Période de calcul : 10/15 du mois suivant 
 - Périmètre selon rôle connecté :
   - admin : toutes les régions configurées + Siège,
@@ -52,15 +52,15 @@ Saisir, sauvegarder, modifier, consulter, imprimer et historiser les déclaratio
 - Côté admin, un filtre par direction est disponible ; la vue "Tout" conserve le dénominateur global (toutes directions + Siège), même si certaines directions n'ont aucune déclaration.
 
 ### Règles métier importantes
-- Le rôle direction n'a pas accès à la création de déclarations fiscales.
+- Le rôle direction n'a pas accès à la création de déclarations tableues.
 - Direction imposée selon le rôle :
   - regionale -> direction fixée automatiquement sur la région du compte,
   - finance/comptabilite -> direction fixée à "Siège",
   - admin -> direction sélectionnable.
-- Attribution des tableaux fiscaux par type de compte :
+- Attribution des tableaux tableuux par type de compte :
   - regionale -> tableaux 1 à 6,
   - finance/comptabilite -> tableaux 7 à 16.
-- Attribution des tableaux fiscaux pour admin selon la direction choisie :
+- Attribution des tableaux tableuux pour admin selon la direction choisie :
   - direction "Siège" -> tableaux 7 à 16,
   - autre direction -> tableaux 1 à 6,
   - si aucune direction n'est encore sélectionnée -> tableaux 1 à 16.
@@ -95,16 +95,16 @@ Saisir, sauvegarder, modifier, consulter, imprimer et historiser les déclaratio
   - Un approbateur finance peut approuver uniquement les déclarations du niveau Siège.
   - Un approbateur (régional ou finance) peut aussi approuver ses propres déclarations.
   - Une déclaration modifiée repasse automatiquement en état "En attente" (nouvelle approbation requise).
-  - Règles de consultation dashboard fiscal :
+  - Règles de consultation dashboard tableu :
     - admin : voit toutes les déclarations (approuvées et en attente), y compris celles émises par les comptes admin et finance/comptabilite.
     - finance/comptabilite : voit toutes les déclarations du niveau Siège (approuvées et en attente) + toutes les déclarations régionales (approuvées et en attente).
     - direction (global) : voit toutes les déclarations du siège approuvées + toutes les déclarations régionales (approuvées et en attente).
 - Les données peuvent exister localement (cache local) et sont aussi persistées côté API.
 
-## 2. Recap Fiscaux
+## 2. Recap Tableuux
 
 ### Objectif
-Générer et consulter des récapitulatifs fiscaux automatiques regroupant les 7 tableaux consolidés d'une période donnée.
+Générer et consulter des récapitulatifs tableuux automatiques regroupant les 7 tableaux consolidés d'une période donnée.
 
 ### Fonctionnalités principales
 - **Génération des recaps** :
@@ -175,7 +175,7 @@ Centraliser l'administration des utilisateurs, des référentiels et de l'audit.
   - tri et visualisation détaillée.
 - Espace Gestion (ordre actuel) :
   1. Gestion des banques
-  2. Gestion des fournisseurs fiscaux
+  2. Gestion des fournisseurs tableuux
   3. Configuration des régions
 - Configuration des régions :
   - création,

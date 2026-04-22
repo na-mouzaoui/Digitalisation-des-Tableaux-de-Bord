@@ -1,6 +1,6 @@
 import { authFetch } from "./auth-fetch"
 
-export type FiscalPolicy = {
+export type TableuPolicy = {
   role: string
   requestedDirection: string
   deadlineDay: number
@@ -11,7 +11,7 @@ export type FiscalPolicy = {
   serverNow: string
 }
 
-let cachedFiscalPolicy: FiscalPolicy | null = null
+let cachedTableuPolicy: TableuPolicy | null = null
 
 const normalizeRole = (role?: string | null) => (role ?? "").trim().toLowerCase()
 
@@ -20,9 +20,9 @@ const toStringArray = (value: unknown): string[] => {
   return value.map((item) => String(item ?? "").trim()).filter(Boolean)
 }
 
-export const getCachedFiscalPolicy = (): FiscalPolicy | null => cachedFiscalPolicy
+export const getCachedTableuPolicy = (): TableuPolicy | null => cachedTableuPolicy
 
-export const syncFiscalPolicy = async (direction?: string | null): Promise<FiscalPolicy | null> => {
+export const syncTableuPolicy = async (direction?: string | null): Promise<TableuPolicy | null> => {
   const search = new URLSearchParams()
   const normalizedDirection = (direction ?? "").trim()
   if (normalizedDirection) {
@@ -30,13 +30,13 @@ export const syncFiscalPolicy = async (direction?: string | null): Promise<Fisca
   }
 
   try {
-    const response = await authFetch(`/api/fiscal/policy${search.size > 0 ? `?${search.toString()}` : ""}`)
-    if (!response.ok) return cachedFiscalPolicy
+    const response = await authFetch(`/api/tableu/policy${search.size > 0 ? `?${search.toString()}` : ""}`)
+    if (!response.ok) return cachedTableuPolicy
 
     const payload = await response.json().catch(() => null)
-    if (!payload || typeof payload !== "object") return cachedFiscalPolicy
+    if (!payload || typeof payload !== "object") return cachedTableuPolicy
 
-    const policy: FiscalPolicy = {
+    const policy: TableuPolicy = {
       role: String((payload as { role?: unknown }).role ?? "").trim(),
       requestedDirection: String((payload as { requestedDirection?: unknown }).requestedDirection ?? "").trim(),
       deadlineDay: Number((payload as { deadlineDay?: unknown }).deadlineDay ?? 10) || 10,
@@ -47,17 +47,17 @@ export const syncFiscalPolicy = async (direction?: string | null): Promise<Fisca
       serverNow: String((payload as { serverNow?: unknown }).serverNow ?? ""),
     }
 
-    if (!policy.role) return cachedFiscalPolicy
+    if (!policy.role) return cachedTableuPolicy
 
-    cachedFiscalPolicy = policy
-    return cachedFiscalPolicy
+    cachedTableuPolicy = policy
+    return cachedTableuPolicy
   } catch {
-    return cachedFiscalPolicy
+    return cachedTableuPolicy
   }
 }
 
 export const getPolicyDeadlineDay = (role?: string | null): number | null => {
-  if (!cachedFiscalPolicy) return null
-  if (normalizeRole(cachedFiscalPolicy.role) !== normalizeRole(role)) return null
-  return cachedFiscalPolicy.deadlineDay
+  if (!cachedTableuPolicy) return null
+  if (normalizeRole(cachedTableuPolicy.role) !== normalizeRole(role)) return null
+  return cachedTableuPolicy.deadlineDay
 }

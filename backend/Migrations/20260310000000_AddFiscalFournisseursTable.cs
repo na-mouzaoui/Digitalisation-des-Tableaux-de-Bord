@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CheckFillingAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddFiscalFournisseursTable : Migration
+    public partial class AddTableuFournisseursTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "FiscalFournisseurs",
+                name: "TableuFournisseurs",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -26,9 +26,9 @@ namespace CheckFillingAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_FiscalFournisseurs", x => x.Id);
+                    table.PrimaryKey("PK_TableuFournisseurs", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_FiscalFournisseurs_Users_UserId",
+                        name: "FK_TableuFournisseurs_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -36,8 +36,8 @@ namespace CheckFillingAPI.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_FiscalFournisseurs_UserId",
-                table: "FiscalFournisseurs",
+                name: "IX_TableuFournisseurs_UserId",
+                table: "TableuFournisseurs",
                 column: "UserId");
         }
 
@@ -45,7 +45,7 @@ namespace CheckFillingAPI.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "FiscalFournisseurs");
+                name: "TableuFournisseurs");
         }
     }
 }

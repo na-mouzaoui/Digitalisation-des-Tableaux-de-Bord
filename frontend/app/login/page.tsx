@@ -12,7 +12,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!isLoading && user) {
       const role = (user as { role?: string }).role
-      router.replace(role === "admin" ? "/admin" : "/fisca_dashbord")
+      router.replace(role === "admin" ? "/admin" : "/tableu_dashbord")
     }
   }, [user, isLoading, router])
 
@@ -25,7 +25,7 @@ export default function LoginPage() {
         </div>
         {isLoading ? (
           <div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-muted-foreground">
-            Vérification de la session...
+            VÃ©rification de la session...
           </div>
         ) : (
           <LoginForm />

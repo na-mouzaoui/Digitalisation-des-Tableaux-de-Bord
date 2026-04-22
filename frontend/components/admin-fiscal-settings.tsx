@@ -6,11 +6,11 @@ import { Label } from "@/components/ui/label"
 import { authFetch } from "@/lib/auth-fetch"
 import { useToast } from "@/hooks/use-toast"
 
-type FiscalSettingsResponse = {
+type TableuSettingsResponse = {
   isTable6Enabled?: boolean
 }
 
-export default function AdminFiscalSettings() {
+export default function AdminTableuSettings() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -21,12 +21,12 @@ export default function AdminFiscalSettings() {
 
     const load = async () => {
       try {
-        const response = await authFetch("/api/admin/fiscal-settings", { cache: "no-store" })
+        const response = await authFetch("/api/admin/tableu-settings", { cache: "no-store" })
         if (!response.ok) {
-          throw new Error("Impossible de charger les parametres fiscaux")
+          throw new Error("Impossible de charger les parametres tableuux")
         }
 
-        const payload = (await response.json().catch(() => null)) as FiscalSettingsResponse | null
+        const payload = (await response.json().catch(() => null)) as TableuSettingsResponse | null
         if (!cancelled) {
           setIsTable6Enabled(payload?.isTable6Enabled !== false)
         }
@@ -58,7 +58,7 @@ export default function AdminFiscalSettings() {
     setIsSaving(true)
 
     try {
-      const response = await authFetch("/api/admin/fiscal-settings/table6", {
+      const response = await authFetch("/api/admin/tableu-settings/table6", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isEnabled: nextValue }),
@@ -104,7 +104,7 @@ export default function AdminFiscalSettings() {
             Activer le tableau 6 (ETAT TAP)
           </Label>
           <p className="text-xs text-muted-foreground">
-            Si desactive, le tableau 6 apparait en grise dans Nouvelle declaration et il est ignore dans les indicateurs et les rappels.
+            Si desactive, le tableau 6 apparait en grise dans Nouvelle tableu et il est ignore dans les indicateurs et les rappels.
           </p>
         </div>
       </div>

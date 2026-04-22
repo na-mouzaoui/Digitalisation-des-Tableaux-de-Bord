@@ -8,19 +8,22 @@ import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   LogOut,
+  FilePlus,
   ChevronDown,
   ChevronRight,
-  Calculator,
-  FilePlus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/lib/auth-client"
 import type { User } from "@/lib/db"
 import UserProfileMenu from "./user-profile-menu"
 
-const fiscaLinks = [
-  { name: "Dashboard", href: "/fisca_dashbord", icon: LayoutDashboard },
-  { name: "Nouvelle Déclaration", href: "/declaration", icon: FilePlus },
+const tableuLinks = [
+  { name: "Commercial", href: "/tableu/commercial" },
+  { name: "Reseaux technique", href: "/tableu/reseaux-technique" },
+  { name: "QualitÃ© reseau", href: "/tableu/qualite-reseau" },
+  { name: "Pilotage et Performance", href: "/tableu/pilotage-performance" },
+  { name: "Finances", href: "/tableu/finances" },
+  { name: "Direction regionale", href: "/tableu/direction-regionale" },
 ]
 
 interface SidebarProps {
@@ -31,10 +34,15 @@ export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
-  const isFiscaPath = pathname === "/fisca_dashbord" || pathname.startsWith("/declaration")
-  const modules = (user.accessModules || "fisca").split(",").map((m: string) => m.trim())
-  const hasFisca = modules.includes("fisca")
-  const [openFisca, setOpenFisca] = useState(isFiscaPath)
+  const modules = (user.accessModules || "tableu")
+    .split(",")
+    .map((m: string) => m.trim())
+
+  const hasTableu = modules.includes("tableu")
+
+  const [openTableu, setOpenTableu] = useState(
+    pathname.startsWith("/tableu")
+  )
 
   const handleLogout = async () => {
     await logout()
@@ -42,126 +50,109 @@ export function Sidebar({ user }: SidebarProps) {
     router.refresh()
   }
 
-  const renderNavLink = (item: { name: string; href: string; icon: React.ElementType }) => {
-    const Icon = item.icon
-    const isActive = pathname === item.href
+  const renderNavLink = (
+    name: string,
+    href: string,
+    Icon?: React.ElementType
+  ) => {
+    const isActive = pathname === href
+
     return (
       <Link
-        key={item.name}
-        href={item.href}
+        key={name}
+        href={href}
         className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
         style={{
-          backgroundColor: isActive ? '#2db34b' : 'transparent',
-          color: isActive ? 'white' : '#1f2937',
-        }}
-        onMouseEnter={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.backgroundColor = '#f3f4f6'
-            e.currentTarget.style.color = '#2db34b'
-            const icon = e.currentTarget.querySelector('svg')
-            if (icon) (icon as unknown as HTMLElement).style.color = '#e82c2a'
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.backgroundColor = 'transparent'
-            e.currentTarget.style.color = '#1f2937'
-            const icon = e.currentTarget.querySelector('svg')
-            if (icon) (icon as unknown as HTMLElement).style.color = '#e82c2a'
-          }
+          backgroundColor: isActive ? "#2db34b" : "transparent",
+          color: isActive ? "white" : "#1f2937",
         }}
       >
-        <Icon className="h-5 w-5 flex-shrink-0" style={{ color: isActive ? 'white' : '#e82c2a' }} />
-        {item.name}
-      </Link>
-    )
-  }
-
-  const renderGroup = (
-    label: string,
-    Icon: React.ElementType,
-    links: { name: string; href: string; icon: React.ElementType }[],
-    isOpen: boolean,
-    toggle: () => void,
-  ) => {
-    const hasActive = links.some((l) => pathname === l.href)
-    return (
-      <div className="mb-1">
-        <button
-          onClick={toggle}
-          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold transition-colors"
-          style={{
-            backgroundColor: hasActive ? '#f0fdf4' : 'transparent',
-            color: hasActive ? '#2db34b' : '#374151',
-          }}
-          onMouseEnter={(e) => {
-            if (!hasActive) {
-              (e.currentTarget as HTMLElement).style.backgroundColor = '#f3f4f6'
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!hasActive) {
-              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'
-            }
-          }}
-        >
-          <span className="flex items-center gap-2">
-            <Icon className="h-5 w-5" style={{ color: hasActive ? '#2db34b' : '#e82c2a' }} />
-            {label}
-          </span>
-          {isOpen
-            ? <ChevronDown className="h-4 w-4 text-gray-400" />
-            : <ChevronRight className="h-4 w-4 text-gray-400" />}
-        </button>
-        {isOpen && (
-          <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100 pl-2">
-            {links.map(renderNavLink)}
-          </div>
+        {Icon && (
+          <Icon
+            className="h-5 w-5"
+            style={{ color: isActive ? "white" : "#e82c2a" }}
+          />
         )}
-      </div>
+        {name}
+      </Link>
     )
   }
 
   return (
     <div className="relative flex h-full flex-col border-r bg-white w-64">
+      
+      {/* Logo */}
       <div className="border-b p-4 flex items-center justify-center">
-        <div className="flex items-center">
-          <Image
-            src="/logo.png"
-            alt="Logo Entreprise"
-            width={180}
-            height={60}
-            className="object-contain"
-            priority
-          />
-        </div>
+        <Image
+          src="/logo.png"
+          alt="Logo"
+          width={180}
+          height={60}
+          className="object-contain"
+          priority
+        />
       </div>
+
+      {/* NAV */}
       <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
-        {hasFisca && renderGroup(
-          "Fisca",
-          Calculator,
-          fiscaLinks,
-          openFisca,
-          () => setOpenFisca((v) => !v),
+        
+        {hasTableu && (
+          <>
+            {/* Dashboard */}
+            {renderNavLink("Dashboard", "/tableu_dashbord", LayoutDashboard)}
+
+            {/* Accordion Nouveaux Tableaux */}
+            <div className="mt-2">
+              <button
+                onClick={() => setOpenTableu(!openTableu)}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                <span className="flex items-center gap-2">
+                  <FilePlus className="h-5 w-5 text-red-500" />
+                  Nouveaux tableaux
+                </span>
+
+                {openTableu ? (
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+
+              {openTableu && (
+                <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100 pl-2">
+                  {tableuLinks.map((item) =>
+                    renderNavLink(item.name, item.href)
+                  )}
+                </div>
+              )}
+            </div>
+          </>
         )}
+
       </nav>
+
+      {/* Footer */}
       <div className="border-t p-4 space-y-2">
         <div className="text-xs text-gray-600 truncate" title={user.email}>
           {user.email}
         </div>
+
         <div className="flex items-center gap-2">
           <UserProfileMenu />
+
           <Button
             variant="outline"
             size="sm"
             onClick={handleLogout}
             className="flex-1 justify-start gap-2"
           >
-            <LogOut className="h-4 w-4" style={{ color: '#e82c2a' }} />
-            Déconnexion
+            <LogOut className="h-4 w-4 text-red-500" />
+            DÃ©connexion
           </Button>
         </div>
       </div>
+
     </div>
   )
 }

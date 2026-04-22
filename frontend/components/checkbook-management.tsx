@@ -191,7 +191,7 @@ export function CheckbookManagement() {
     if (isNaN(capacityValue) || capacityValue <= 0) {
       toast({
         title: "Erreur",
-        description: "Le nombre de chèques doit être supérieur à 0",
+        description: "Le nombre de chÃ¨ques doit Ãªtre supÃ©rieur Ã  0",
         variant: "destructive"
       })
       return
@@ -200,7 +200,7 @@ export function CheckbookManagement() {
     if (!formData.endNumber) {
       toast({
         title: "Erreur",
-        description: "Veuillez saisir le N° de fin",
+        description: "Veuillez saisir le NÂ° de fin",
         variant: "destructive"
       })
       return
@@ -209,7 +209,7 @@ export function CheckbookManagement() {
     if (formData.serie.length !== 2) {
       toast({
         title: "Erreur",
-        description: "La série doit contenir exactement 2 caractères",
+        description: "La sÃ©rie doit contenir exactement 2 caractÃ¨res",
         variant: "destructive"
       })
       return
@@ -221,7 +221,7 @@ export function CheckbookManagement() {
     if (Number.isNaN(startNum) || Number.isNaN(endNum)) {
       toast({
         title: "Erreur",
-        description: "Les numéros doivent être valides",
+        description: "Les numÃ©ros doivent Ãªtre valides",
         variant: "destructive"
       })
       return
@@ -230,7 +230,7 @@ export function CheckbookManagement() {
     if (startNum < 0 || startNum > 9999999) {
       toast({
         title: "Erreur",
-        description: "Le numéro de début doit être entre 0 et 9999999",
+        description: "Le numÃ©ro de dÃ©but doit Ãªtre entre 0 et 9999999",
         variant: "destructive"
       })
       return
@@ -239,7 +239,7 @@ export function CheckbookManagement() {
     if (endNum < 0 || endNum > 9999999) {
       toast({
         title: "Erreur",
-        description: "Le numéro de fin doit être entre 0 et 9999999",
+        description: "Le numÃ©ro de fin doit Ãªtre entre 0 et 9999999",
         variant: "destructive"
       })
       return
@@ -248,7 +248,7 @@ export function CheckbookManagement() {
     if (endNum < startNum) {
       toast({
         title: "Erreur",
-        description: "Le numéro de fin doit être supérieur ou égal au numéro de début",
+        description: "Le numÃ©ro de fin doit Ãªtre supÃ©rieur ou Ã©gal au numÃ©ro de dÃ©but",
         variant: "destructive"
       })
       return
@@ -290,8 +290,8 @@ export function CheckbookManagement() {
       }
 
       toast({
-        title: "Succès",
-        description: editingId ? "Chéquier modifié" : "Chéquier créé"
+        title: "SuccÃ¨s",
+        description: editingId ? "ChÃ©quier modifiÃ©" : "ChÃ©quier crÃ©Ã©"
       })
 
       setShowDialog(false)
@@ -306,7 +306,7 @@ export function CheckbookManagement() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce chéquier ?")) return
+    if (!confirm("ÃŠtes-vous sÃ»r de vouloir supprimer ce chÃ©quier ?")) return
 
     try {
       const token = localStorage.getItem("jwt")
@@ -322,8 +322,8 @@ export function CheckbookManagement() {
       }
 
       toast({
-        title: "Succès",
-        description: "Chéquier supprimé"
+        title: "SuccÃ¨s",
+        description: "ChÃ©quier supprimÃ©"
       })
 
       loadCheckbooks()
@@ -362,7 +362,7 @@ export function CheckbookManagement() {
             </Select>
             <Button onClick={() => handleOpenDialog()}>
               <Plus className="mr-2 h-4 w-4" />
-              Nouveau chéquier
+              Nouveau chÃ©quier
             </Button>
           </div>
         </div>
@@ -372,7 +372,7 @@ export function CheckbookManagement() {
           <div className="text-center py-8">Chargement...</div>
         ) : checkbooks.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            Aucun chéquier trouvé
+            Aucun chÃ©quier trouvÃ©
           </div>
         ) : (
           <Table>
@@ -381,10 +381,10 @@ export function CheckbookManagement() {
                 <TableHead>Banque</TableHead>
                 <TableHead>Agence</TableHead>
                 <TableHead>Code Agence</TableHead>
-                <TableHead>Série</TableHead>
+                <TableHead>SÃ©rie</TableHead>
                 <TableHead>Plage</TableHead>
-                <TableHead>Capacité</TableHead>
-                <TableHead>Utilisés</TableHead>
+                <TableHead>CapacitÃ©</TableHead>
+                <TableHead>UtilisÃ©s</TableHead>
                 <TableHead>Restants</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -415,7 +415,7 @@ export function CheckbookManagement() {
                         size="sm"
                         onClick={() => handleOpenDialog(checkbook)}
                         disabled={checkbook.usedCount > 0}
-                        title={checkbook.usedCount > 0 ? "Impossible de modifier un chéquier utilisé" : "Modifier"}
+                        title={checkbook.usedCount > 0 ? "Impossible de modifier un chÃ©quier utilisÃ©" : "Modifier"}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -441,12 +441,12 @@ export function CheckbookManagement() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingId ? "Modifier le chéquier" : "Nouveau chéquier"}
+                {editingId ? "Modifier le chÃ©quier" : "Nouveau chÃ©quier"}
               </DialogTitle>
               <DialogDescription>
                 {editingId
                   ? "Modifier les informations de l'agence"
-                  : "Créer un nouveau chéquier pour une banque"}
+                  : "CrÃ©er un nouveau chÃ©quier pour une banque"}
               </DialogDescription>
             </DialogHeader>
 
@@ -460,7 +460,7 @@ export function CheckbookManagement() {
                       onValueChange={(value) => setFormData({ ...formData, bankId: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une banque" />
+                        <SelectValue placeholder="SÃ©lectionner une banque" />
                       </SelectTrigger>
                       <SelectContent>
                         {banks.map(bank => (
@@ -474,7 +474,7 @@ export function CheckbookManagement() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Série * (2 car.)</Label>
+                      <Label>SÃ©rie * (2 car.)</Label>
                       <Input
                         value={formData.serie}
                         onChange={(e) => setFormData({ ...formData, serie: e.target.value.toUpperCase().slice(0, 2) })}
@@ -486,7 +486,7 @@ export function CheckbookManagement() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>N° Début *</Label>
+                      <Label>NÂ° DÃ©but *</Label>
                       <Input
                         type="number"
                         value={formData.startNumber}
@@ -497,18 +497,18 @@ export function CheckbookManagement() {
                       />
                     </div>
                     <div>
-                      <Label>Nombre de chèques *</Label>
+                      <Label>Nombre de chÃ¨ques *</Label>
                       <Select
                         value={formData.capacity}
                         onValueChange={handleCapacityChange}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner" />
+                          <SelectValue placeholder="SÃ©lectionner" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="15">15 chèques</SelectItem>
-                          <SelectItem value="25">25 chèques</SelectItem>
-                          <SelectItem value="50">50 chèques</SelectItem>
+                          <SelectItem value="15">15 chÃ¨ques</SelectItem>
+                          <SelectItem value="25">25 chÃ¨ques</SelectItem>
+                          <SelectItem value="50">50 chÃ¨ques</SelectItem>
                           <SelectItem value="autre">Autre</SelectItem>
                         </SelectContent>
                       </Select>
@@ -517,12 +517,12 @@ export function CheckbookManagement() {
                   
                   {isCustomCapacity && (
                     <div>
-                      <Label>Nombre personnalisé *</Label>
+                      <Label>Nombre personnalisÃ© *</Label>
                       <Input
                         type="number"
                         value={customCapacityValue}
                         onChange={(e) => handleCustomCapacityChange(e.target.value)}
-                        placeholder="Entrer le nombre de chèques"
+                        placeholder="Entrer le nombre de chÃ¨ques"
                         min="1"
                         max="9999999"
                       />
@@ -530,7 +530,7 @@ export function CheckbookManagement() {
                   )}
                   
                   <div>
-                    <Label>N° Fin *</Label>
+                    <Label>NÂ° Fin *</Label>
                     <Input
                       type="number"
                       value={formData.endNumber}
@@ -545,7 +545,7 @@ export function CheckbookManagement() {
                   
                   {computedCapacity !== null && (
                     <div className="text-sm text-muted-foreground">
-                      Capacité: {computedCapacity} chèque{computedCapacity > 1 ? "s" : ""}
+                      CapacitÃ©: {computedCapacity} chÃ¨que{computedCapacity > 1 ? "s" : ""}
                     </div>
                   )}
                 </>
@@ -575,7 +575,7 @@ export function CheckbookManagement() {
                 Annuler
               </Button>
               <Button onClick={handleSubmit}>
-                {editingId ? "Modifier" : "Créer"}
+                {editingId ? "Modifier" : "CrÃ©er"}
               </Button>
             </DialogFooter>
           </DialogContent>

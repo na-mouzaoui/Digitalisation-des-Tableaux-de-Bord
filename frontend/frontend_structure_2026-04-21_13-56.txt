@@ -1,0 +1,29 @@
+Folder map of c:\Users\nazim_mouzaoui\Projets\Mobilis\Digitalisation-des-Tableaux-de-Bord\frontend
+==================================================
+
+├── .next/
+├── .vscode/
+├── app/
+├── backend/
+├── components/
+├── hooks/
+├── lib/
+├── node_modules/
+├── out/
+├── public/
+├── styles/
+├── .env.local
+├── .env.local.example
+├── .gitignore
+├── components.json
+├── copy-worker.js
+├── frontend_structure_2026-04-21_13-53.txt
+├── frontend.sln
+├── next-env.d.ts
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── react-pdf.d.ts
+├── tsconfig.json
+└── tsconfig.tsbuildinfo
