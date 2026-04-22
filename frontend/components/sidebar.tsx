@@ -19,11 +19,11 @@ import UserProfileMenu from "./user-profile-menu"
 
 const tableuLinks = [
   { name: "Commercial", href: "/tableu/commercial" },
-  { name: "Reseaux technique", href: "/tableu/reseaux-technique" },
-  { name: "QualitÃ© reseau", href: "/tableu/qualite-reseau" },
+  { name: "Reseaux technique(DVDRS)", href: "/tableu/DVDRS" },
+  { name: "Qualité reseau(DQRPC)", href: "/tableu/DQRPC" },
   { name: "Pilotage et Performance", href: "/tableu/pilotage-performance" },
   { name: "Finances", href: "/tableu/finances" },
-  { name: "Direction regionale", href: "/tableu/direction-regionale" },
+  { name: "Direction regionale", href: "/tableu/regionale" },
 ]
 
 interface SidebarProps {
