@@ -113,43 +113,44 @@ public class TableauController : ControllerBase
         return normalizedUserDirection;
     }
 
-    private static readonly string[] RegionalManageableTabOrder =
+    // Liste des 30 tableaux conservés
+    private static readonly string[] AllManageableTabOrder =
     {
-        "encaissement",
-        "tva_immo",
-        "tva_biens",
-        "droits_timbre",
-        "ca_tap",
-        "etat_tap"
+        "reclamation",
+        "reclamation_gp",
+        "e_payement_pop",
+        "e_payement_prp",
+        "total_encaissement",
+        "recouvrement",
+        "realisation_technique_reseau",
+        "situation_reseau",
+        "trafic_data",
+        "amelioration_qualite",
+        "couverture_reseau",
+        "action_notable_reseau",
+        "disponibilite_reseau",
+        "desactivation_resiliation",
+        "parc_abonnes_b2b",
+        "mttr",
+        "creances_contentieuses",
+        "frais_personnel",
+        "effectif_gsp",
+        "absenteisme",
+        "mouvement_effectifs",
+        "mouvement_effectifs_domaine",
+        "compte_resultat",
+        "effectifs_formes_gsp",
+        "formations_domaines",
+        "parc_abonnes_gp",
+        "total_parc_abonnes",
+        "total_parc_abonnes_technologie",
+        "activation",
+        "chiffre_affaires_mda"
     };
 
-    private static readonly string[] FinanceManageableTabOrder =
-    {
-        "ca_siege",
-        "irg",
-        "taxe2",
-        "taxe_masters",
-        "taxe_vehicule",
-        "taxe_formation",
-        "acompte",
-        "ibs",
-        "taxe_domicil",
-        "tva_autoliq"
-    };
-
-    private static readonly HashSet<string> RegionalManageableTabs = new(RegionalManageableTabOrder, StringComparer.OrdinalIgnoreCase);
-    private static readonly HashSet<string> FinanceManageableTabs = new(FinanceManageableTabOrder, StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> AllManageableTabs = new(AllManageableTabOrder, StringComparer.OrdinalIgnoreCase);
 
     private static string NormalizeTabKey(string? tabKey) => (tabKey ?? "").Trim().ToLowerInvariant();
-
-    private async Task<bool> IsTable6EnabledAsync()
-    {
-        var setting = await _context.AdminSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == 1);
-
-        return true; // Table6 toujours activée maintenant
-    }
 
     private static bool CanManageTabForRole(string role, string? tabKey)
     {
@@ -161,13 +162,7 @@ public class TableauController : ControllerBase
         if (normalizedRole == "admin")
             return true;
 
-        if (normalizedRole == "regionale")
-            return RegionalManageableTabs.Contains(normalizedTabKey);
-
-        if (normalizedRole is "comptabilite" or "finance")
-            return FinanceManageableTabs.Contains(normalizedTabKey);
-
-        return false;
+        return AllManageableTabs.Contains(normalizedTabKey);
     }
 
     private static bool IsHeadOfficeDirection(string? direction)
@@ -183,36 +178,21 @@ public class TableauController : ControllerBase
         var normalizedRole = (role ?? "").Trim().ToLowerInvariant();
 
         if (normalizedRole == "admin")
-            return RegionalManageableTabOrder.Concat(FinanceManageableTabOrder).ToArray();
+            return AllManageableTabOrder;
 
-        if (normalizedRole == "regionale")
-            return RegionalManageableTabOrder.ToArray();
-
-        if (normalizedRole is "comptabilite" or "finance")
-            return FinanceManageableTabOrder.ToArray();
-
-        return Array.Empty<string>();
+        return AllManageableTabOrder;
     }
 
     private static string[] GetManageableTabsForRoleAndDirection(string role, string? direction)
     {
-        var roleTabs = GetManageableTabsForRole(role);
-        var normalizedRole = (role ?? "").Trim().ToLowerInvariant();
-
-        if (normalizedRole != "admin" || string.IsNullOrWhiteSpace(direction))
-            return roleTabs;
-
-        var scoped = IsHeadOfficeDirection(direction) ? FinanceManageableTabOrder : RegionalManageableTabOrder;
-        return roleTabs
-            .Where(tab => scoped.Contains(tab, StringComparer.OrdinalIgnoreCase))
-            .ToArray();
+        return GetManageableTabsForRole(role);
     }
 
     /// <summary>
-    /// Vérifie si l'utilisateur courant peut accéder à un tableu pour la modifier/consulter/supprimer
+    /// Vérifie si l'utilisateur courant peut accéder à un tableau pour la modifier/consulter/supprimer
     /// basée sur sa direction et son rôle, indépendamment de qui l'a créée.
     /// </summary>
-    private async Task<bool> CanUserAccessTableauAsync(int userId, Tableau Tableau)
+    private async Task<bool> CanUserAccessTableauAsync(int userId, Tableau tableau)
     {
         var user = await _context.Users
             .AsNoTracking()
@@ -223,33 +203,28 @@ public class TableauController : ControllerBase
 
         var userRole = (user.Role ?? "").Trim().ToLowerInvariant();
         var userDirection = (user.Direction ?? "").Trim().ToLowerInvariant();
-        var TableauDirection = (Tableau.Direction ?? "").Trim().ToLowerInvariant();
-        var TableauOwnerRole = (Tableau.User.Role ?? "").Trim().ToLowerInvariant();
-        var TableauOwnerRegion = (Tableau.User.Region ?? "").Trim().ToLowerInvariant();
+        var tableauDirection = (tableau.Direction ?? "").Trim().ToLowerInvariant();
+        var tableauOwnerRole = (tableau.User.Role ?? "").Trim().ToLowerInvariant();
+        var tableauOwnerRegion = (tableau.User.Region ?? "").Trim().ToLowerInvariant();
 
         // L'admin peut accéder à tout
         if (userRole == "admin")
             return true;
 
-        // L'auteur peut toujours accéder à son propre tableu
-        if (userId == Tableau.UserId)
+        // L'auteur peut toujours accéder à son propre tableau
+        if (userId == tableau.UserId)
             return true;
 
         // Vérification par rôle et direction
-        // Pour regionale: userDirection contient le nom de la région (Nord, Sud, Est, Ouest)
-        // Pour finance: accès uniquement aux tableux dont la direction est Siège
-        // TableauDirection contient la région du tableu (ou "Siège")
-        
         if (userRole == "regionale")
         {
-            // Un utilisateur régional peut accéder aux tableux de sa région
-            // La région du tableu est dans Tableau.Direction
+            // Un utilisateur régional peut accéder aux tableaux de sa région
             if (!string.IsNullOrWhiteSpace(userDirection) && 
                 (
-                    userDirection == TableauDirection
-                    || (string.IsNullOrWhiteSpace(TableauDirection)
-                        && TableauOwnerRole == "regionale"
-                        && TableauOwnerRegion == userDirection)
+                    userDirection == tableauDirection
+                    || (string.IsNullOrWhiteSpace(tableauDirection)
+                        && tableauOwnerRole == "regionale"
+                        && tableauOwnerRegion == userDirection)
                 ))
             {
                 return true;
@@ -257,13 +232,13 @@ public class TableauController : ControllerBase
         }
         else if (userRole == "finance" || userRole == "comptabilite")
         {
-            // Finance peut accéder aux tableux du siège
-            if (IsHeadOfficeDirection(TableauDirection)
-                || (string.IsNullOrWhiteSpace(TableauDirection)
-                    && (TableauOwnerRole == "finance"
-                        || TableauOwnerRole == "comptabilite"
-                        || TableauOwnerRole == "direction"
-                        || TableauOwnerRole == "admin")))
+            // Finance peut accéder aux tableaux du siège
+            if (IsHeadOfficeDirection(tableauDirection)
+                || (string.IsNullOrWhiteSpace(tableauDirection)
+                    && (tableauOwnerRole == "finance"
+                        || tableauOwnerRole == "comptabilite"
+                        || tableauOwnerRole == "direction"
+                        || tableauOwnerRole == "admin")))
             {
                 return true;
             }
@@ -290,80 +265,9 @@ public class TableauController : ControllerBase
         });
     }
 
-    private static bool IsTvaTab(string tabKey) => tabKey is "tva_immo" or "tva_biens";
-
-    private static string NormalizeInvoicePart(string? value) => (value ?? "").Trim().ToUpperInvariant();
-
-    private static string NormalizeMontantHT(string? value)
-    {
-        var raw = (value ?? "").Trim();
-        if (string.IsNullOrWhiteSpace(raw)) return "";
-        // Normaliser le montant en supprimant les espaces et en utilisant un point comme séparateur
-        var standardized = raw.Replace("\u00A0", "").Replace(" ", "").Replace(",", ".");
-        var cleaned = standardized.Replace("/", "");
-        return cleaned;
-    }
-
-    private static string BuildSupplierKey(TvaInvoiceRow row)
-    {
-        var supplierId = NormalizeInvoicePart(row.FournisseurId);
-        if (!string.IsNullOrWhiteSpace(supplierId)) return $"ID:{supplierId}";
-
-        var supplierName = NormalizeInvoicePart(row.NomRaisonSociale);
-        return string.IsNullOrWhiteSpace(supplierName) ? "" : $"NAME:{supplierName}";
-    }
-
-    private static string BuildInvoiceComposite(TvaInvoiceRow row)
-    {
-        var supplierKey = BuildSupplierKey(row);
-        var reference = NormalizeInvoicePart(row.NumFacture);
-        var montant = NormalizeMontantHT(row.MontantHT);
-
-        if (string.IsNullOrWhiteSpace(supplierKey) || string.IsNullOrWhiteSpace(reference) || string.IsNullOrWhiteSpace(montant))
-            return "";
-
-        return $"{supplierKey}|{reference}|{montant}";
-    }
-
-    private static string BuildInvoiceLabel(TvaInvoiceRow row)
-    {
-        var supplier = string.IsNullOrWhiteSpace(row.NomRaisonSociale)
-            ? (string.IsNullOrWhiteSpace(row.FournisseurId) ? "—" : row.FournisseurId)
-            : row.NomRaisonSociale;
-
-        return $"{supplier} | {row.NumFacture} | {row.MontantHT}";
-    }
-
-    private static List<TvaInvoiceRow> ExtractTvaRows(string tabKey, string? dataJson)
-    {
-        if (string.IsNullOrWhiteSpace(dataJson)) return new List<TvaInvoiceRow>();
-
-        try
-        {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            if (tabKey == "tva_immo")
-            {
-                var payload = JsonSerializer.Deserialize<TvaImmoPayload>(dataJson, options);
-                return payload?.TvaImmoRows ?? new List<TvaInvoiceRow>();
-            }
-
-            if (tabKey == "tva_biens")
-            {
-                var payload = JsonSerializer.Deserialize<TvaBiensPayload>(dataJson, options);
-                return payload?.TvaBiensRows ?? new List<TvaInvoiceRow>();
-            }
-        }
-        catch
-        {
-            // Ignore malformed legacy JSON payloads and fall back to empty rows.
-        }
-
-        return new List<TvaInvoiceRow>();
-    }
-
     private async Task<(bool hasConflict, IActionResult? response)> ValidateTableauUniquenessAsync(TableauRequest request, int? excludedTableauId = null)
     {
-        // Vérifier qu'il n'existe pas déjà un tableu avec le même TabKey, Direction et Mois/Année
+        // Vérifier qu'il n'existe pas déjà un tableau avec le même TabKey, Direction et Mois/Année
         var requestTabKeyLower = (request.TabKey ?? "").Trim().ToLowerInvariant();
         var requestDirLower = (request.Direction ?? "").Trim().ToLowerInvariant();
         var requestMonth = (request.Mois ?? "").Trim();
@@ -385,7 +289,7 @@ public class TableauController : ControllerBase
         {
             return (true, Conflict(new
             {
-                message = $"Un tableu existe déjà pour ce tableau ({request.TabKey}), cette direction et cette période ({request.Mois}/{request.Annee}). Veuillez utiliser le tableu existant ou en supprimer un.",
+                message = $"Un tableau existe déjà pour ce tableau ({request.TabKey}), cette direction et cette période ({request.Mois}/{request.Annee}). Veuillez utiliser le tableau existant ou en supprimer un.",
                 conflictingTableauId = existingTableau.Id,
                 isDoubloon = true
             }));
@@ -394,135 +298,27 @@ public class TableauController : ControllerBase
         return (false, null);
     }
 
-    private async Task<(bool hasConflict, IActionResult? response)> ValidateTvaInvoiceUniquenessAsync(TableauRequest request, int? excludedTableauId = null)
-    {
-        if (!IsTvaTab(request.TabKey))
-            return (false, null);
-
-        var incomingRows = ExtractTvaRows(request.TabKey, request.DataJson);
-        if (incomingRows.Count == 0)
-            return (false, null);
-
-        // Validate invoice dates are not older than 13 months from the current period
-        if (!int.TryParse(request.Mois, out var month) || !int.TryParse(request.Annee, out var year))
-            return (false, null);
-
-        var periodDate = new DateTime(year, month, 1);
-        var maxAgeDate = periodDate.AddMonths(-13);
-
-        foreach (var row in incomingRows)
-        {
-            var dateStr = (row.DateFacture ?? "").Trim();
-            if (string.IsNullOrWhiteSpace(dateStr)) continue;
-
-            // Extract date part (before 'T' if ISO format)
-            var datePart = dateStr.IndexOf('T') > 0 ? dateStr[..dateStr.IndexOf('T')] : dateStr;
-            
-            if (DateTime.TryParse(datePart, out var invoiceDate))
-            {
-                if (invoiceDate < maxAgeDate)
-                {
-                    return (true, Conflict(new
-                    {
-                        message = $"Facture rejetée: la date de facture ({invoiceDate:yyyy-MM-dd}) est antérieure à {maxAgeDate:MMMM yyyy}. Les factures doivent dater de moins de 13 mois.",
-                        invoice = BuildInvoiceLabel(row),
-                        limitation = "Factures de moins de 13 mois uniquement"
-                    }));
-                }
-            }
-        }
-
-        // Prevent duplicates in the same payload.
-        var incomingKeys = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var row in incomingRows)
-        {
-            var key = BuildInvoiceComposite(row);
-            if (string.IsNullOrWhiteSpace(key)) continue;
-
-            if (!incomingKeys.Add(key))
-            {
-                return (true, Conflict(new
-                {
-                    message = "Facture en doublon dans le tableu en cours (même fournisseur, même référence et même montant).",
-                    invoice = BuildInvoiceLabel(row)
-                }));
-            }
-        }
-
-        var existingQuery = _context.Tableaus
-            .AsNoTracking()
-            .Where(d => d.TabKey == "tva_immo" || d.TabKey == "tva_biens");
-
-        if (excludedTableauId.HasValue)
-            existingQuery = existingQuery.Where(d => d.Id != excludedTableauId.Value);
-
-        var existingTableaus = await existingQuery
-            .Select(d => new { d.TabKey, d.DataJson })
-            .ToListAsync();
-
-        var existingKeys = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var Tableau in existingTableaus)
-        {
-            foreach (var row in ExtractTvaRows(Tableau.TabKey, Tableau.DataJson))
-            {
-                var key = BuildInvoiceComposite(row);
-                if (!string.IsNullOrWhiteSpace(key))
-                    existingKeys.Add(key);
-            }
-        }
-
-        foreach (var row in incomingRows)
-        {
-            var key = BuildInvoiceComposite(row);
-            if (string.IsNullOrWhiteSpace(key)) continue;
-
-            if (existingKeys.Contains(key))
-            {
-                return (true, Conflict(new
-                {
-                    message = "Facture déjà enregistrée dans les tableaux 2/3 (même fournisseur, même référence, même montant), même sur une période différente.",
-                    invoice = BuildInvoiceLabel(row)
-                }));
-            }
-        }
-
-        return (false, null);
-    }
-
     // ─── GET api/tableu/policy ─────────────────────────────────────────────
-    // Expose la politique d'accès et la règle de clôture côté backend.
     [HttpGet("policy")]
     public async Task<IActionResult> GetPolicy([FromQuery] string? direction)
     {
         var userId = GetCurrentUserId();
         var currentUserContext = await GetCurrentUserContextAsync(userId);
         var currentUserRole = currentUserContext.Role;
-        var isTable6Enabled = await IsTable6EnabledAsync();
-
-        var regionalTabKeys = isTable6Enabled
-            ? RegionalManageableTabOrder
-            : RegionalManageableTabOrder.Where(tab => !string.Equals(tab, "etat_tap", StringComparison.OrdinalIgnoreCase)).ToArray();
-
-        var financeTabKeys = FinanceManageableTabOrder;
 
         var manageableTabKeys = GetManageableTabsForRoleAndDirection(currentUserRole, direction);
-
-        var disabledTabKeys = isTable6Enabled ? Array.Empty<string>() : new[] { "etat_tap" };
 
         return Ok(new
         {
             role = currentUserRole,
             requestedDirection = (direction ?? "").Trim(),
-            regionalTabKeys,
-            financeTabKeys,
             manageableTabKeys,
-            disabledTabKeys,
+            disabledTabKeys = Array.Empty<string>(),
             serverNow = DateTime.UtcNow,
         });
     }
 
     // ─── GET api/tableu ───────────────────────────────────────────────────────
-    // Retourne tous les tableux de l'utilisateur connecté
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? tabKey, [FromQuery] string? mois, [FromQuery] string? annee)
     {
@@ -532,22 +328,18 @@ public class TableauController : ControllerBase
 
         IQueryable<Tableau> query = _context.Tableaus.AsNoTracking();
 
-        // Le dashboard tableu est piloté par une portée métier (profil + direction),
-        // pas uniquement par l'auteur du tableu.
         if (currentUserRole == "admin")
         {
-            // Admin voit tous les tableux, y compris ceux émis par
-            // les comptes admin, finance/comptabilite, direction et regionale.
+            // Admin voit tous les tableaux
         }
         else if (currentUserRole == "regionale")
         {
-            // Les comptes regionale ne voient que leurs propres tableux.
+            // Les comptes regionale ne voient que leurs propres tableaux
             query = query.Where(d => d.UserId == userId);
         }
         else if (currentUserRole is "finance" or "comptabilite" or "direction")
         {
-            // Les comptes finance/comptabilite/global(direction) voient tous les tableux,
-            // qu'elles soient approuvées ou non.
+            // Les comptes finance/comptabilite/global(direction) voient tous les tableaux
         }
         else
         {
@@ -561,7 +353,7 @@ public class TableauController : ControllerBase
         if (!string.IsNullOrEmpty(annee))
             query = query.Where(d => d.Annee == annee);
 
-        var Tableaus = await query
+        var tableaus = await query
             .OrderByDescending(d => d.UpdatedAt)
             .Select(d => new
             {
@@ -574,7 +366,7 @@ public class TableauController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(Tableaus);
+        return Ok(tableaus);
     }
 
     // ─── GET api/tableu/{id} ─────────────────────────────────────────────────
@@ -588,9 +380,8 @@ public class TableauController : ControllerBase
 
         if (decl == null) return NotFound();
 
-        // Vérifier les permissions d'accès
         if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez consulter que les tableux de votre groupe." });
+            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez consulter que les tableaux de votre groupe." });
 
         return Ok(new
         {
@@ -604,7 +395,6 @@ public class TableauController : ControllerBase
     }
 
     // ─── POST api/tableu ─────────────────────────────────────────────────────
-    // Crée un nouveau tableu
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] TableauRequest request)
     {
@@ -613,19 +403,10 @@ public class TableauController : ControllerBase
         var currentUserRole = currentUserContext.Role;
         var targetDirection = ResolveDirectionForRole(currentUserRole, request.Direction, currentUserContext.Direction, currentUserContext.Region);
 
-        if (string.Equals(NormalizeTabKey(request.TabKey), "etat_tap", StringComparison.OrdinalIgnoreCase)
-            && !await IsTable6EnabledAsync())
-        {
-            return Conflict(new
-            {
-                message = "Le tableau 6 (ETAT TAP) est désactivé par l'administration."
-            });
-        }
-
         if (!CanManageTabForRole(currentUserRole, request.TabKey))
             return BuildTabAccessDeniedResponse(currentUserRole, request.TabKey);
 
-        // Vérifier qu'il n'existe pas de doublon (même TabKey, Direction, Mois/Année)
+        // Vérifier qu'il n'existe pas de doublon
         var uniquenessRequest = new TableauRequest
         {
             TabKey = request.TabKey,
@@ -638,10 +419,6 @@ public class TableauController : ControllerBase
         var doubloonCheck = await ValidateTableauUniquenessAsync(uniquenessRequest);
         if (doubloonCheck.hasConflict && doubloonCheck.response != null)
             return doubloonCheck.response;
-
-        var duplicateCheck = await ValidateTvaInvoiceUniquenessAsync(request);
-        if (duplicateCheck.hasConflict && duplicateCheck.response != null)
-            return duplicateCheck.response;
 
         var decl = new Tableau
         {
@@ -671,7 +448,6 @@ public class TableauController : ControllerBase
     }
 
     // ─── PUT api/tableu/{id} ─────────────────────────────────────────────────
-    // Met à jour directement un tableu existant
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] TableauRequest request)
     {
@@ -685,18 +461,8 @@ public class TableauController : ControllerBase
 
         if (decl == null) return NotFound();
 
-        if (string.Equals(NormalizeTabKey(request.TabKey), "etat_tap", StringComparison.OrdinalIgnoreCase)
-            && !await IsTable6EnabledAsync())
-        {
-            return Conflict(new
-            {
-                message = "Le tableau 6 (ETAT TAP) est désactivé par l'administration."
-            });
-        }
-
-        // Vérifier les permissions d'accès
         if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez modifier que les tableux de votre groupe." });
+            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez modifier que les tableaux de votre groupe." });
 
         var targetDirection = ResolveDirectionForRole(currentUserRole, request.Direction, currentUserContext.Direction, currentUserContext.Region, decl.Direction);
 
@@ -709,21 +475,16 @@ public class TableauController : ControllerBase
             DataJson = request.DataJson,
         };
 
-        // La modification du même tableu est autorisée (on exclut son propre id)
+        // La modification du même tableau est autorisée (on exclut son propre id)
         var doubloonCheck = await ValidateTableauUniquenessAsync(uniquenessRequest, id);
         if (doubloonCheck.hasConflict && doubloonCheck.response != null)
             return doubloonCheck.response;
-
-        var duplicateCheck = await ValidateTvaInvoiceUniquenessAsync(request, id);
-        if (duplicateCheck.hasConflict && duplicateCheck.response != null)
-            return duplicateCheck.response;
 
         decl.TabKey = request.TabKey;
         decl.Mois = request.Mois;
         decl.Annee = request.Annee;
         decl.Direction = targetDirection;
         decl.DataJson = request.DataJson ?? decl.DataJson;
-        // Toute modification remet le tableu en attente d'approbation.
         decl.IsApproved = false;
         decl.ApprovedByUserId = null;
         decl.ApprovedAt = null;
@@ -767,24 +528,24 @@ public class TableauController : ControllerBase
 
         var isSelfTableau = decl.UserId == userId;
 
-        var TableauOwnerRole = (decl.User.Role ?? "").Trim().ToLowerInvariant();
-        var TableauOwnerRegion = (decl.User.Region ?? "").Trim().ToLowerInvariant();
-        var TableauDirection = (decl.Direction ?? "").Trim().ToLowerInvariant();
-        var isSiegeTableau = TableauDirection == "siège"
-            || TableauDirection == "siege"
-            || TableauDirection.Contains("siège")
-            || TableauDirection.Contains("siege")
+        var tableauOwnerRole = (decl.User.Role ?? "").Trim().ToLowerInvariant();
+        var tableauOwnerRegion = (decl.User.Region ?? "").Trim().ToLowerInvariant();
+        var tableauDirection = (decl.Direction ?? "").Trim().ToLowerInvariant();
+        var isSiegeTableau = tableauDirection == "siège"
+            || tableauDirection == "siege"
+            || tableauDirection.Contains("siège")
+            || tableauDirection.Contains("siege")
             || (string.IsNullOrWhiteSpace(decl.Direction)
-                && (TableauOwnerRole == "finance"
-                    || TableauOwnerRole == "comptabilite"
-                    || TableauOwnerRole == "direction"
-                    || TableauOwnerRole == "admin"));
+                && (tableauOwnerRole == "finance"
+                    || tableauOwnerRole == "comptabilite"
+                    || tableauOwnerRole == "direction"
+                    || tableauOwnerRole == "admin"));
 
-        if (!canApproveAsAdmin && !isSelfTableau && canApproveAsRegional && (TableauOwnerRole != "regionale" || TableauOwnerRegion != approverRegion))
+        if (!canApproveAsAdmin && !isSelfTableau && canApproveAsRegional && (tableauOwnerRole != "regionale" || tableauOwnerRegion != approverRegion))
         {
             return StatusCode(403, new
             {
-                message = "Vous ne pouvez approuver que les tableux des utilisateurs de votre région."
+                message = "Vous ne pouvez approuver que les tableaux des utilisateurs de votre région."
             });
         }
 
@@ -792,7 +553,7 @@ public class TableauController : ControllerBase
         {
             return StatusCode(403, new
             {
-                message = "Vous ne pouvez approuver que les tableux du niveau Siège."
+                message = "Vous ne pouvez approuver que les tableaux du niveau Siège."
             });
         }
 
@@ -800,7 +561,7 @@ public class TableauController : ControllerBase
         {
             return Ok(new
             {
-                message = "Tableu déjà approuvé.",
+                message = "Tableau déjà approuvé.",
                 decl.Id,
                 decl.IsApproved,
                 decl.ApprovedByUserId,
@@ -822,7 +583,7 @@ public class TableauController : ControllerBase
 
         return Ok(new
         {
-            message = "Tableu approuvé avec succès.",
+            message = "Tableau approuvé avec succès.",
             decl.Id,
             decl.IsApproved,
             decl.ApprovedByUserId,
@@ -844,9 +605,8 @@ public class TableauController : ControllerBase
 
         if (decl == null) return NotFound();
 
-        // Vérifier les permissions d'accès
         if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez supprimer que les tableux de votre groupe." });
+            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez supprimer que les tableaux de votre groupe." });
 
         var info = new { decl.TabKey, decl.Mois, decl.Annee, deletedByUserId = userId };
         _context.Tableaus.Remove(decl);
@@ -860,7 +620,6 @@ public class TableauController : ControllerBase
     }
 
     // ─── POST api/tableu/{id}/print ──────────────────────────────────────────
-    // Enregistre un événement d'impression dans l'audit (pas de modification des données)
     [HttpPost("{id}/print")]
     public async Task<IActionResult> LogPrint(int id)
     {
@@ -871,16 +630,14 @@ public class TableauController : ControllerBase
 
         if (decl == null) return NotFound();
 
-        // Vérifier les permissions d'accès
         if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez imprimer que les tableux de votre groupe." });
+            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez imprimer que les tableaux de votre groupe." });
 
         await _auditService.LogAction(userId, "TABLEU_PRINT", "Tableau", id,
             new { decl.TabKey, decl.Mois, decl.Annee });
 
         return Ok(new { message = "Impression enregistrée dans l'audit." });
     }
-
 }
 
 // ─── DTO ─────────────────────────────────────────────────────────────────────
@@ -892,23 +649,3 @@ public class TableauRequest
     public string? Direction { get; set; }
     public string? DataJson  { get; set; }
 }
-
-public sealed class TvaInvoiceRow
-{
-    public string? FournisseurId { get; set; }
-    public string? NomRaisonSociale { get; set; }
-    public string? NumFacture { get; set; }
-    public string? DateFacture { get; set; }
-        public string? MontantHT { get; set; }
-}
-
-public sealed class TvaImmoPayload
-{
-    public List<TvaInvoiceRow> TvaImmoRows { get; set; } = new();
-}
-
-public sealed class TvaBiensPayload
-{
-    public List<TvaInvoiceRow> TvaBiensRows { get; set; } = new();
-}
-

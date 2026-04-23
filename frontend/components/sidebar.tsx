@@ -19,11 +19,11 @@ import UserProfileMenu from "./user-profile-menu"
 
 const tableuLinks = [
   { name: "Commercial", href: "/tableu/commercial" },
-  { name: "Reseaux technique(DVDRS)", href: "/tableu/DVDRS" },
-  { name: "Qualité reseau(DQRPC)", href: "/tableu/DQRPC" },
+  { name: "Réseaux technique (DVDRS)", href: "/tableu/DVDRS" },
+  { name: "Qualité réseau (DQRPC)", href: "/tableu/DQRPC" },
   { name: "Support", href: "/tableu/Support" },
   { name: "Finances", href: "/tableu/finances" },
-  { name: "Direction regionale", href: "/tableu/regionale" },
+  { name: "Direction régionale", href: "/tableu/regionale" },
 ]
 
 interface SidebarProps {
@@ -99,25 +99,34 @@ export function Sidebar({ user }: SidebarProps) {
         {hasTableu && (
           <>
             {/* Dashboard */}
-            {renderNavLink("Dashboard", "/tableu_dashbord", LayoutDashboard)}
+            {renderNavLink("Dashboard", "/dashbord", LayoutDashboard)}
 
             {/* Accordion Nouveaux Tableaux */}
             <div className="mt-2">
-              <button
-                onClick={() => setOpenTableu(!openTableu)}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
-              >
-                <span className="flex items-center gap-2">
+              <div className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">
+                
+                {/* Lien vers /declaration */}
+                <Link
+                  href="/declaration"
+                  className="flex items-center gap-2 flex-1"
+                >
                   <FilePlus className="h-5 w-5 text-red-500" />
                   Nouveaux tableaux
-                </span>
+                </Link>
 
-                {openTableu ? (
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
-                )}
-              </button>
+                {/* Toggle accordion */}
+                <button
+                  type="button"
+                  onClick={() => setOpenTableu(!openTableu)}
+                  className="ml-2"
+                >
+                  {openTableu ? (
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+              </div>
 
               {openTableu && (
                 <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100 pl-2">
@@ -148,7 +157,7 @@ export function Sidebar({ user }: SidebarProps) {
             className="flex-1 justify-start gap-2"
           >
             <LogOut className="h-4 w-4 text-red-500" />
-            DÃ©connexion
+            Déconnexion
           </Button>
         </div>
       </div>
