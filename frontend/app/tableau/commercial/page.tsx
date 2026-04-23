@@ -21,7 +21,7 @@ const getCurrenttableauPeriod = (now: Date = new Date()) => ({
   mois: String(now.getMonth() + 1).padStart(2, "0"),
   annee: String(now.getFullYear()),
 })
-const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `PÃ©riode ${mois}/${annee}.`
+const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
 const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
 const synctableauPolicy = async (_direction?: string | null) => null
 const isAdmintableauRole = (_role?: string | null) => false
@@ -31,9 +31,9 @@ const getManageabletableauTabKeysForDirection = () => ["encaissement"]
 const istableauTabDisabledByPolicy = (_tabKey?: string) => false
 
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 // 3. HELPERS DE FORMATAGE DES MONTANTS
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 const fmt = (v: number | string) => {
   if (v === "" || isNaN(Number(v))) return ""
   const num = Number(v)
@@ -73,10 +73,10 @@ const num = (v: string) => {
 }
 
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// 4. COMPOSANT GÃ‰NÃ‰RIQUE : AmountInput
-//    Input rÃ©utilisable pour la saisie de montants.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
+// 4. COMPOSANT GéNéRIQUE : AmountInput
+//    Input réutilisable pour la saisie de montants.
+// _______________________________________
 type AmountInputProps = Omit<React.ComponentProps<typeof Input>, "type" | "value" | "onChange"> & {
   value: string
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
@@ -104,29 +104,29 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 }
 
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// _____________________________________________________________________________
 // 5. TYPES ET TABLEAUX DE L'ONGLET Â« ENCAISSEMENT Â»
 //
-//    â”Œâ”€ GUIDE : AJOUTER UN NOUVEAU TABLEAU â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-//    â”‚  Pour chaque nouveau tableau dans un onglet :                         â”‚
-//    â”‚  a) DÃ©clarez son interface de donnÃ©es ici (ex: interface MonTableau)  â”‚
-//    â”‚  b) CrÃ©ez son composant Tab* ci-dessous (section 6)                   â”‚
-//    â”‚  c) Ajoutez son Ã©tat dans le state de la page (section 9)             â”‚
-//    â”‚  d) Incluez ses donnÃ©es dans handleSave (section 10)                  â”‚
-//    â”‚  e) Rendez-le dans le TabsContent concernÃ© (section 11)               â”‚
-//    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//     GUIDE : AJOUTER UN NOUVEAU TABLEAU _________________
+//    |  Pour chaque nouveau tableau dans un onglet :                         |
+//    |  a) Déclarez son interface de données ici (ex: interface MonTableau)  |
+//    |  b) Créez son composant Tab* ci-dessous (section 6)                   |
+//    |  c) Ajoutez son état dans le state de la page (section 9)             |
+//    |  d) Incluez ses données dans handleSave (section 10)                  |
+//    |  e) Rendez-le dans le TabsContent concerné (section 11)               |
+//    ____________________________________
+// _____________________________________________________________________________
 
-// â”€â”€ 5a. TYPE : ligne du tableau Encaissement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _ 5a. TYPE : ligne du tableau Encaissement _______________
 //    Pour ajouter des colonnes : ajoutez des champs ici ET dans
 //    normalizeEncaissementData (section 8b) ET dans TabTotalEncaissement.
 
-// â”€â”€ (MODÃˆLE) Pour un futur tableau, copiez ce bloc et adaptez-le : â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _ (MODELE) Pour un futur tableau, copiez ce bloc et adaptez-le : _____
 //
 // interface MonNouveauTableauRow {
 //   col1: string
 //   col2: string
-//   // ... autant de colonnes que nÃ©cessaire
+//   // ... autant de colonnes que nécessaire
 // }
 
 interface TotalEncaissementRow {
@@ -134,26 +134,26 @@ interface TotalEncaissementRow {
   mB2b: string   // Colonne M-1 / B2B
   m1Gp: string   // Colonne M   / GP
   m1B2b: string  // Colonne M   / B2B
-  evol: string   // Colonne Ã‰volution
+  evol: string   // Colonne évolution
 }
 
 interface ParcAbonneRow {
-  label: string    // Parc AbonnÃ©s B2B
+  label: string    // Parc Abonnés B2B
   m1: string   // Colonne M-1 
   m: string   // Colonne M
-  evol: string   // Colonne Ã‰volution
+  evol: string   // Colonne évolution
 }
 
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 // 6. COMPOSANTS DE TABLEAUX
 //    Chaque tableau est un composant autonome.
 //    Vous pouvez en empiler plusieurs dans un mÃªme TabsContent (section 11).
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 
-// â”€â”€ 6a. TABLEAU : Encaissement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _ 6a. TABLEAU : Encaissement ________________________
 
-// â”€â”€ (MODÃˆLE) Pour ajouter un 2e tableau dans l'onglet Encaissement : â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _ (MODELE) Pour ajouter un 2e tableau dans l'onglet Encaissement : _____
 //
 // interface TabMonDeuxiemeTableauProps {
 //   rows: MonDeuxiemeTableauRow[]
@@ -189,7 +189,7 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
   const update = (field: keyof TotalEncaissementRow, value: string) =>
     setRow((prev) => ({ ...prev, [field]: value }))
 
-  // Ligne de total (ici identique Ã  la ligne de saisie â€” adaptez si besoin)
+  // Ligne de total (ici identique a la ligne de saisie â€” adaptez si besoin)
   const totals = useMemo(() => ({
     mGp:  row.mGp  || "0",
     mB2b: row.mB2b || "0",
@@ -219,7 +219,7 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
             </tr>
           </thead>
           <tbody>
-            {/* â”€â”€ Ligne de saisie â”€â”€ */}
+            {/* _ Ligne de saisie _ */}
             <tr className="bg-white">
               <td className="px-1 py-1 border-b"><AmountInput value={row.mGp}  onChange={(e) => update("mGp",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
               <td className="px-1 py-1 border-b"><AmountInput value={row.mB2b} onChange={(e) => update("mB2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
@@ -227,7 +227,7 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
               <td className="px-1 py-1 border-b"><AmountInput value={row.m1B2b}onChange={(e) => update("m1B2b",e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
               <td className="px-1 py-1 border-b"><Input value={row.evol} onChange={(e) => update("evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="-" /></td>
             </tr>
-            {/* â”€â”€ Ligne de total (fond vert) â”€â”€ */}
+            {/* _ Ligne de total (fond vert) _ */}
             <tr className="bg-green-100 font-semibold">
               <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mGp)}</td>
               <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mB2b)}</td>
@@ -239,7 +239,7 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
         </table>
       </div>
 
-      {/* â”€â”€ Bouton Enregistrer (un seul par onglet suffit) â”€â”€ */}
+      {/* _ Bouton Enregistrer (un seul par onglet suffit) _ */}
       <div className="flex justify-end">
         <Button size="sm" onClick={onSave} disabled={isSubmitting}
           className="gap-1.5" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }}>
@@ -251,8 +251,8 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
 }
 
 
-//Tab : Parc AbonnÃ©s B2B
-// â”€â”€ 6b. TABLEAU : Parc AbonnÃ©s B2B â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//Tab : Parc Abonnés B2B
+// _ 6b. TABLEAU : Parc Abonnés B2B ______________________
 interface TabParcAbonneProps {
   rows: ParcAbonneRow[]
   setRows: React.Dispatch<React.SetStateAction<ParcAbonneRow[]>>
@@ -283,7 +283,7 @@ function TabParcAbonne({ rows, setRows, onSave, isSubmitting }: TabParcAbonnePro
         <thead>
           <tr className="bg-gray-50">
             <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b border-r">
-              Parc AbonnÃ©s B2B
+              Parc Abonnés B2B
             </th>
             <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
             <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
@@ -291,10 +291,10 @@ function TabParcAbonne({ rows, setRows, onSave, isSubmitting }: TabParcAbonnePro
           </tr>
         </thead>
         <tbody>
-          {/* â”€â”€ Lignes Ã©ditables (toutes sauf TOTAL) â”€â”€ */}
+          {/* _ Lignes éditables (toutes sauf TOTAL) _ */}
           {rows.slice(0, -1).map((row, i) => (
             <tr key={row.label} className="bg-white hover:bg-gray-50 transition-colors">
-              {/* LibellÃ© non Ã©ditable */}
+              {/* Libellé non éditable */}
               <td className="px-3 py-1 border-b border-r text-xs font-medium text-gray-700 whitespace-nowrap">
                 {row.label}
               </td>
@@ -325,7 +325,7 @@ function TabParcAbonne({ rows, setRows, onSave, isSubmitting }: TabParcAbonnePro
             </tr>
           ))}
 
-          {/* â”€â”€ Ligne TOTAL (calculÃ©e automatiquement, fond vert) â”€â”€ */}
+          {/* _ Ligne TOTAL (calculée automatiquement, fond vert) _ */}
           <tr className="bg-green-100 font-semibold">
             <td className="px-3 py-2 text-xs font-bold text-gray-800 border-t border-r">TOTAL</td>
             <td className="px-3 py-2 text-xs text-right border-t border-r">{fmt(totalM)}</td>
@@ -346,21 +346,21 @@ function TabParcAbonne({ rows, setRows, onSave, isSubmitting }: TabParcAbonnePro
   )
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 // 7. CONFIGURATION DES ONGLETS
-//    Ajoutez une entrÃ©e ici pour chaque nouvel onglet (ex: "recouvrement").
-//    key   â†’ identifiant technique (doit correspondre Ã  TabsContent value=)
-//    label â†’ texte affichÃ© dans le TabsTrigger
+//    Ajoutez une entrée ici pour chaque nouvel onglet (ex: "recouvrement").
+//    key   â†’ identifiant technique (doit correspondre a TabsContent value=)
+//    label â†’ texte affiché dans le TabsTrigger
 //    color â†’ couleur d'accentuation (optionnel)
-//    title â†’ titre imprimÃ© sur le PDF
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//    title â†’ titre imprimé sur le PDF
+// _______________________________________
 const TABS = [
   { key: "encaissement", label: "Encaissement", color: "#2db34b", title: "ENCAISSEMENT" },
   { key: "parc", label: "Parc", color: "#0093f5", title: "PARC" }
   // { key: "recouvrement", label: "Recouvrement", color: "#e67e22", title: "RECOUVREMENT" },
 ]
 
-type tableauTabKey = "encaissement"| "parc" // â† ajoutez vos nouvelles clÃ©s ici avec | "recouvrement"
+type tableauTabKey = "encaissement"| "parc" // â† ajoutez vos nouvelles clés ici avec | "recouvrement"
 
 const MONTHS = [
   { value: "01", label: "Janvier" },   { value: "02", label: "Fevrier" },
@@ -376,11 +376,11 @@ const INITIAL_tableau_PERIOD = getCurrenttableauPeriod()
 const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
 
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 // 8. TYPES & HELPERS D'API / STOCKAGE
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 
-// â”€â”€ 8a. Type du tableau sauvegardÃ© en localStorage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _ 8a. Type du tableau sauvegardé en localStorage _________
 //    Ajoutez un champ *Data pour chaque nouveau tableau :
 //    ex: recouvrementData?: MonNouveauTableauRow
 interface Savedtableau {
@@ -392,10 +392,10 @@ interface Savedtableau {
   encaissementData?: TotalEncaissementRow
   parcAbonneData?: ParcAbonneRow[] 
 
-  // recouvrementData?: MonNouveauTableauRow  // â† dÃ©commenter pour un nouveau tableau
+  // recouvrementData?: MonNouveauTableauRow  // â† décommenter pour un nouveau tableau
 }
 
-// â”€â”€ 8b. Type retournÃ© par l'API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _ 8b. Type retourné par l'API _______________________
 type Apitableautableau = {
   id: number
   tabKey: string
@@ -405,14 +405,14 @@ type Apitableautableau = {
   dataJson: string
 }
 
-// â”€â”€ 8c. Helpers de normalisation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _ 8c. Helpers de normalisation ______________________
 const safeString = (value: unknown) => {
   if (typeof value === "string") return value
   if (value === null || value === undefined) return ""
   return String(value)
 }
 
-// â”€â”€ (MODÃˆLE) Copiez-collez pour un nouveau tableau : â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _ (MODELE) Copiez-collez pour un nouveau tableau : _____________
 // const normalizeMonNouveauTableauData = (data?: MonNouveauTableauRow): MonNouveauTableauRow => {
 //   if (data && typeof data === "object") {
 //     return { col1: safeString(data.col1), col2: safeString(data.col2) }
@@ -437,12 +437,12 @@ const normalizeEncaissementData = (data?: TotalEncaissementRow): TotalEncaisseme
 const DEFAULT_PARC_ABONNE_ROWS: ParcAbonneRow[] = [
   { label: "Postpaid B2B", m: "", m1: "", evol: "" },
   { label: "Prepaid B2B",  m: "", m1: "", evol: "" },
-  { label: "TOTAL",        m: "", m1: "", evol: "" }, // ligne calculÃ©e, non utilisÃ©e au chargement
+  { label: "TOTAL",        m: "", m1: "", evol: "" }, // ligne calculée, non utilisée au chargement
 ]
 
 const normalizeParcAbonneRows = (data?: ParcAbonneRow[]): ParcAbonneRow[] => {
   if (Array.isArray(data) && data.length >= 2) {
-    // On recharge uniquement les 2 lignes Ã©ditables, le TOTAL est recalculÃ©
+    // On recharge uniquement les 2 lignes éditables, le TOTAL est recalculé
     return [
       { label: "Postpaid B2B", m: safeString(data[0]?.m), m1: safeString(data[0]?.m1), evol: safeString(data[0]?.evol) },
       { label: "Prepaid B2B",  m: safeString(data[1]?.m), m1: safeString(data[1]?.m1), evol: safeString(data[1]?.evol) },
@@ -460,184 +460,23 @@ const normalizeYearValue = (value: string) =>
   YEARS.includes(value) ? value : String(CURRENT_YEAR)
 
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 // 9. COMPOSANT ZONE D'IMPRESSION (PDF)
-//    Ajoutez ici chaque tableau Ã  inclure dans le PDF.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-interface PrintZoneProps {
-  direction: string
-  mois: string
-  annee: string
-  encaissementData: TotalEncaissementRow
-  parcAbonneData: ParcAbonneRow[]      // â† ajout
-}
-
-function PrintZone({ direction, mois, annee, encaissementData, parcAbonneData }: PrintZoneProps) {
-  const mon = MONTHS.find((m) => m.value === mois)?.label ?? mois
-
-  const thStyle: React.CSSProperties = {
-    border: "1px solid #000", padding: "12px 6px", backgroundColor: "#fff", color: "#000",
-    fontSize: 11, fontWeight: 700, textAlign: "center", whiteSpace: "nowrap", verticalAlign: "middle",
-  }
-  const tdStyle: React.CSSProperties = {
-    border: "1px solid #000", padding: "3px 6px", fontSize: 9,
-    backgroundColor: "#fff", color: "#000", verticalAlign: "middle",
-  }
-  const totalRowStyle: React.CSSProperties = {
-    backgroundColor: "#2db34b", fontWeight: 800,
-  }
-
-  // Recalcul du total pour l'impression
-  const editableRows = parcAbonneData.slice(0, 2)
-  const totalM  = editableRows.reduce((acc, r) => acc + num(r.m),  0)
-  const totalM1 = editableRows.reduce((acc, r) => acc + num(r.m1), 0)
-  const totalEvol = totalM > 0
-    ? `${(((totalM1 - totalM) / totalM) * 100).toFixed(1)}%`
-    : "-"
-
-  return (
-    <div id="print-zone" style={{ display: "none" }}>
-      <style>{`
-        #print-zone table th, #print-zone table td {
-          color: #000 !important; text-align: center !important;
-          vertical-align: middle !important; direction: ltr !important;
-        }
-        #print-zone table tbody td { background-color: #fff !important; }
-        #print-zone table thead th, #print-zone table tfoot td {
-          background-color: #2db34b !important; color: #000 !important; font-weight: 800 !important;
-        }
-      `}</style>
-
-      {/* â”€â”€ En-tÃªte PDF â”€â”€ */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", paddingBottom: 12, borderBottom: "2px solid #000", marginBottom: 20 }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Logo" style={{ height: 52, objectFit: "contain" }} />
-          <div style={{ width: 260, border: "3px solid #000", backgroundColor: "#fff" }}>
-            <div style={{ minHeight: 32, display: "flex", alignItems: "center", padding: "0 10px", borderBottom: "3px solid #000", fontSize: 13, fontWeight: 700, color: "#000", textTransform: "uppercase" }}>
-              ATM MOBILIS
-            </div>
-            <div style={{ minHeight: 32, display: "flex", alignItems: "center", padding: "0 10px", fontSize: 13, fontWeight: 700, color: "#000" }}>
-              DR : {direction || "-"}
-            </div>
-          </div>
-        </div>
-        <div style={{ width: 260, border: "3px solid #000", backgroundColor: "#fff" }}>
-          <div style={{ minHeight: 32, display: "flex", alignItems: "center", padding: "0 10px", borderBottom: "3px solid #000", fontSize: 13, fontWeight: 700, color: "#000" }}>
-            tableau Mois : {mon}
-          </div>
-          <div style={{ minHeight: 32, display: "flex", alignItems: "center", padding: "0 10px", fontSize: 13, fontWeight: 700, color: "#000" }}>
-            Annee : {annee}
-          </div>
-        </div>
-      </div>
-
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-          TABLEAU 1 : ENCAISSEMENT
-          Pour chaque nouveau tableau dans le PDF, copiez le bloc
-          "Titre + <table>" ci-dessous et adaptez les colonnes.
-      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-      <div style={{ textAlign: "center", fontSize: 15, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5, color: "#000", marginBottom: 12 }}>
-        ENCAISSEMENT
-      </div>
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 30 }}>
-        <thead>
-          <tr>
-            <th style={thStyle} rowSpan={2}>Encaissement (MDA)</th>
-            <th style={thStyle} colSpan={2}>M-1</th>
-            <th style={thStyle} colSpan={2}>M</th>
-            <th style={thStyle} rowSpan={2}>Evol</th>
-          </tr>
-          <tr>
-            <th style={thStyle}>GP</th>
-            <th style={thStyle}>B2B</th>
-            <th style={thStyle}>GP</th>
-            <th style={thStyle}>B2B</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{encaissementData.mGp   ? fmt(encaissementData.mGp)   : ""}</td>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{encaissementData.mB2b  ? fmt(encaissementData.mB2b)  : ""}</td>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{encaissementData.m1Gp  ? fmt(encaissementData.m1Gp)  : ""}</td>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{encaissementData.m1B2b ? fmt(encaissementData.m1B2b) : ""}</td>
-            <td style={tdStyle}>{encaissementData.evol || "-"}</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(encaissementData.mGp   || "0")}</td>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(encaissementData.mB2b  || "0")}</td>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(encaissementData.m1Gp  || "0")}</td>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(encaissementData.m1B2b || "0")}</td>
-            <td style={tdStyle}>{encaissementData.evol || "-"}</td>
-          </tr>
-        </tfoot>
-      </table>
-
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-          TABLEAU 2 : PARC ABONNÃ‰S B2B
-          â† CopiÃ© et adaptÃ© depuis le modÃ¨le ci-dessus
-      â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
-      <div style={{ textAlign: "center", fontSize: 15, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1.5, color: "#000", marginBottom: 12 }}>
-        PARC ABONNÃ‰S B2B
-      </div>
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 30 }}>
-        <thead>
-          <tr>
-            <th style={thStyle}>Parc AbonnÃ©s B2B</th>
-            <th style={thStyle}>M</th>
-            <th style={thStyle}>M+1</th>
-            <th style={thStyle}>Evol</th>
-          </tr>
-        </thead>
-        <tbody>
-          {editableRows.map((row) => (
-            <tr key={row.label}>
-              <td style={{ ...tdStyle, textAlign: "left" }}>{row.label}</td>
-              <td style={{ ...tdStyle, textAlign: "right" }}>{row.m  ? fmt(row.m)  : ""}</td>
-              <td style={{ ...tdStyle, textAlign: "right" }}>{row.m1 ? fmt(row.m1) : ""}</td>
-              <td style={tdStyle}>{row.evol || "-"}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td style={{ ...tdStyle, fontWeight: 800 }}>TOTAL</td>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(totalM)}</td>
-            <td style={{ ...tdStyle, textAlign: "right" }}>{fmt(totalM1)}</td>
-            <td style={tdStyle}>{totalEvol}</td>
-          </tr>
-        </tfoot>
-      </table>
-
-    </div>
-  )
-}
-
-      {/* â”€â”€ (MODÃˆLE) Pour imprimer un 2e tableau juste en dessous : â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      <div style={{ textAlign: "center", fontSize: 15, fontWeight: 800, marginTop: 30, marginBottom: 20 }}>
-        MON DEUXIÃˆME TABLEAU
-      </div>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        ...
-      </table>
-      â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+//    Ajoutez ici chaque tableau a inclure dans le PDF.
+// _______________________________________
 
 
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 // 10. PAGE PRINCIPALE
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// _______________________________________
 export default function NouvelletableauPage() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const { toast } = useToast()
   const router = useRouter()
-  const printRef = useRef<HTMLDivElement>(null)
   const [editQuery, setEditQuery] = useState<{ editId: string; tab: string }>({ editId: "", tab: "" })
 
-  // â”€â”€ 10a. Chargement des rÃ©gions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10a. Chargement des régions ______________________
   const [regions, setRegions] = useState<{ id: number; name: string }[]>([])
   useEffect(() => {
     const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
@@ -650,7 +489,7 @@ export default function NouvelletableauPage() {
       .catch(() => {})
   }, [])
 
-  // â”€â”€ 10b. Lecture des query params (editId, mois, annee) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10b. Lecture des query params (editId, mois, annee) __________
   useEffect(() => {
     if (typeof window === "undefined") return
     const params = new URLSearchParams(window.location.search)
@@ -664,7 +503,7 @@ export default function NouvelletableauPage() {
     })
   }, [])
 
-  // â”€â”€ 10c. STATE GLOBAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10c. STATE GLOBAL ___________________________
   const [activeTab, setActiveTab] = useState("encaissement")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
@@ -676,8 +515,8 @@ export default function NouvelletableauPage() {
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
 
-  // â”€â”€ 10d. STATE DES DONNÃ‰ES DE TABLEAUX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  //    Ajoutez un useState par tableau supplÃ©mentaire ici.
+  // _ 10d. STATE DES DONNéES DE TABLEAUX __________________
+  //    Ajoutez un useState par tableau supplémentaire ici.
     // const [recouvrementRows, setRecouvrementRows] = useState<MonNouveauTableauRow[]>([])
   const [encaissementRow, setEncaissementRow] = useState<TotalEncaissementRow>({
     mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "",
@@ -687,10 +526,10 @@ export default function NouvelletableauPage() {
 )
 
 
-  // â”€â”€ 10e. STATE API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10e. STATE API ____________________________
   const [tableautableaus, settableau] = useState<Apitableautableau[]>([])
 
-  // â”€â”€ 10f. Logique de rÃ´les et d'onglets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10f. Logique de rÃ´les et d'onglets __________________
   const userRole = user?.role ?? ""
   const isAdminRole    = isAdmintableauRole(userRole)
   const isRegionalRole = isRegionaltableauRole(userRole)
@@ -709,7 +548,7 @@ export default function NouvelletableauPage() {
   const hastableauTabAccess  = tableauTabs.length > 0
   const isActiveTabDisabled = disabledTabKeys.has(activeTab)
 
-  // â”€â”€ 10g. RÃ©solution de la direction selon le rÃ´le â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10g. Résolution de la direction selon le rÃ´le _____________
   const resolveDirectionForRole = useCallback(
     (fallbackDirection = "") => {
       const normalized = safeString(fallbackDirection).trim()
@@ -724,7 +563,7 @@ export default function NouvelletableauPage() {
     safeString(direction).trim() || safeString(user?.direction).trim() || "Siege"
   )
 
-  // â”€â”€ 10h. Synchronisation de la politique tableaue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10h. Synchronisation de la politique tableaue _____________
   useEffect(() => {
     if (!userRole) return
     let cancelled = false
@@ -736,7 +575,7 @@ export default function NouvelletableauPage() {
     return () => { cancelled = true }
   }, [adminSelectedDirection, isAdminRole, userRole])
 
-  // â”€â”€ 10i. Correction automatique mois/annÃ©e hors plage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10i. Correction automatique mois/année hors plage ___________
   useEffect(() => {
     if (!selectableYears.includes(annee)) {
       const fb = selectableYears[0]
@@ -748,13 +587,13 @@ export default function NouvelletableauPage() {
     }
   }, [annee, mois, selectableMonths, selectableYears])
 
-  // â”€â”€ 10j. Auto-set direction selon le rÃ´le â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10j. Auto-set direction selon le rÃ´le _________________
   useEffect(() => {
     if (!user || isAdminRole) return
     setDirection((prev) => resolveDirectionForRole(prev))
   }, [user, isAdminRole, resolveDirectionForRole])
 
-  // â”€â”€ 10k. Chargement des tableaux depuis l'API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10k. Chargement des tableaux depuis l'API _____________
   useEffect(() => {
     if (!user || status !== "authenticated") { settableau([]); return }
     let cancelled = false
@@ -786,7 +625,7 @@ export default function NouvelletableauPage() {
     return () => { cancelled = true }
   }, [status, user])
 
-  // â”€â”€ 10l. Chargement d'un tableau existant pour Ã©dition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10l. Chargement d'un tableau existant pour édition _______
   useEffect(() => {
     if (isLoading || status !== "authenticated" || !user) return
     if (!editQuery.editId) {
@@ -815,7 +654,7 @@ export default function NouvelletableauPage() {
       setEditingSourceMois(loadedMois)
       setEditingSourceAnnee(loadedAnnee)
 
-      // Restauration des donnÃ©es par tableau
+      // Restauration des données par tableau
       // setRecouvrementRows(normalizeMonNouveauTableauData(decl.recouvrementData)) // â† nouveau tableau
       setEncaissementRow(normalizeEncaissementData(decl.encaissementData))
       setParcAbonneRows(normalizeParcAbonneRows(decl.parcAbonneData))
@@ -824,7 +663,7 @@ export default function NouvelletableauPage() {
     }
   }, [editQuery.editId, editQuery.tab, isAdminRole, isLoading, resolveDirectionForRole, router, status, user])
 
-  // â”€â”€ 10m. Garde d'authentification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10m. Garde d'authentification _____________________
   if (isLoading || !user || status !== "authenticated") {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -833,14 +672,14 @@ export default function NouvelletableauPage() {
     )
   }
 
-  // â”€â”€ 10n. SAUVEGARDE (handleSave) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  //    Pour ajouter les donnÃ©es d'un nouveau tableau :
+  // _ 10n. SAUVEGARDE (handleSave) _____________________
+  //    Pour ajouter les données d'un nouveau tableau :
   //    1. Incluez-les dans `baseDecl` (champ *Data)
-  //    2. Incluez-les dans `tabData` envoyÃ© Ã  l'API
+  //    2. Incluez-les dans `tabData` envoyé a l'API
   const handleSave = async () => {
     const saveDirection = effectiveDirection
 
-    // Validations de pÃ©riode / onglet
+    // Validations de période / onglet
     if (isActiveTabDisabled) {
       toast({ title: "Tableau desactive", description: "Le tableau selectionne est desactive.", variant: "destructive" }); return
     }
@@ -859,7 +698,7 @@ export default function NouvelletableauPage() {
       toast({ title: "Periode cloturee", description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification autorisee.`, variant: "destructive" }); return
     }
 
-    // RÃ©cupÃ©ration du cache local
+    // Récupération du cache local
     let existingtableaus: Savedtableau[] = []
     try {
       const parsed = JSON.parse(localStorage.getItem("tableau_tableaus") ?? "[]")
@@ -876,8 +715,8 @@ export default function NouvelletableauPage() {
     const tableauId        = editingtableauId ?? Date.now().toString()
     const tableauCreatedAt = editingCreatedAt || new Date().toISOString()
 
-    // â”€â”€ Objet de tableau sauvegardÃ© localement â”€â”€
-    //    Ajoutez ici les donnÃ©es de chaque nouveau tableau (ex: recouvrementData)
+    // _ Objet de tableau sauvegardé localement _
+    //    Ajoutez ici les données de chaque nouveau tableau (ex: recouvrementData)
     const baseDecl: Savedtableau = {
       id: tableauId,
       createdAt: tableauCreatedAt,
@@ -890,7 +729,7 @@ export default function NouvelletableauPage() {
       // recouvrementData: recouvrementRows,
     }
 
-    // Mise Ã  jour du cache localStorage
+    // Mise a jour du cache localStorage
     try {
       if (editingtableauId) {
         const hasTarget = existingtableaus.some((item) => safeString(item.id) === editingtableauId)
@@ -903,12 +742,12 @@ export default function NouvelletableauPage() {
       }
     } catch { /* quota ou SSR */ }
 
-    // â”€â”€ Persistance en base de donnÃ©es â”€â”€
+    // _ Persistance en base de données _
     try {
       const apiBase = API_BASE
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
 
-      // Ajoutez ici les donnÃ©es de chaque nouveau tableau dans tabData
+      // Ajoutez ici les données de chaque nouveau tableau dans tabData
       const tabData = {
         encaissementData: encaissementRow,
         parcAbonneData: parcAbonneRows.slice(0, 2),
@@ -939,7 +778,7 @@ export default function NouvelletableauPage() {
         }
       }
 
-      // CrÃ©ation
+      // Création
       const createRes = await fetch(`${apiBase}/api/tableau`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -966,7 +805,7 @@ export default function NouvelletableauPage() {
         setIsSubmitting(false)
         toast({
           title: "Erreur d'enregistrement",
-          description: restoreOk ? `${errMsg} L'ancien tableau a Ã©tÃ© restaurÃ©.` : String(errMsg),
+          description: restoreOk ? `${errMsg} L'ancien tableau a été restauré.` : String(errMsg),
           variant: "destructive",
         })
         return
@@ -986,7 +825,7 @@ export default function NouvelletableauPage() {
     router.push("/tableau_dashbord")
   }
 
-  // â”€â”€ 10o. Message de verrouillage de pÃ©riode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _ 10o. Message de verrouillage de période ________________
   const currentPeriodLockMessage = (() => {
     if (editingtableauId && editingSourceMois && editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole))
       return `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`
@@ -996,9 +835,9 @@ export default function NouvelletableauPage() {
   })()
 
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _____________________________________
   // 11. RENDU JSX
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // _____________________________________
   return (
     <LayoutWrapper user={user}>
       {!hastableauTabAccess ? (
@@ -1011,42 +850,35 @@ export default function NouvelletableauPage() {
         />
       ) : (
         <>
-          {/* Zone d'impression cachÃ©e (PDF) */}
-          <PrintZone
-            direction={effectiveDirection}
-            mois={mois}
-            annee={annee}
-            encaissementData={encaissementRow}
-            parcAbonneData={parcAbonneRows} 
-          />
+          
 
-          {/* â”€â”€ ONGLETS PRINCIPAUX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          {/* _ ONGLETS PRINCIPAUX ______________________
               Pour ajouter un onglet : ajoutez un TabsTrigger + un TabsContent.
               La grille grid-cols-4 s'adapte au nombre d'onglets.
-          â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          __________________________________ */}
           <Tabs defaultValue="encaissement" className="space-y-4">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="epayment">E-payment</TabsTrigger>
               <TabsTrigger value="encaissement">Encaissement</TabsTrigger>
-              <TabsTrigger value="reclamation">RÃ©clamation</TabsTrigger>
+              <TabsTrigger value="reclamation">Réclamation</TabsTrigger>
               <TabsTrigger value="parc">Parc</TabsTrigger>
             </TabsList>
 
-            {/* â”€â”€ ONGLET : E-PAYMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* _ ONGLET : E-PAYMENT ____________________ */}
             <TabsContent value="epayment">
               <Card>
                 <CardHeader><CardTitle>E-payment</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500">Contenu E-payment Ã  implÃ©menter...</p>
+                  <p className="text-sm text-gray-500">Contenu E-payment a implémenter...</p>
                   {/* Ajoutez ici vos composants de tableaux pour E-payment */}
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* â”€â”€ ONGLET : ENCAISSEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* _ ONGLET : ENCAISSEMENT __________________ */}
             <TabsContent value="encaissement">
 
-              {/* SÃ©lecteur de pÃ©riode (Mois / AnnÃ©e) */}
+              {/* Sélecteur de période (Mois / Année) */}
               <Card className="border border-gray-200 mb-4">
                 <CardContent className="pt-3 pb-3">
                   <div className="flex flex-wrap items-end gap-4">
@@ -1074,7 +906,7 @@ export default function NouvelletableauPage() {
                   </div>
                 </CardContent>
               </Card>
-              {/* â”€â”€ (MODÃˆLE) Tableau 2 â€” copiez ce bloc pour ajouter un tableau â”€â”€
+              {/* _ (MODELE) Tableau 2 â€” copiez ce bloc pour ajouter un tableau _
               <Card className="mb-4">
                 <CardHeader><CardTitle>Mon DeuxiÃ¨me Tableau</CardTitle></CardHeader>
                 <CardContent>
@@ -1084,12 +916,12 @@ export default function NouvelletableauPage() {
                   />
                 </CardContent>
               </Card>
-              â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              _________________________________
               Note : un seul bouton "Enregistrer" pour tout l'onglet suffit.
-              Il est dÃ©jÃ  inclus dans TabTotalEncaissement (onSave={handleSave}).
-              Si vous voulez le dÃ©placer en dehors des Card, dÃ©placez-le ici.
-              â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-              {/* â”€â”€ Tableau 1 : Encaissement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              Il est déja inclus dans TabTotalEncaissement (onSave={handleSave}).
+              Si vous voulez le déplacer en dehors des Card, déplacez-le ici.
+              ________________________________ */}
+              {/* _ Tableau 1 : Encaissement _______________ */}
               <Card className="mb-4">
                 <CardHeader><CardTitle>Encaissement</CardTitle></CardHeader>
                 <CardContent>
@@ -1101,10 +933,10 @@ export default function NouvelletableauPage() {
                   />
                 </CardContent>
               </Card>
-              {/* â”€â”€ Tableau 2 : Parc AbonnÃ©s B2B â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {/* _ Tableau 2 : Parc Abonnés B2B ________________ */}
               <Card className="mb-4">
                 <CardHeader>
-                  <CardTitle>Parc AbonnÃ©s B2B</CardTitle>
+                  <CardTitle>Parc Abonnés B2B</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <TabParcAbonne
@@ -1119,23 +951,23 @@ export default function NouvelletableauPage() {
 
             </TabsContent>
 
-            {/* â”€â”€ ONGLET : RÃ‰CLAMATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* _ ONGLET : RéCLAMATION ___________________ */}
             <TabsContent value="reclamation">
               <Card>
-                <CardHeader><CardTitle>RÃ©clamation</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Réclamation</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500">Contenu RÃ©clamation Ã  implÃ©menter...</p>
-                  {/* Ajoutez ici vos composants de tableaux pour RÃ©clamation */}
+                  <p className="text-sm text-gray-500">Contenu Réclamation a implémenter...</p>
+                  {/* Ajoutez ici vos composants de tableaux pour Réclamation */}
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* â”€â”€ ONGLET : PARC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* _ ONGLET : PARC ______________________ */}
             <TabsContent value="parc">
               <Card>
                 <CardHeader><CardTitle>Parc</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500">Contenu Parc Ã  implÃ©menter...</p>
+                  <p className="text-sm text-gray-500">Contenu Parc a implémenter...</p>
                   {/* Ajoutez ici vos composants de tableaux pour Parc */}
                 </CardContent>
               </Card>
