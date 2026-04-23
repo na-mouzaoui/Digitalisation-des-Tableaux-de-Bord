@@ -59,6 +59,7 @@ public class Tableau
 public class AdminSetting
 {
     public int Id { get; set; }
+    public string DisabledTabKeysJson { get; set; } = "[]";
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 

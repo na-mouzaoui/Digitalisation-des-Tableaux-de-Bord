@@ -152,6 +152,26 @@ public class TableauController : ControllerBase
 
     private static string NormalizeTabKey(string? tabKey) => (tabKey ?? "").Trim().ToLowerInvariant();
 
+    private static string[] ParseDisabledTabKeys(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return Array.Empty<string>();
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<string>>(raw) ?? new List<string>();
+            return parsed
+                .Select(NormalizeTabKey)
+                .Where(key => !string.IsNullOrWhiteSpace(key))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
     private static bool CanManageTabForRole(string role, string? tabKey)
     {
         var normalizedRole = (role ?? "").Trim().ToLowerInvariant();
@@ -305,15 +325,19 @@ public class TableauController : ControllerBase
         var userId = GetCurrentUserId();
         var currentUserContext = await GetCurrentUserContextAsync(userId);
         var currentUserRole = currentUserContext.Role;
+        var setting = await _context.AdminSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == 1);
 
         var manageableTabKeys = GetManageableTabsForRoleAndDirection(currentUserRole, direction);
+        var disabledTabKeys = ParseDisabledTabKeys(setting?.DisabledTabKeysJson);
 
         return Ok(new
         {
             role = currentUserRole,
             requestedDirection = (direction ?? "").Trim(),
             manageableTabKeys,
-            disabledTabKeys = Array.Empty<string>(),
+            disabledTabKeys,
             serverNow = DateTime.UtcNow,
         });
     }

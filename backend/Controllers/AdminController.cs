@@ -6,6 +6,7 @@ using CheckFillingAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace CheckFillingAPI.Controllers;
 
@@ -21,6 +22,104 @@ public class AdminController : ControllerBase
     {
         _context = context;
         _auditService = auditService;
+    }
+
+    private static readonly string[] ManagedTableauKeys =
+    {
+        "encaissement",
+        "tva_immo",
+        "tva_biens",
+        "droits_timbre",
+        "ca_tap",
+        "etat_tap",
+        "ca_siege",
+        "irg",
+        "taxe2",
+        "taxe_masters",
+        "taxe_vehicule",
+        "taxe_formation",
+        "acompte",
+        "ibs",
+        "taxe_domicil",
+        "tva_autoliq",
+    };
+
+    private static readonly Dictionary<string, string> ManagedTableauLabels = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["encaissement"] = "1 - Encaissement",
+        ["tva_immo"] = "2 - TVA / IMMO",
+        ["tva_biens"] = "3 - TVA / Biens & Services",
+        ["droits_timbre"] = "4 - Droits de Timbre",
+        ["ca_tap"] = "5 - CA 7% & CA Global 1%",
+        ["etat_tap"] = "6 - ETAT TAP",
+        ["ca_siege"] = "7a - CA Siege",
+        ["irg"] = "8a - Situation IRG",
+        ["taxe2"] = "9a - Taxe 2%",
+        ["taxe_masters"] = "10a - Taxe Masters 1,5%",
+        ["taxe_vehicule"] = "11a - Taxe Vehicule",
+        ["taxe_formation"] = "12a - Taxe Formation",
+        ["acompte"] = "13a - Acompte Provisionnel",
+        ["ibs"] = "14a - IBS Fournisseurs Etrangers",
+        ["taxe_domicil"] = "15a - Taxe Domiciliation",
+        ["tva_autoliq"] = "16a - TVA Auto Liquidation",
+    };
+
+    private static readonly HashSet<string> ManagedTableauKeySet =
+        new(ManagedTableauKeys, StringComparer.OrdinalIgnoreCase);
+
+    private static string NormalizeTabKey(string? tabKey) => (tabKey ?? "").Trim().ToLowerInvariant();
+
+    private static List<string> ParseDisabledTabKeys(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return new List<string>();
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<string>>(raw) ?? new List<string>();
+            return parsed
+                .Select(NormalizeTabKey)
+                .Where(key => !string.IsNullOrWhiteSpace(key) && ManagedTableauKeySet.Contains(key))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+
+    private static string SerializeDisabledTabKeys(IEnumerable<string> keys)
+    {
+        var normalized = keys
+            .Select(NormalizeTabKey)
+            .Where(key => !string.IsNullOrWhiteSpace(key) && ManagedTableauKeySet.Contains(key))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return JsonSerializer.Serialize(normalized);
+    }
+
+    private async Task<AdminSetting> GetOrCreateAdminSettingAsync()
+    {
+        var setting = await _context.AdminSettings.FirstOrDefaultAsync(x => x.Id == 1);
+        if (setting != null)
+            return setting;
+
+        setting = new AdminSetting
+        {
+            Id = 1,
+            DisabledTabKeysJson = "[]",
+            UpdatedAt = DateTime.UtcNow,
+        };
+        _context.AdminSettings.Add(setting);
+        await _context.SaveChangesAsync();
+        return setting;
+    }
+
+    public class ToggleTableauRequest
+    {
+        public string TabKey { get; set; } = string.Empty;
+        public bool IsEnabled { get; set; } = true;
     }
 
     private int GetCurrentUserId()
@@ -271,5 +370,70 @@ public class AdminController : ControllerBase
             l.Details,
             l.CreatedAt
         }));
+    }
+
+    // ─────────────────────────────────────────────
+    // TABLEAU SETTINGS
+    // ─────────────────────────────────────────────
+
+    [HttpGet("tableau-settings")]
+    public async Task<IActionResult> GetTableauSettings()
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        var setting = await GetOrCreateAdminSettingAsync();
+        var disabledTabKeys = ParseDisabledTabKeys(setting.DisabledTabKeysJson);
+
+        return Ok(new
+        {
+            disabledTabKeys,
+            updatedAt = setting.UpdatedAt,
+            tabs = ManagedTableauKeys.Select(key => new
+            {
+                key,
+                label = ManagedTableauLabels.TryGetValue(key, out var label) ? label : key,
+                isEnabled = !disabledTabKeys.Contains(key, StringComparer.OrdinalIgnoreCase),
+            }),
+        });
+    }
+
+    [HttpPut("tableau-settings/tabs")]
+    public async Task<IActionResult> ToggleTableau([FromBody] ToggleTableauRequest request)
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        var normalizedTabKey = NormalizeTabKey(request.TabKey);
+        if (!ManagedTableauKeySet.Contains(normalizedTabKey))
+            return BadRequest(new { message = "Tableau invalide." });
+
+        var setting = await GetOrCreateAdminSettingAsync();
+        var disabledTabKeys = ParseDisabledTabKeys(setting.DisabledTabKeysJson);
+
+        if (request.IsEnabled)
+            disabledTabKeys.RemoveAll(key => string.Equals(key, normalizedTabKey, StringComparison.OrdinalIgnoreCase));
+        else if (!disabledTabKeys.Contains(normalizedTabKey, StringComparer.OrdinalIgnoreCase))
+            disabledTabKeys.Add(normalizedTabKey);
+
+        setting.DisabledTabKeysJson = SerializeDisabledTabKeys(disabledTabKeys);
+        setting.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        await _auditService.LogAction(
+            GetCurrentUserId(),
+            "UPDATE_FISCAL_SETTING",
+            "AdminSetting",
+            setting.Id,
+            new { tabKey = normalizedTabKey, isEnabled = request.IsEnabled }
+        );
+
+        return Ok(new
+        {
+            tabKey = normalizedTabKey,
+            isEnabled = request.IsEnabled,
+            disabledTabKeys = ParseDisabledTabKeys(setting.DisabledTabKeysJson),
+            updatedAt = setting.UpdatedAt,
+        });
     }
 }

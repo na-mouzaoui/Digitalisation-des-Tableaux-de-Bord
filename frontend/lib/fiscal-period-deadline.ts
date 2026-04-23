@@ -1,4 +1,4 @@
-import { getPolicyDeadlineDay } from "./tableau-policy"
+import { getPolicyDeadlineDay } from "./fiscal-policy"
 
 const MONTH_LABELS: Record<string, string> = {
   "01": "Janvier",

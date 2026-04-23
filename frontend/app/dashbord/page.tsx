@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { HubConnectionBuilder } from "@microsoft/signalr"
 import { LayoutWrapper } from "@/components/layout-wrapper"
 import { useAuth } from "@/hooks/use-auth"
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CheckCircle, Trash2, Printer, Filter, ChevronUp, ChevronDown, X, Pencil, Clock3, CalendarDays, Building2 } from "lucide-react"
+import { CheckCircle, Trash2, Printer, Filter, ChevronUp, ChevronDown, X, Pencil, Clock3, CalendarDays, Building2, FileSpreadsheet } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE } from "@/lib/config"
 import WILAYAS_COMMUNES, { type WilayaCommuneEntry } from "@/lib/wilayas-communes"
@@ -1027,6 +1027,8 @@ export default function tableauDashboardPage() {
   const [showDialog, setShowDialog] = useState(false)
   const [showRecapDialog, setShowRecapDialog] = useState(false)
   const [showRecapFilters, setShowRecapFilters] = useState(false)
+  const consultTableContainerRef = useRef<HTMLDivElement | null>(null)
+  const printZoneRef = useRef<HTMLDivElement | null>(null)
   const [viewTabKey, setViewTabKey] = useState<string>("encaissement")
   const [filterType, setFilterType] = useState("")
   const [filterMois, setFilterMois] = useState("")
@@ -1242,7 +1244,7 @@ export default function tableauDashboardPage() {
     setPrintDecl(decl)
     setViewTabKey(tabKey)
     setTimeout(async () => {
-      const printZone = document.getElementById("dash-print-zone")
+      const printZone = printZoneRef.current ?? document.getElementById("dash-print-zone")
       const tableElement = printZone?.querySelector("table") as HTMLTableElement | null
       if (!printZone || !tableElement) return
 
@@ -1607,6 +1609,115 @@ export default function tableauDashboardPage() {
         console.error("PDF generation failed", err)
       }
     }, 200)
+  }
+
+  const handleExportDialogToExcel = async () => {
+    if (!viewDecl) {
+      toast({ title: "Export impossible", description: "Aucun tableau a exporter.", variant: "destructive" })
+      return
+    }
+
+    const tableElement = consultTableContainerRef.current?.querySelector("table") as HTMLTableElement | null
+    if (!tableElement) {
+      toast({ title: "Export impossible", description: "La structure du tableau est introuvable.", variant: "destructive" })
+      return
+    }
+
+    try {
+      const ExcelJS = (await import("exceljs")).default
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet("Consultation")
+
+      const tabTitle = DASH_TABS.find((t) => t.key === viewTabKey)?.title ?? viewTabKey
+      const periodLabel = `${MONTHS[viewDecl.mois] ?? viewDecl.mois} ${viewDecl.annee}`
+
+      worksheet.getCell(1, 1).value = tabTitle
+      worksheet.getCell(2, 1).value = `Direction: ${viewDecl.direction || "-"}`
+      worksheet.getCell(3, 1).value = `Periode: ${periodLabel}`
+      worksheet.getCell(5, 1).value = ""
+
+      worksheet.getRow(1).font = { bold: true, size: 14 }
+      worksheet.getRow(2).font = { bold: true, size: 11 }
+      worksheet.getRow(3).font = { bold: true, size: 11 }
+
+      const occupied = new Set<string>()
+      const htmlRows = Array.from(tableElement.querySelectorAll("tr"))
+      let excelRow = 6
+      let maxCol = 1
+
+      for (const htmlRow of htmlRows) {
+        let excelCol = 1
+        const cells = Array.from(htmlRow.querySelectorAll("th, td")) as HTMLTableCellElement[]
+
+        for (const cell of cells) {
+          while (occupied.has(`${excelRow}:${excelCol}`)) {
+            excelCol += 1
+          }
+
+          const rowSpan = Math.max(1, Number(cell.getAttribute("rowspan") ?? "1"))
+          const colSpan = Math.max(1, Number(cell.getAttribute("colspan") ?? "1"))
+          const value = (cell.textContent ?? "").replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim()
+          const excelCell = worksheet.getCell(excelRow, excelCol)
+          excelCell.value = value || "-"
+
+          const isHeader = cell.tagName.toLowerCase() === "th"
+          const isTotal = cell.parentElement?.className.includes("font-bold") || value.toLowerCase().includes("total")
+
+          excelCell.alignment = { vertical: "middle", horizontal: isHeader ? "center" : "left", wrapText: true }
+          excelCell.font = { bold: isHeader || isTotal }
+          excelCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: isHeader ? "FFE5E7EB" : isTotal ? "FFF1F5F9" : "FFFFFFFF" },
+          }
+          excelCell.border = {
+            top: { style: "thin", color: { argb: "FFCBD5E1" } },
+            left: { style: "thin", color: { argb: "FFCBD5E1" } },
+            bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+            right: { style: "thin", color: { argb: "FFCBD5E1" } },
+          }
+
+          if (rowSpan > 1 || colSpan > 1) {
+            worksheet.mergeCells(excelRow, excelCol, excelRow + rowSpan - 1, excelCol + colSpan - 1)
+          }
+
+          for (let r = 0; r < rowSpan; r += 1) {
+            for (let c = 0; c < colSpan; c += 1) {
+              if (r === 0 && c === 0) continue
+              occupied.add(`${excelRow + r}:${excelCol + c}`)
+            }
+          }
+
+          excelCol += colSpan
+          maxCol = Math.max(maxCol, excelCol - 1)
+        }
+
+        excelRow += 1
+      }
+
+      for (let col = 1; col <= maxCol; col += 1) {
+        let maxLength = 12
+        for (let row = 1; row <= worksheet.rowCount; row += 1) {
+          const text = String(worksheet.getCell(row, col).value ?? "")
+          maxLength = Math.max(maxLength, Math.min(48, text.length + 2))
+        }
+        worksheet.getColumn(col).width = maxLength
+      }
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+      const link = document.createElement("a")
+      const safeTabKey = viewTabKey.replace(/[^a-z0-9_-]/gi, "_").toLowerCase()
+      link.href = URL.createObjectURL(blob)
+      link.download = `tableau_${safeTabKey}_${viewDecl.mois}_${viewDecl.annee}.xlsx`
+      link.click()
+      URL.revokeObjectURL(link.href)
+
+      toast({ title: "Export Excel termine", description: "Le tableau a ete exporte avec sa structure." })
+    } catch (error) {
+      console.error("Excel export failed", error)
+      toast({ title: "Erreur export", description: "Impossible d'exporter le tableau en Excel.", variant: "destructive" })
+    }
   }
 
   const handleEdit = (decl: Savedtableau, tabKey: string) => {
@@ -2002,12 +2113,14 @@ export default function tableauDashboardPage() {
         }
       `}</style>
       {/* Hidden print zone a content read by handlePrint via innerHTML */}
-      <DashPrintZone
-        decl={printDecl}
-        tabKey={viewTabKey}
-        tabTitle={viewTabTitle}
-        color={viewTabColor}
-      />
+      <div ref={printZoneRef}>
+        <DashPrintZone
+          decl={printDecl}
+          tabKey={viewTabKey}
+          tabTitle={viewTabTitle}
+          color={viewTabColor}
+        />
+      </div>
 
       <div className="space-y-6">
         <div>
@@ -2243,7 +2356,7 @@ export default function tableauDashboardPage() {
 
       {/* aa Consult Dialog aa */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="!w-[95vw] sm:!w-[90vw] xl:!w-[74vw] !max-w-[1200px] h-[82vh] p-0 overflow-hidden [&_[data-slot=table-head]]:border-r [&_[data-slot=table-head]]:border-border [&_[data-slot=table-head]:last-child]:border-r-0 [&_[data-slot=table-cell]]:border-r [&_[data-slot=table-cell]]:border-border [&_[data-slot=table-cell]:last-child]:border-r-0">
+        <DialogContent className="!w-[96vw] sm:!w-[92vw] xl:!w-[86vw] !max-w-[1400px] h-[86vh] p-0 overflow-hidden">
           <div className="border-b bg-gradient-to-r from-slate-50 to-white px-6 py-4">
             <DialogHeader className="space-y-3">
               <DialogTitle className="flex flex-wrap items-start justify-between gap-4">
@@ -2266,9 +2379,9 @@ export default function tableauDashboardPage() {
             </DialogHeader>
           </div>
           {viewDecl && (
-            <div className="h-[calc(82vh-140px)] overflow-auto bg-slate-50/60 px-6 py-5">
+            <div className="h-[calc(86vh-140px)] overflow-auto bg-slate-50/60 px-6 py-5">
               <div className="rounded-xl border bg-white p-4 shadow-sm">
-                <div className="overflow-x-auto">
+                <div ref={consultTableContainerRef} className="overflow-x-auto [&_table]:w-max [&_table]:min-w-full [&_table]:border-collapse [&_th]:whitespace-normal [&_th]:align-middle [&_td]:align-middle">
                   <TabDataView tabKey={viewTabKey} decl={viewDecl} color={viewTabColor} />
                 </div>
               </div>
@@ -2296,7 +2409,15 @@ export default function tableauDashboardPage() {
                   size="sm"
                   variant="outline"
                   className="gap-1.5 text-xs h-8 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  onClick={() => { setShowDialog(false); if (viewDecl) handlePrint(viewDecl, viewTabKey) }}
+                  onClick={handleExportDialogToExcel}
+                >
+                  <FileSpreadsheet size={13} /> Exporter Excel (.xlsx)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs h-8 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => { if (viewDecl) handlePrint(viewDecl, viewTabKey) }}
                 >
                   <Printer size={13} /> Imprimer
                 </Button>

@@ -77,6 +77,9 @@ public class AppDbContext : DbContext
         {
             entity.ToTable("AdminSettings");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.DisabledTabKeysJson)
+                .HasColumnType("nvarchar(max)")
+                .HasDefaultValue("[]");
         });
 
         // Seed data
@@ -138,6 +141,7 @@ public class AppDbContext : DbContext
             new AdminSetting
             {
                 Id = 1,
+                DisabledTabKeysJson = "[]",
                 UpdatedAt = seedCreatedAt
             }
         );

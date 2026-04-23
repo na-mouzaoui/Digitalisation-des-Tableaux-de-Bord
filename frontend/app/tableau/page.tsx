@@ -12,29 +12,25 @@ import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
+import {
+  getCurrenttableauPeriod,
+  gettableauPeriodLockMessage,
+  istableauPeriodLocked,
+} from "@/lib/fiscal-period-deadline"
+import { synctableauPolicy } from "@/lib/fiscal-policy"
+import {
+  getManageabletableauTabKeysForDirection,
+  isAdmintableauRole,
+  isRegionaltableauRole,
+  isFinancetableauRole,
+  istableauTabDisabledByPolicy,
+} from "@/lib/fiscal-tab-access"
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. CONSTANTES GLOBALES
 // ─────────────────────────────────────────────────────────────────────────────
 const PRIMARY_COLOR = "#2db34b"
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. STUBS POLITIQUE FISCALE
-// ─────────────────────────────────────────────────────────────────────────────
-const getCurrenttableauPeriod = (now: Date = new Date()) => ({
-  mois: String(now.getMonth() + 1).padStart(2, "0"),
-  annee: String(now.getFullYear()),
-})
-const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
-const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
-const synctableauPolicy = async (_direction?: string | null) => null
-const isAdmintableauRole = (_role?: string | null) => false
-const isRegionaltableauRole = (_role?: string | null) => false
-const isFinancetableauRole = (_role?: string | null) => false
-const getManageabletableauTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
-const istableauTabDisabledByPolicy = (_tabKey?: string) => false
 
 
 // ─────────────────────────────────────────────────────────────────────────────

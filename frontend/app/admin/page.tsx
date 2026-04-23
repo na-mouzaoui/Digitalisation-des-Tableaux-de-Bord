@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import AdminUserManagement from "@/components/admin-user-management"
 import AdminAuditLogs from "@/components/admin-audit-logs"
+import AdmintableauSettings from "@/components/admin-fiscal-settings"
 import { logout } from "@/lib/auth-client"
 
 export default function AdminPage() {
@@ -63,8 +64,9 @@ export default function AdminPage() {
 
         {/* TABS */}
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="users">Utilisateurs</TabsTrigger>
+            <TabsTrigger value="tableaux">Tableaux</TabsTrigger>
             <TabsTrigger value="audit">Audit</TabsTrigger>
           </TabsList>
 
@@ -76,6 +78,18 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <AdminUserManagement />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* TABLEAUX */}
+          <TabsContent value="tableaux" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Activation des tableaux</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AdmintableauSettings />
               </CardContent>
             </Card>
           </TabsContent>

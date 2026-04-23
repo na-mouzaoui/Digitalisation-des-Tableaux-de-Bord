@@ -7,14 +7,17 @@ import { authFetch } from "@/lib/auth-fetch"
 import { useToast } from "@/hooks/use-toast"
 
 type tableauSettingsResponse = {
-  isTable6Enabled?: boolean
+  disabledTabKeys?: string[]
+  tabs?: Array<{ key?: string; label?: string; isEnabled?: boolean }>
 }
 
 export default function AdmintableauSettings() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isTable6Enabled, setIsTable6Enabled] = useState(true)
+  const [savingTabKey, setSavingTabKey] = useState<string | null>(null)
+  const [tabs, setTabs] = useState<Array<{ key: string; label: string; isEnabled: boolean }>>([])
+
+  const normalizeKey = (value: string) => value.trim().toLowerCase()
 
   useEffect(() => {
     let cancelled = false
@@ -28,7 +31,20 @@ export default function AdmintableauSettings() {
 
         const payload = (await response.json().catch(() => null)) as tableauSettingsResponse | null
         if (!cancelled) {
-          setIsTable6Enabled(payload?.isTable6Enabled !== false)
+          const disabledSet = new Set((payload?.disabledTabKeys ?? []).map((value) => normalizeKey(String(value ?? ""))))
+          const fetchedTabs = Array.isArray(payload?.tabs)
+            ? payload.tabs
+                .map((tab) => {
+                  const key = normalizeKey(String(tab?.key ?? ""))
+                  if (!key) return null
+                  const label = String(tab?.label ?? key).trim() || key
+                  const isEnabledFromApi = typeof tab?.isEnabled === "boolean" ? tab.isEnabled : !disabledSet.has(key)
+                  return { key, label, isEnabled: isEnabledFromApi }
+                })
+                .filter((tab): tab is { key: string; label: string; isEnabled: boolean } => tab !== null)
+            : []
+
+          setTabs(fetchedTabs)
         }
       } catch (error) {
         if (!cancelled) {
@@ -52,16 +68,21 @@ export default function AdmintableauSettings() {
     }
   }, [toast])
 
-  const updateSetting = async (nextValue: boolean) => {
-    const previousValue = isTable6Enabled
-    setIsTable6Enabled(nextValue)
-    setIsSaving(true)
+  const updateSetting = async (tabKey: string, nextValue: boolean) => {
+    const normalizedTabKey = normalizeKey(tabKey)
+    const previousTabs = tabs
+    setTabs((prev) =>
+      prev.map((tab) =>
+        tab.key === normalizedTabKey ? { ...tab, isEnabled: nextValue } : tab,
+      ),
+    )
+    setSavingTabKey(normalizedTabKey)
 
     try {
-      const response = await authFetch("/api/admin/tableau-settings/table6", {
+      const response = await authFetch("/api/admin/tableau-settings/tabs", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isEnabled: nextValue }),
+        body: JSON.stringify({ tabKey: normalizedTabKey, isEnabled: nextValue }),
       })
 
       if (!response.ok) {
@@ -75,43 +96,63 @@ export default function AdmintableauSettings() {
       toast({
         title: "Parametre enregistre",
         description: nextValue
-          ? "Le tableau 6 est active pour les utilisateurs."
-          : "Le tableau 6 est desactive pour les utilisateurs.",
+          ? "Le tableau est active pour les utilisateurs."
+          : "Le tableau est desactive pour les utilisateurs.",
       })
     } catch (error) {
-      setIsTable6Enabled(previousValue)
+      setTabs(previousTabs)
       toast({
         title: "Erreur",
         description: error instanceof Error ? error.message : "Mise a jour impossible.",
         variant: "destructive",
       })
     } finally {
-      setIsSaving(false)
+      setSavingTabKey(null)
     }
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
-        <Checkbox
-          id="table6-toggle"
-          checked={isTable6Enabled}
-          disabled={isLoading || isSaving}
-          onCheckedChange={(checked) => updateSetting(Boolean(checked))}
-        />
-        <div className="space-y-1">
-          <Label htmlFor="table6-toggle" className="text-sm font-medium">
-            Activer le tableau 6 (ETAT TAP)
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Si desactive, le tableau 6 apparait en grise dans Nouvelle tableau et il est ignore dans les indicateurs et les rappels.
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-muted-foreground">
+        Activez ou desactivez chaque tableau individuellement. Les tableaux desactives apparaitront en grise dans la saisie et seront bloques a l'enregistrement.
       </div>
-      {(isLoading || isSaving) && (
-        <p className="text-xs text-muted-foreground">
-          {isLoading ? "Chargement..." : "Enregistrement..."}
-        </p>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {tabs.map((tab) => {
+          const checkboxId = `table-toggle-${tab.key}`
+          const isSaving = savingTabKey === tab.key
+          return (
+            <div key={tab.key} className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-3">
+              <Checkbox
+                id={checkboxId}
+                checked={tab.isEnabled}
+                disabled={isLoading || isSaving || !!savingTabKey}
+                onCheckedChange={(checked) => updateSetting(tab.key, Boolean(checked))}
+              />
+              <div className="space-y-1">
+                <Label htmlFor={checkboxId} className="text-sm font-medium">
+                  {tab.label}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {tab.isEnabled ? "Actif" : "Desactive"}
+                  {isSaving ? " • Enregistrement..." : ""}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {isLoading && (
+        <p className="text-xs text-muted-foreground">Chargement...</p>
+      )}
+
+      {!isLoading && tabs.length === 0 && (
+        <p className="text-xs text-muted-foreground">Aucun tableau configurable pour le moment.</p>
+      )}
+
+      {!!savingTabKey && (
+        <p className="text-xs text-muted-foreground">Enregistrement...</p>
       )}
     </div>
   )

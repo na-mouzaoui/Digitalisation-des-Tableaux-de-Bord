@@ -1,4 +1,4 @@
-import { getCachedtableauPolicy } from "./tableau-policy"
+import { getCachedtableauPolicy } from "./fiscal-policy"
 
 export const REGIONAL_tableau_TAB_KEYS = [
   "encaissement",
