@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CheckFillingAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddAdminTableuSettingsTable : Migration
+    public partial class AddAdmintableauSettingsTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AdminTableuSettings",
+                name: "AdmintableauSettings",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false),
@@ -21,11 +21,11 @@ namespace CheckFillingAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AdminTableuSettings", x => x.Id);
+                    table.PrimaryKey("PK_AdmintableauSettings", x => x.Id);
                 });
 
             migrationBuilder.InsertData(
-                table: "AdminTableuSettings",
+                table: "AdmintableauSettings",
                 columns: new[] { "Id", "IsTable6Enabled", "UpdatedAt" },
                 values: new object[] { 1, true, new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc) });
         }
@@ -34,7 +34,7 @@ namespace CheckFillingAPI.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AdminTableuSettings");
+                name: "AdmintableauSettings");
         }
     }
 }

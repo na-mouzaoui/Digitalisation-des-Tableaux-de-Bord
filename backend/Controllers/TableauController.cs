@@ -12,7 +12,7 @@ using System.Text.Json;
 namespace CheckFillingAPI.Controllers;
 
 [ApiController]
-[Route("api/tableu")]
+[Route("api/tableau")]
 [Authorize]
 public class TableauController : ControllerBase
 {
@@ -298,7 +298,7 @@ public class TableauController : ControllerBase
         return (false, null);
     }
 
-    // ─── GET api/tableu/policy ─────────────────────────────────────────────
+    // ─── GET api/tableau/policy ─────────────────────────────────────────────
     [HttpGet("policy")]
     public async Task<IActionResult> GetPolicy([FromQuery] string? direction)
     {
@@ -318,7 +318,7 @@ public class TableauController : ControllerBase
         });
     }
 
-    // ─── GET api/tableu ───────────────────────────────────────────────────────
+    // ─── GET api/tableau ───────────────────────────────────────────────────────
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? tabKey, [FromQuery] string? mois, [FromQuery] string? annee)
     {
@@ -369,7 +369,7 @@ public class TableauController : ControllerBase
         return Ok(tableaus);
     }
 
-    // ─── GET api/tableu/{id} ─────────────────────────────────────────────────
+    // ─── GET api/tableau/{id} ─────────────────────────────────────────────────
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -394,7 +394,7 @@ public class TableauController : ControllerBase
         });
     }
 
-    // ─── POST api/tableu ─────────────────────────────────────────────────────
+    // ─── POST api/tableau ─────────────────────────────────────────────────────
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] TableauRequest request)
     {
@@ -438,7 +438,7 @@ public class TableauController : ControllerBase
         _context.Tableaus.Add(decl);
         await _context.SaveChangesAsync();
 
-        await _auditService.LogAction(userId, "TABLEU_SAVE", "Tableau", decl.Id,
+        await _auditService.LogAction(userId, "tableau_SAVE", "Tableau", decl.Id,
             new { decl.TabKey, decl.Mois, decl.Annee, action = "create" });
 
         await NotifyTableauChangedAsync("create", decl, userId);
@@ -447,7 +447,7 @@ public class TableauController : ControllerBase
             new { decl.Id, decl.TabKey, decl.Mois, decl.Annee, decl.CreatedAt });
     }
 
-    // ─── PUT api/tableu/{id} ─────────────────────────────────────────────────
+    // ─── PUT api/tableau/{id} ─────────────────────────────────────────────────
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] TableauRequest request)
     {
@@ -492,7 +492,7 @@ public class TableauController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        await _auditService.LogAction(userId, "TABLEU_SAVE", "Tableau", decl.Id,
+        await _auditService.LogAction(userId, "tableau_SAVE", "Tableau", decl.Id,
             new { decl.TabKey, decl.Mois, decl.Annee, action = "update", modifiedByUserId = userId });
 
         await NotifyTableauChangedAsync("update", decl, userId);
@@ -500,7 +500,7 @@ public class TableauController : ControllerBase
         return NoContent();
     }
 
-    // ─── POST api/tableu/{id}/approve ───────────────────────────────────────
+    // ─── POST api/tableau/{id}/approve ───────────────────────────────────────
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> Approve(int id)
     {
@@ -576,7 +576,7 @@ public class TableauController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        await _auditService.LogAction(userId, "TABLEU_APPROVE", "Tableau", decl.Id,
+        await _auditService.LogAction(userId, "tableau_APPROVE", "Tableau", decl.Id,
             new { decl.TabKey, decl.Mois, decl.Annee, decl.UserId, approverRegion, approverRole = currentUserRole });
 
         await NotifyTableauChangedAsync("approve", decl, userId);
@@ -591,7 +591,7 @@ public class TableauController : ControllerBase
         });
     }
 
-    // ─── DELETE api/tableu/{id} ──────────────────────────────────────────────
+    // ─── DELETE api/tableau/{id} ──────────────────────────────────────────────
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -612,14 +612,14 @@ public class TableauController : ControllerBase
         _context.Tableaus.Remove(decl);
         await _context.SaveChangesAsync();
 
-        await _auditService.LogAction(userId, "TABLEU_DELETE", "Tableau", id, info);
+        await _auditService.LogAction(userId, "tableau_DELETE", "Tableau", id, info);
 
         await NotifyTableauChangedAsync("delete", decl, userId);
 
         return NoContent();
     }
 
-    // ─── POST api/tableu/{id}/print ──────────────────────────────────────────
+    // ─── POST api/tableau/{id}/print ──────────────────────────────────────────
     [HttpPost("{id}/print")]
     public async Task<IActionResult> LogPrint(int id)
     {
@@ -633,7 +633,7 @@ public class TableauController : ControllerBase
         if (!await CanUserAccessTableauAsync(userId, decl))
             return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez imprimer que les tableaux de votre groupe." });
 
-        await _auditService.LogAction(userId, "TABLEU_PRINT", "Tableau", id,
+        await _auditService.LogAction(userId, "tableau_PRINT", "Tableau", id,
             new { decl.TabKey, decl.Mois, decl.Annee });
 
         return Ok(new { message = "Impression enregistrée dans l'audit." });

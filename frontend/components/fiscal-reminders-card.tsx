@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { ReminderData } from "@/lib/tableu-reminders"
+import { ReminderData } from "@/lib/tableau-reminders"
 
 const normalizeDirectionKey = (value: string) => {
   const normalized = (value ?? "").trim().toLowerCase()
@@ -120,7 +120,7 @@ export function RemindersCard({
 
   const remindersForDisplay = useMemo(() => {
     // Utiliser directement les rappels du backend sans recalcul local
-    // Le backend calcule correctement la pÃ©riode tableue et le deadline
+    // Le backend calcule correctement la pÃ©riode tableaue et le deadline
 
     if (isAdmin && selectedDirection === "all") {
       if (availableDirectionOptions.length === 0) {
@@ -256,13 +256,13 @@ export function RemindersCard({
       {hasActiveReminder ? (
         <div className="rounded-md bg-red-700 px-3 py-2">
           <p className="text-sm font-semibold text-yellow-300 whitespace-nowrap overflow-hidden text-ellipsis">
-            Rappel: delai proche. Verifiez et completez vos tableus tableues en attente ({lastDeadlineLabel})
+            Rappel: delai proche. Verifiez et completez vos tableaus tableaues en attente ({lastDeadlineLabel})
           </p>
         </div>
       ) : (
         <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2">
           <p className="text-sm font-medium text-green-800">
-            Les tableus de la direction sont a jour. Dernier delai: {lastDeadlineLabel}.
+            Les tableaus de la direction sont a jour. Dernier delai: {lastDeadlineLabel}.
           </p>
         </div>
       )}

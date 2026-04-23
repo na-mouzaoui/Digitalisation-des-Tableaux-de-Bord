@@ -17,13 +17,13 @@ import { logout } from "@/lib/auth-client"
 import type { User } from "@/lib/db"
 import UserProfileMenu from "./user-profile-menu"
 
-const tableuLinks = [
-  { name: "Commercial", href: "/tableu/commercial" },
-  { name: "Réseaux technique (DVDRS)", href: "/tableu/DVDRS" },
-  { name: "Qualité réseau (DQRPC)", href: "/tableu/DQRPC" },
-  { name: "Support", href: "/tableu/Support" },
-  { name: "Finances", href: "/tableu/finances" },
-  { name: "Direction régionale", href: "/tableu/regionale" },
+const tableauLinks = [
+  { name: "Commercial", href: "/tableau/commercial" },
+  { name: "Réseaux technique (DVDRS)", href: "/tableau/DVDRS" },
+  { name: "Qualité réseau (DQRPC)", href: "/tableau/DQRPC" },
+  { name: "Support", href: "/tableau/Support" },
+  { name: "Finances", href: "/tableau/finances" },
+  { name: "Direction régionale", href: "/tableau/regionale" },
 ]
 
 interface SidebarProps {
@@ -34,14 +34,14 @@ export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
-  const modules = (user.accessModules || "tableu")
+  const modules = (user.accessModules || "tableau")
     .split(",")
     .map((m: string) => m.trim())
 
-  const hasTableu = modules.includes("tableu")
+  const hastableau = modules.includes("tableau")
 
-  const [openTableu, setOpenTableu] = useState(
-    pathname.startsWith("/tableu")
+  const [opentableau, setOpentableau] = useState(
+    pathname.startsWith("/tableau")
   )
 
   const handleLogout = async () => {
@@ -96,7 +96,7 @@ export function Sidebar({ user }: SidebarProps) {
       {/* NAV */}
       <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
         
-        {hasTableu && (
+        {hastableau && (
           <>
             {/* Dashboard */}
             {renderNavLink("Dashboard", "/dashbord", LayoutDashboard)}
@@ -105,9 +105,9 @@ export function Sidebar({ user }: SidebarProps) {
             <div className="mt-2">
               <div className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">
                 
-                {/* Lien vers /tableu */}
+                {/* Lien vers /tableau */}
                 <Link
-                  href="/tableu"
+                  href="/tableau"
                   className="flex items-center gap-2 flex-1"
                 >
                   <FilePlus className="h-5 w-5 text-red-500" />
@@ -117,10 +117,10 @@ export function Sidebar({ user }: SidebarProps) {
                 {/* Toggle accordion */}
                 <button
                   type="button"
-                  onClick={() => setOpenTableu(!openTableu)}
+                  onClick={() => setOpentableau(!opentableau)}
                   className="ml-2"
                 >
-                  {openTableu ? (
+                  {opentableau ? (
                     <ChevronDown className="h-4 w-4 text-gray-400" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-gray-400" />
@@ -128,9 +128,9 @@ export function Sidebar({ user }: SidebarProps) {
                 </button>
               </div>
 
-              {openTableu && (
+              {opentableau && (
                 <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100 pl-2">
-                  {tableuLinks.map((item) =>
+                  {tableauLinks.map((item) =>
                     renderNavLink(item.name, item.href)
                   )}
                 </div>

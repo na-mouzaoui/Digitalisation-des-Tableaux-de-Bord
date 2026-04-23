@@ -12,7 +12,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!isLoading && user) {
       const role = (user as { role?: string }).role
-      router.replace(role === "admin" ? "/admin" : "/tableu_dashbord")
+      router.replace(role === "admin" ? "/admin" : "/tableau_dashbord")
     }
   }, [user, isLoading, router])
 

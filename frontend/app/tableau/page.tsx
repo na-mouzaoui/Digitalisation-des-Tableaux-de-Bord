@@ -23,18 +23,18 @@ const PRIMARY_COLOR = "#2db34b"
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. STUBS POLITIQUE FISCALE
 // ─────────────────────────────────────────────────────────────────────────────
-const getCurrentTableuPeriod = (now: Date = new Date()) => ({
+const getCurrenttableauPeriod = (now: Date = new Date()) => ({
   mois: String(now.getMonth() + 1).padStart(2, "0"),
   annee: String(now.getFullYear()),
 })
-const getTableuPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
-const isTableuPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
-const syncTableuPolicy = async (_direction?: string | null) => null
-const isAdminTableuRole = (_role?: string | null) => false
-const isRegionalTableuRole = (_role?: string | null) => false
-const isFinanceTableuRole = (_role?: string | null) => false
-const getManageableTableuTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
-const isTableuTabDisabledByPolicy = (_tabKey?: string) => false
+const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
+const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
+const synctableauPolicy = async (_direction?: string | null) => null
+const isAdmintableauRole = (_role?: string | null) => false
+const isRegionaltableauRole = (_role?: string | null) => false
+const isFinancetableauRole = (_role?: string | null) => false
+const getManageabletableauTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
+const istableauTabDisabledByPolicy = (_tabKey?: string) => false
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 //    │  a) Déclarez son type ici                                            │
 //    │  b) Créez ses constantes DEFAULT_* et LABELS_* juste en dessous     │
 //    │  c) Créez son composant Tab* (section 6)                             │
-//    │  d) Ajoutez son état dans SavedTableu (section 8a)                   │
+//    │  d) Ajoutez son état dans Savedtableau (section 8a)                   │
 //    │  e) Ajoutez son normalize* (section 8b)                              │
 //    │  f) Ajoutez son état useState (section 10d)                          │
 //    │  g) Incluez-le dans handleSave (section 10n)                         │
@@ -1387,7 +1387,7 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. CONFIGURATION DES ONGLETS
-//    Pour ajouter un onglet : ajoutez une entrée ici ET dans TableuTabKey
+//    Pour ajouter un onglet : ajoutez une entrée ici ET dans tableauTabKey
 // ─────────────────────────────────────────────────────────────────────────────
 const TABS = [
   { key: "reclamation",                    label: "Reclamation",                           color: PRIMARY_COLOR, title: "TABLEAU RECLAMATION" },
@@ -1422,9 +1422,9 @@ const TABS = [
   { key: "chiffre_affaires_mda",           label: "Chiffre d'Affaires (MDA)",              color: PRIMARY_COLOR, title: "CHIFFRE D'AFFAIRES (MDA)" },
 ]
 
-const CUSTOM_TABLEU_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
+const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
-type TableuTabKey =
+type tableauTabKey =
   | "reclamation" | "reclamation_gp" | "e_payement_pop" | "e_payement_prp"
   | "total_encaissement" | "recouvrement" | "realisation_technique_reseau"
   | "situation_reseau" | "trafic_data" | "amelioration_qualite" | "couverture_reseau"
@@ -1435,12 +1435,12 @@ type TableuTabKey =
   | "parc_abonnes_gp" | "total_parc_abonnes" | "total_parc_abonnes_technologie"
   | "activation" | "chiffre_affaires_mda"
 
-type TableuCategoryKey =
+type tableauCategoryKey =
   | "all" | "reclamation" | "e_payment" | "encaissement" | "recouvrement"
   | "reseau_technique" | "qualite_reseau" | "creances_contentieuses" | "rh"
   | "formation" | "cr" | "parc_abonnes" | "activation_desactivation_sim" | "chiffre_affaires"
 
-const TABLEU_CATEGORY_OPTIONS: Array<{ key: TableuCategoryKey; label: string; tabKeys: TableuTabKey[] }> = [
+const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
   { key: "all",           label: "Toutes les categories",          tabKeys: [] },
   { key: "reclamation",   label: "Reclamation",                    tabKeys: ["reclamation", "reclamation_gp"] },
   { key: "e_payment",     label: "E-payment",                      tabKeys: ["e_payement_pop", "e_payement_prp"] },
@@ -1457,10 +1457,10 @@ const TABLEU_CATEGORY_OPTIONS: Array<{ key: TableuCategoryKey; label: string; ta
   { key: "chiffre_affaires", label: "Chiffre d'affaires",          tabKeys: ["chiffre_affaires_mda"] },
 ]
 
-const findTableuCategoryKeyForTab = (tabKey: string): TableuCategoryKey =>
-  TABLEU_CATEGORY_OPTIONS.find((c) => c.key !== "all" && c.tabKeys.includes(tabKey as TableuTabKey))?.key ?? "all"
+const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
+  tableau_CATEGORY_OPTIONS.find((c) => c.key !== "all" && c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "all"
 
-const isTableuTabKey = (value: string): value is TableuTabKey =>
+const istableauTabKey = (value: string): value is tableauTabKey =>
   TABS.some((tab) => tab.key === value)
 
 const MONTHS = [
@@ -1472,7 +1472,7 @@ const MONTHS = [
   { value: "11", label: "Novembre" }, { value: "12", label: "Decembre" },
 ]
 const CURRENT_YEAR = new Date().getFullYear()
-const INITIAL_TABLEU_PERIOD = getCurrentTableuPeriod()
+const INITIAL_tableau_PERIOD = getCurrenttableauPeriod()
 const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
 
 
@@ -1482,7 +1482,7 @@ const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
 
 // ── 8a. Type de la déclaration sauvegardée (localStorage + API) ──────────────
 //    Ajoutez un champ *Rows pour chaque nouveau tableau
-interface SavedTableu {
+interface Savedtableau {
   id: string
   createdAt: string
   direction: string
@@ -1522,7 +1522,7 @@ interface SavedTableu {
 }
 
 // ── 8b. Type retourné par l'API (générique, ne change pas) ───────────────────
-type ApiTableuTableu = {
+type Apitableautableau = {
   id: number
   tabKey: string
   mois: string
@@ -1716,7 +1716,7 @@ const normalizeMttrRows = (rows?: MttrRegionRow[]): MttrRegionRow[] => {
   })
 }
 
-const resolveDeclarationTabKey = (decl: SavedTableu): TableuTabKey => {
+const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
   if ((decl.reclamationRows?.length ?? 0) > 0) return "reclamation"
   if ((decl.reclamationGpRows?.length ?? 0) > 0) return "reclamation_gp"
   if ((decl.ePayementPopRows?.length ?? 0) > 0) return "e_payement_pop"
@@ -1802,16 +1802,16 @@ export default function NouvelleDeclarationPage() {
 
   // Global meta
   const [activeTab, setActiveTab] = useState("reclamation")
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<TableuCategoryKey>("all")
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("all")
   const [direction, setDirection] = useState("")
-  const [mois, setMois] = useState(INITIAL_TABLEU_PERIOD.mois)
-  const [annee, setAnnee] = useState(INITIAL_TABLEU_PERIOD.annee)
+  const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
+  const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [editingDeclarationId, setEditingDeclarationId] = useState<string | null>(null)
   const [editingCreatedAt, setEditingCreatedAt] = useState("")
   const [editingSourceMois, setEditingSourceMois] = useState("")
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
-  const [tableuPolicyRevision, settableuPolicyRevision] = useState(0)
+  const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
 
   // Tab data (lifted) - TABLEAUX CONSERVES (30)
   const [reclamationRows, setReclamationRows] = useState<ReclamationRow[]>(DEFAULT_RECLAMATION_ROWS.map((row) => ({ ...row })))
@@ -1844,27 +1844,27 @@ export default function NouvelleDeclarationPage() {
   const [totalParcAbonnesTechnologieRows, setTotalParcAbonnesTechnologieRows] = useState<TotalParcAbonnesTechnologieRow[]>(DEFAULT_TOTAL_PARC_ABONNES_TECHNOLOGIE_ROWS.map((row) => ({ ...row })))
   const [activationRows, setActivationRows] = useState<ActivationRow[]>(DEFAULT_ACTIVATION_ROWS.map((row) => ({ ...row })))
   const [chiffreAffairesMdaRows, setChiffreAffairesMdaRows] = useState<ChiffreAffairesMdaRow[]>(DEFAULT_CHIFFRE_AFFAIRES_MDA_ROWS.map((row) => ({ ...row })))
-  const [TableuDeclarations, setTableuDeclarations] = useState<ApiTableuTableu[]>([])
+  const [tableauDeclarations, settableauDeclarations] = useState<Apitableautableau[]>([])
 
   const userRole = user?.role ?? ""
-  const isAdminRole = isAdminTableuRole(userRole)
-  const isRegionalRole = isRegionalTableuRole(userRole)
-  const isFinanceRole = isFinanceTableuRole(userRole)
+  const isAdminRole = isAdmintableauRole(userRole)
+  const isRegionalRole = isRegionaltableauRole(userRole)
+  const isFinanceRole = isFinancetableauRole(userRole)
   const adminSelectedDirection = safeString(direction).trim()
   
   const manageableTabKeys = useMemo(
-    () => new Set(getManageableTableuTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),
-    [adminSelectedDirection, tableuPolicyRevision, isAdminRole, userRole],
+    () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),
+    [adminSelectedDirection, tableauPolicyRevision, isAdminRole, userRole],
   )
   
   const availableTabs = useMemo(
-    () => TABS.filter((tab) => manageableTabKeys.has(tab.key) || CUSTOM_TABLEU_TAB_KEYS.has(tab.key)),
+    () => TABS.filter((tab) => manageableTabKeys.has(tab.key) || CUSTOM_tableau_TAB_KEYS.has(tab.key)),
     [manageableTabKeys],
   )
   
   const disabledTabKeys = useMemo(
-    () => new Set(availableTabs.filter((tab) => isTableuTabDisabledByPolicy(tab.key)).map((tab) => tab.key)),
-    [availableTabs, tableuPolicyRevision],
+    () => new Set(availableTabs.filter((tab) => istableauTabDisabledByPolicy(tab.key)).map((tab) => tab.key)),
+    [availableTabs, tableauPolicyRevision],
   )
   
   const selectableTabs = useMemo(
@@ -1873,13 +1873,13 @@ export default function NouvelleDeclarationPage() {
   )
   
   const declarationTabs = useMemo(
-    () => selectableTabs.filter((tab) => CUSTOM_TABLEU_TAB_KEYS.has(tab.key)),
+    () => selectableTabs.filter((tab) => CUSTOM_tableau_TAB_KEYS.has(tab.key)),
     [selectableTabs],
   )
   
   const declarationCategoryOptions = useMemo(() => {
     const availableKeys = new Set(declarationTabs.map((tab) => tab.key))
-    return TABLEU_CATEGORY_OPTIONS.filter(
+    return tableau_CATEGORY_OPTIONS.filter(
       (category) => category.key === "all" || category.tabKeys.some((tabKey) => availableKeys.has(tabKey)),
     )
   }, [declarationTabs])
@@ -1889,17 +1889,17 @@ export default function NouvelleDeclarationPage() {
     const selectedCategory = declarationCategoryOptions.find((category) => category.key === selectedCategoryKey)
     if (!selectedCategory) return declarationTabs
     const categoryTabKeys = new Set(selectedCategory.tabKeys)
-    return declarationTabs.filter((tab) => categoryTabKeys.has(tab.key as TableuTabKey))
+    return declarationTabs.filter((tab) => categoryTabKeys.has(tab.key as tableauTabKey))
   }, [declarationCategoryOptions, declarationTabs, selectedCategoryKey])
   
   const selectableYears = useMemo(
-    () => YEARS.filter((year) => MONTHS.some((month) => !isTableuPeriodLocked(month.value, year, userRole))),
-    [tableuPolicyRevision, userRole],
+    () => YEARS.filter((year) => MONTHS.some((month) => !istableauPeriodLocked(month.value, year, userRole))),
+    [tableauPolicyRevision, userRole],
   )
   
   const selectableMonths = useMemo(
-    () => MONTHS.filter((month) => !isTableuPeriodLocked(month.value, annee, userRole)),
-    [annee, tableuPolicyRevision, userRole],
+    () => MONTHS.filter((month) => !istableauPeriodLocked(month.value, annee, userRole)),
+    [annee, tableauPolicyRevision, userRole],
   )
   
   const hasFiscalTabAccess = declarationTabs.length > 0
@@ -1927,9 +1927,9 @@ export default function NouvelleDeclarationPage() {
     let cancelled = false
     const requestedDirection = isAdminRole ? adminSelectedDirection : undefined
     const syncPolicy = async () => {
-      await syncTableuPolicy(requestedDirection)
+      await synctableauPolicy(requestedDirection)
       if (!cancelled) {
-        settableuPolicyRevision((prev) => prev + 1)
+        settableauPolicyRevision((prev) => prev + 1)
       }
     }
     syncPolicy()
@@ -1938,10 +1938,10 @@ export default function NouvelleDeclarationPage() {
 
   const canManageTabForDirection = useCallback(
     (tabKey: string, directionValue: string) => {
-      if (CUSTOM_TABLEU_TAB_KEYS.has(tabKey)) return true
-      return getManageableTableuTabKeysForDirection(userRole, isAdminRole ? directionValue : undefined).includes(tabKey)
+      if (CUSTOM_tableau_TAB_KEYS.has(tabKey)) return true
+      return getManageabletableauTabKeysForDirection(userRole, isAdminRole ? directionValue : undefined).includes(tabKey)
     },
-    [tableuPolicyRevision, isAdminRole, userRole],
+    [tableauPolicyRevision, isAdminRole, userRole],
   )
 
   useEffect(() => {
@@ -1976,7 +1976,7 @@ export default function NouvelleDeclarationPage() {
 
   useEffect(() => {
     if (!user || status !== "authenticated") {
-      setTableuDeclarations([])
+      settableauDeclarations([])
       return
     }
     let cancelled = false
@@ -1990,7 +1990,7 @@ export default function NouvelleDeclarationPage() {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         })
         if (!response.ok) {
-          if (!cancelled) setTableuDeclarations([])
+          if (!cancelled) settableauDeclarations([])
           return
         }
         const payload = await response.json().catch(() => null)
@@ -2004,9 +2004,9 @@ export default function NouvelleDeclarationPage() {
               dataJson: String((item as { dataJson?: unknown }).dataJson ?? "{}"),
             }))
           : []
-        if (!cancelled) setTableuDeclarations(declarations)
+        if (!cancelled) settableauDeclarations(declarations)
       } catch {
-        if (!cancelled) setTableuDeclarations([])
+        if (!cancelled) settableauDeclarations([])
       }
     }
     loadDeclarations()
@@ -2024,7 +2024,7 @@ export default function NouvelleDeclarationPage() {
     }
     try {
       const parsed = JSON.parse(localStorage.getItem("fiscal_declarations") ?? "[]")
-      const declarations = Array.isArray(parsed) ? (parsed as SavedTableu[]) : []
+      const declarations = Array.isArray(parsed) ? (parsed as Savedtableau[]) : []
       const declaration = declarations.find((item) => safeString(item.id) === editQuery.editId)
       if (!declaration) {
         toast({
@@ -2034,7 +2034,7 @@ export default function NouvelleDeclarationPage() {
         })
         return
       }
-      const requestedTab = isTableuTabKey(editQuery.tab) ? editQuery.tab : resolveDeclarationTabKey(declaration)
+      const requestedTab = istableauTabKey(editQuery.tab) ? editQuery.tab : resolveDeclarationTabKey(declaration)
       const loadedDirection = safeString(declaration.direction).trim()
       const scopedDirection = isAdminRole ? loadedDirection : resolveDirectionForRole(loadedDirection)
       if (!isAdminRole && !canManageTabForDirection(requestedTab, scopedDirection)) {
@@ -2144,20 +2144,20 @@ export default function NouvelleDeclarationPage() {
       return
     }
 
-    const isSourcePeriodLocked = !!editingDeclarationId && !!editingSourceMois && !!editingSourceAnnee && isTableuPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
+    const isSourcePeriodLocked = !!editingDeclarationId && !!editingSourceMois && !!editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
     if (isSourcePeriodLocked) {
       toast({
         title: "Periode cloturee",
-        description: `${getTableuPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`,
+        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`,
         variant: "destructive",
       })
       return
     }
 
-    if (isTableuPeriodLocked(mois, annee, userRole)) {
+    if (istableauPeriodLocked(mois, annee, userRole)) {
       toast({
         title: "Periode cloturee",
-        description: `${getTableuPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`,
+        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`,
         variant: "destructive",
       })
       return
@@ -2349,10 +2349,10 @@ export default function NouvelleDeclarationPage() {
     }
     if (validationError) return
 
-    let existingDeclarations: SavedTableu[] = []
+    let existingDeclarations: Savedtableau[] = []
     try {
       const parsed = JSON.parse(localStorage.getItem("fiscal_declarations") ?? "[]")
-      existingDeclarations = Array.isArray(parsed) ? (parsed as SavedTableu[]) : []
+      existingDeclarations = Array.isArray(parsed) ? (parsed as Savedtableau[]) : []
     } catch {
       existingDeclarations = []
     }
@@ -2363,7 +2363,7 @@ export default function NouvelleDeclarationPage() {
     const declarationId = editingDeclarationId ?? Date.now().toString()
     const declarationCreatedAt = editingCreatedAt || new Date().toISOString()
     
-    const baseDecl: SavedTableu = {
+    const baseDecl: Savedtableau = {
       id: declarationId,
       createdAt: declarationCreatedAt,
       direction: saveDirection,
@@ -2596,11 +2596,11 @@ export default function NouvelleDeclarationPage() {
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
   const mon = MONTHS.find((m) => m.value === mois)?.label ?? mois
   const currentPeriodLockMessage = (() => {
-    if (editingDeclarationId && editingSourceMois && editingSourceAnnee && isTableuPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)) {
-      return `${getTableuPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`
+    if (editingDeclarationId && editingSourceMois && editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)) {
+      return `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`
     }
-    if (isTableuPeriodLocked(mois, annee, userRole)) {
-      return `${getTableuPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`
+    if (istableauPeriodLocked(mois, annee, userRole)) {
+      return `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`
     }
     return ""
   })()
@@ -2661,7 +2661,7 @@ export default function NouvelleDeclarationPage() {
                   </div>
                   <div className="space-y-1 flex-1 min-w-[220px]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
-                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as TableuCategoryKey)}>
+                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)}>
                       <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder="Selectionner une categorie" />
                       </SelectTrigger>
@@ -2677,7 +2677,7 @@ export default function NouvelleDeclarationPage() {
                     <Select value={activeTab} onValueChange={(value) => {
                       if (disabledTabKeys.has(value)) return
                       setActiveTab(value)
-                      setSelectedCategoryKey(findTableuCategoryKeyForTab(value))
+                      setSelectedCategoryKey(findtableauCategoryKeyForTab(value))
                     }}>
                       <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder="Selectionner un tableau" />

@@ -211,7 +211,7 @@ using (var scope = app.Services.CreateScope())
     // Apply pending migrations or create database if missing
     db.Database.Migrate();
 
-    // Safety net: if migration history is out of sync, ensure tableu settings table exists.
+    // Safety net: if migration history is out of sync, ensure tableau settings table exists.
    db.Database.ExecuteSqlRaw(@"
 IF OBJECT_ID(N'[dbo].[Tableau]', N'U') IS NULL
 BEGIN

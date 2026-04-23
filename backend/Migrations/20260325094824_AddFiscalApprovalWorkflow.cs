@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CheckFillingAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddTableuApprovalWorkflow : Migration
+    public partial class AddtableauApprovalWorkflow : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -20,41 +20,27 @@ END
 ");
 
             migrationBuilder.Sql(@"
-IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-   AND COL_LENGTH(N'[dbo].[Tableu]', N'ApprovedAt') IS NULL
+IF OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[tableau]', N'ApprovedAt') IS NULL
 BEGIN
-    ALTER TABLE [dbo].[Tableu] ADD [ApprovedAt] datetime2 NULL;
+    ALTER TABLE [dbo].[tableau] ADD [ApprovedAt] datetime2 NULL;
 END
 ");
 
             migrationBuilder.Sql(@"
-IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-   AND COL_LENGTH(N'[dbo].[Tableu]', N'ApprovedByUserId') IS NULL
+IF OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[tableau]', N'ApprovedByUserId') IS NULL
 BEGIN
-    ALTER TABLE [dbo].[Tableu] ADD [ApprovedByUserId] int NULL;
+    ALTER TABLE [dbo].[tableau] ADD [ApprovedByUserId] int NULL;
 END
 ");
 
             migrationBuilder.Sql(@"
-IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-   AND COL_LENGTH(N'[dbo].[Tableu]', N'IsApproved') IS NULL
+IF OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[tableau]', N'IsApproved') IS NULL
 BEGIN
-    ALTER TABLE [dbo].[Tableu]
-    ADD [IsApproved] bit NOT NULL CONSTRAINT [DF_Tableu_IsApproved] DEFAULT CAST(0 AS bit);
-END
-");
-
-            migrationBuilder.Sql(@"
-IF NOT EXISTS (
-    SELECT 1
-    FROM sys.indexes
-    WHERE [name] = N'IX_Tableu_ApprovedByUserId'
-      AND [object_id] = OBJECT_ID(N'[dbo].[Tableu]')
-)
-AND OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-AND COL_LENGTH(N'[dbo].[Tableu]', N'ApprovedByUserId') IS NOT NULL
-BEGIN
-    CREATE INDEX [IX_Tableu_ApprovedByUserId] ON [dbo].[Tableu] ([ApprovedByUserId]);
+    ALTER TABLE [dbo].[tableau]
+    ADD [IsApproved] bit NOT NULL CONSTRAINT [DF_tableau_IsApproved] DEFAULT CAST(0 AS bit);
 END
 ");
 
@@ -62,13 +48,27 @@ END
 IF NOT EXISTS (
     SELECT 1
     FROM sys.indexes
-    WHERE [name] = N'IX_Tableu_IsApproved'
-      AND [object_id] = OBJECT_ID(N'[dbo].[Tableu]')
+    WHERE [name] = N'IX_tableau_ApprovedByUserId'
+      AND [object_id] = OBJECT_ID(N'[dbo].[tableau]')
 )
-AND OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-AND COL_LENGTH(N'[dbo].[Tableu]', N'IsApproved') IS NOT NULL
+AND OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[dbo].[tableau]', N'ApprovedByUserId') IS NOT NULL
 BEGIN
-    CREATE INDEX [IX_Tableu_IsApproved] ON [dbo].[Tableu] ([IsApproved]);
+    CREATE INDEX [IX_tableau_ApprovedByUserId] ON [dbo].[tableau] ([ApprovedByUserId]);
+END
+");
+
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE [name] = N'IX_tableau_IsApproved'
+      AND [object_id] = OBJECT_ID(N'[dbo].[tableau]')
+)
+AND OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
+AND COL_LENGTH(N'[dbo].[tableau]', N'IsApproved') IS NOT NULL
+BEGIN
+    CREATE INDEX [IX_tableau_IsApproved] ON [dbo].[tableau] ([IsApproved]);
 END
 ");
 
@@ -76,14 +76,14 @@ END
 IF NOT EXISTS (
     SELECT 1
     FROM sys.foreign_keys
-    WHERE [name] = N'FK_Tableu_Users_ApprovedByUserId'
+    WHERE [name] = N'FK_tableau_Users_ApprovedByUserId'
 )
-AND OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
+AND OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
 AND OBJECT_ID(N'[dbo].[Users]', N'U') IS NOT NULL
-AND COL_LENGTH(N'[dbo].[Tableu]', N'ApprovedByUserId') IS NOT NULL
+AND COL_LENGTH(N'[dbo].[tableau]', N'ApprovedByUserId') IS NOT NULL
 BEGIN
-    ALTER TABLE [dbo].[Tableu] WITH CHECK
-    ADD CONSTRAINT [FK_Tableu_Users_ApprovedByUserId]
+    ALTER TABLE [dbo].[tableau] WITH CHECK
+    ADD CONSTRAINT [FK_tableau_Users_ApprovedByUserId]
         FOREIGN KEY([ApprovedByUserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE NO ACTION;
 END
 ");
@@ -96,10 +96,10 @@ END
 IF EXISTS (
     SELECT 1
     FROM sys.foreign_keys
-    WHERE [name] = N'FK_Tableu_Users_ApprovedByUserId'
+    WHERE [name] = N'FK_tableau_Users_ApprovedByUserId'
 )
 BEGIN
-    ALTER TABLE [dbo].[Tableu] DROP CONSTRAINT [FK_Tableu_Users_ApprovedByUserId];
+    ALTER TABLE [dbo].[tableau] DROP CONSTRAINT [FK_tableau_Users_ApprovedByUserId];
 END
 ");
 
@@ -107,11 +107,11 @@ END
 IF EXISTS (
     SELECT 1
     FROM sys.indexes
-    WHERE [name] = N'IX_Tableu_ApprovedByUserId'
-      AND [object_id] = OBJECT_ID(N'[dbo].[Tableu]')
+    WHERE [name] = N'IX_tableau_ApprovedByUserId'
+      AND [object_id] = OBJECT_ID(N'[dbo].[tableau]')
 )
 BEGIN
-    DROP INDEX [IX_Tableu_ApprovedByUserId] ON [dbo].[Tableu];
+    DROP INDEX [IX_tableau_ApprovedByUserId] ON [dbo].[tableau];
 END
 ");
 
@@ -119,11 +119,11 @@ END
 IF EXISTS (
     SELECT 1
     FROM sys.indexes
-    WHERE [name] = N'IX_Tableu_IsApproved'
-      AND [object_id] = OBJECT_ID(N'[dbo].[Tableu]')
+    WHERE [name] = N'IX_tableau_IsApproved'
+      AND [object_id] = OBJECT_ID(N'[dbo].[tableau]')
 )
 BEGIN
-    DROP INDEX [IX_Tableu_IsApproved] ON [dbo].[Tableu];
+    DROP INDEX [IX_tableau_IsApproved] ON [dbo].[tableau];
 END
 ");
 
@@ -147,38 +147,38 @@ END
 ");
 
             migrationBuilder.Sql(@"
-IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-   AND COL_LENGTH(N'[dbo].[Tableu]', N'ApprovedAt') IS NOT NULL
+IF OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[tableau]', N'ApprovedAt') IS NOT NULL
 BEGIN
-    ALTER TABLE [dbo].[Tableu] DROP COLUMN [ApprovedAt];
+    ALTER TABLE [dbo].[tableau] DROP COLUMN [ApprovedAt];
 END
 ");
 
             migrationBuilder.Sql(@"
-IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-   AND COL_LENGTH(N'[dbo].[Tableu]', N'ApprovedByUserId') IS NOT NULL
+IF OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'[dbo].[tableau]', N'ApprovedByUserId') IS NOT NULL
 BEGIN
-    ALTER TABLE [dbo].[Tableu] DROP COLUMN [ApprovedByUserId];
+    ALTER TABLE [dbo].[tableau] DROP COLUMN [ApprovedByUserId];
 END
 ");
 
             migrationBuilder.Sql(@"
-IF OBJECT_ID(N'[dbo].[Tableu]', N'U') IS NOT NULL
-    AND COL_LENGTH(N'[dbo].[Tableu]', N'IsApproved') IS NOT NULL
+IF OBJECT_ID(N'[dbo].[tableau]', N'U') IS NOT NULL
+    AND COL_LENGTH(N'[dbo].[tableau]', N'IsApproved') IS NOT NULL
 BEGIN
-    DECLARE @dfTableuIsApproved nvarchar(128);
+    DECLARE @dftableauIsApproved nvarchar(128);
 
-    SELECT @dfTableuIsApproved = dc.[name]
+    SELECT @dftableauIsApproved = dc.[name]
     FROM sys.default_constraints dc
     INNER JOIN sys.columns c
         ON c.default_object_id = dc.object_id
-    WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[Tableu]')
+    WHERE dc.parent_object_id = OBJECT_ID(N'[dbo].[tableau]')
       AND c.[name] = N'IsApproved';
 
-    IF @dfTableuIsApproved IS NOT NULL
-        EXEC(N'ALTER TABLE [dbo].[Tableu] DROP CONSTRAINT [' + @dfTableuIsApproved + N']');
+    IF @dftableauIsApproved IS NOT NULL
+        EXEC(N'ALTER TABLE [dbo].[tableau] DROP CONSTRAINT [' + @dftableauIsApproved + N']');
 
-    ALTER TABLE [dbo].[Tableu] DROP COLUMN [IsApproved];
+    ALTER TABLE [dbo].[tableau] DROP COLUMN [IsApproved];
 END
 ");
         }

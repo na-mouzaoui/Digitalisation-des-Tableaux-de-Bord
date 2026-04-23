@@ -17,18 +17,18 @@ import { API_BASE } from "@/lib/config"
 const PRIMARY_COLOR = "#2db34b"
 
 
-const getCurrentTableuPeriod = (now: Date = new Date()) => ({
+const getCurrenttableauPeriod = (now: Date = new Date()) => ({
   mois: String(now.getMonth() + 1).padStart(2, "0"),
   annee: String(now.getFullYear()),
 })
-const getTableuPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `PÃ©riode ${mois}/${annee}.`
-const isTableuPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
-const syncTableuPolicy = async (_direction?: string | null) => null
-const isAdminTableuRole = (_role?: string | null) => false
-const isRegionalTableuRole = (_role?: string | null) => false
-const isFinanceTableuRole = (_role?: string | null) => false
-const getManageableTableuTabKeysForDirection = () => ["encaissement"]
-const isTableuTabDisabledByPolicy = (_tabKey?: string) => false
+const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `PÃ©riode ${mois}/${annee}.`
+const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
+const synctableauPolicy = async (_direction?: string | null) => null
+const isAdmintableauRole = (_role?: string | null) => false
+const isRegionaltableauRole = (_role?: string | null) => false
+const isFinancetableauRole = (_role?: string | null) => false
+const getManageabletableauTabKeysForDirection = () => ["encaissement"]
+const istableauTabDisabledByPolicy = (_tabKey?: string) => false
 
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -360,7 +360,7 @@ const TABS = [
   // { key: "recouvrement", label: "Recouvrement", color: "#e67e22", title: "RECOUVREMENT" },
 ]
 
-type TableuTabKey = "encaissement"| "parc" // â† ajoutez vos nouvelles clÃ©s ici avec | "recouvrement"
+type tableauTabKey = "encaissement"| "parc" // â† ajoutez vos nouvelles clÃ©s ici avec | "recouvrement"
 
 const MONTHS = [
   { value: "01", label: "Janvier" },   { value: "02", label: "Fevrier" },
@@ -372,7 +372,7 @@ const MONTHS = [
 ]
 
 const CURRENT_YEAR = new Date().getFullYear()
-const INITIAL_TABLEU_PERIOD = getCurrentTableuPeriod()
+const INITIAL_tableau_PERIOD = getCurrenttableauPeriod()
 const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
 
 
@@ -380,10 +380,10 @@ const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
 // 8. TYPES & HELPERS D'API / STOCKAGE
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// â”€â”€ 8a. Type du tableu sauvegardÃ© en localStorage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€ 8a. Type du tableau sauvegardÃ© en localStorage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //    Ajoutez un champ *Data pour chaque nouveau tableau :
 //    ex: recouvrementData?: MonNouveauTableauRow
-interface SavedTableu {
+interface Savedtableau {
   id: string
   createdAt: string
   direction: string
@@ -396,7 +396,7 @@ interface SavedTableu {
 }
 
 // â”€â”€ 8b. Type retournÃ© par l'API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-type ApiTableuTableu = {
+type Apitableautableau = {
   id: number
   tabKey: string
   mois: string
@@ -525,7 +525,7 @@ function PrintZone({ direction, mois, annee, encaissementData, parcAbonneData }:
         </div>
         <div style={{ width: 260, border: "3px solid #000", backgroundColor: "#fff" }}>
           <div style={{ minHeight: 32, display: "flex", alignItems: "center", padding: "0 10px", borderBottom: "3px solid #000", fontSize: 13, fontWeight: 700, color: "#000" }}>
-            Tableu Mois : {mon}
+            tableau Mois : {mon}
           </div>
           <div style={{ minHeight: 32, display: "flex", alignItems: "center", padding: "0 10px", fontSize: 13, fontWeight: 700, color: "#000" }}>
             Annee : {annee}
@@ -630,7 +630,7 @@ function PrintZone({ direction, mois, annee, encaissementData, parcAbonneData }:
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // 10. PAGE PRINCIPALE
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export default function NouvelleTableuPage() {
+export default function NouvelletableauPage() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const { toast } = useToast()
   const router = useRouter()
@@ -667,14 +667,14 @@ export default function NouvelleTableuPage() {
   // â”€â”€ 10c. STATE GLOBAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [activeTab, setActiveTab] = useState("encaissement")
   const [direction, setDirection] = useState("")
-  const [mois, setMois] = useState(INITIAL_TABLEU_PERIOD.mois)
-  const [annee, setAnnee] = useState(INITIAL_TABLEU_PERIOD.annee)
+  const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
+  const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [editingTableuId, setEditingTableuId] = useState<string | null>(null)
+  const [editingtableauId, setEditingtableauId] = useState<string | null>(null)
   const [editingCreatedAt, setEditingCreatedAt] = useState("")
   const [editingSourceMois, setEditingSourceMois] = useState("")
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
-  const [tableuPolicyRevision, setTableuPolicyRevision] = useState(0)
+  const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
 
   // â”€â”€ 10d. STATE DES DONNÃ‰ES DE TABLEAUX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   //    Ajoutez un useState par tableau supplÃ©mentaire ici.
@@ -688,25 +688,25 @@ export default function NouvelleTableuPage() {
 
 
   // â”€â”€ 10e. STATE API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const [tableuTableus, setTableu] = useState<ApiTableuTableu[]>([])
+  const [tableautableaus, settableau] = useState<Apitableautableau[]>([])
 
   // â”€â”€ 10f. Logique de rÃ´les et d'onglets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const userRole = user?.role ?? ""
-  const isAdminRole    = isAdminTableuRole(userRole)
-  const isRegionalRole = isRegionalTableuRole(userRole)
-  const isFinanceRole  = isFinanceTableuRole(userRole)
+  const isAdminRole    = isAdmintableauRole(userRole)
+  const isRegionalRole = isRegionaltableauRole(userRole)
+  const isFinanceRole  = isFinancetableauRole(userRole)
   const adminSelectedDirection = safeString(direction).trim()
 
-  const manageableTabKeys = useMemo(() => new Set(getManageableTableuTabKeysForDirection()), [tableuPolicyRevision])
+  const manageableTabKeys = useMemo(() => new Set(getManageabletableauTabKeysForDirection()), [tableauPolicyRevision])
   const availableTabs     = useMemo(() => TABS.filter((tab) => manageableTabKeys.has(tab.key)), [manageableTabKeys])
-  const disabledTabKeys   = useMemo(() => new Set(availableTabs.filter((t) => isTableuTabDisabledByPolicy(t.key)).map((t) => t.key)), [availableTabs, tableuPolicyRevision])
+  const disabledTabKeys   = useMemo(() => new Set(availableTabs.filter((t) => istableauTabDisabledByPolicy(t.key)).map((t) => t.key)), [availableTabs, tableauPolicyRevision])
   const selectableTabs    = useMemo(() => availableTabs.map((tab) => ({ ...tab, isDisabled: disabledTabKeys.has(tab.key) })), [availableTabs, disabledTabKeys])
-  const tableuTabs   = selectableTabs
+  const tableauTabs   = selectableTabs
 
-  const selectableYears  = useMemo(() => YEARS.filter((y) => MONTHS.some((m) => !isTableuPeriodLocked(m.value, y, userRole))), [tableuPolicyRevision, userRole])
-  const selectableMonths = useMemo(() => MONTHS.filter((m) => !isTableuPeriodLocked(m.value, annee, userRole)), [annee, tableuPolicyRevision, userRole])
+  const selectableYears  = useMemo(() => YEARS.filter((y) => MONTHS.some((m) => !istableauPeriodLocked(m.value, y, userRole))), [tableauPolicyRevision, userRole])
+  const selectableMonths = useMemo(() => MONTHS.filter((m) => !istableauPeriodLocked(m.value, annee, userRole)), [annee, tableauPolicyRevision, userRole])
 
-  const hasTableuTabAccess  = tableuTabs.length > 0
+  const hastableauTabAccess  = tableauTabs.length > 0
   const isActiveTabDisabled = disabledTabKeys.has(activeTab)
 
   // â”€â”€ 10g. RÃ©solution de la direction selon le rÃ´le â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -724,13 +724,13 @@ export default function NouvelleTableuPage() {
     safeString(direction).trim() || safeString(user?.direction).trim() || "Siege"
   )
 
-  // â”€â”€ 10h. Synchronisation de la politique tableue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ 10h. Synchronisation de la politique tableaue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!userRole) return
     let cancelled = false
     const run = async () => {
-      await syncTableuPolicy(isAdminRole ? adminSelectedDirection : undefined)
-      if (!cancelled) setTableuPolicyRevision((p) => p + 1)
+      await synctableauPolicy(isAdminRole ? adminSelectedDirection : undefined)
+      if (!cancelled) settableauPolicyRevision((p) => p + 1)
     }
     run()
     return () => { cancelled = true }
@@ -754,20 +754,20 @@ export default function NouvelleTableuPage() {
     setDirection((prev) => resolveDirectionForRole(prev))
   }, [user, isAdminRole, resolveDirectionForRole])
 
-  // â”€â”€ 10k. Chargement des tableux depuis l'API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ 10k. Chargement des tableaux depuis l'API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
-    if (!user || status !== "authenticated") { setTableu([]); return }
+    if (!user || status !== "authenticated") { settableau([]); return }
     let cancelled = false
     const load = async () => {
       try {
         const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-        const res = await fetch(`${API_BASE}/api/tableu`, {
+        const res = await fetch(`${API_BASE}/api/tableau`, {
           method: "GET", credentials: "include", cache: "no-store",
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         })
-        if (!res.ok) { if (!cancelled) setTableu([]); return }
+        if (!res.ok) { if (!cancelled) settableau([]); return }
         const payload = await res.json().catch(() => null)
-        const tableus = Array.isArray(payload)
+        const tableaus = Array.isArray(payload)
           ? payload.map((item) => ({
               id:        Number((item as any).id ?? 0),
               tabKey:    String((item as any).tabKey ?? "").trim().toLowerCase(),
@@ -777,35 +777,35 @@ export default function NouvelleTableuPage() {
               dataJson:  String((item as any).dataJson ?? "{}"),
             }))
           : []
-        if (!cancelled) setTableu(tableus)
+        if (!cancelled) settableau(tableaus)
       } catch {
-        if (!cancelled) setTableu([])
+        if (!cancelled) settableau([])
       }
     }
     load()
     return () => { cancelled = true }
   }, [status, user])
 
-  // â”€â”€ 10l. Chargement d'un tableu existant pour Ã©dition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ 10l. Chargement d'un tableau existant pour Ã©dition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (isLoading || status !== "authenticated" || !user) return
     if (!editQuery.editId) {
-      setEditingTableuId(null)
+      setEditingtableauId(null)
       setEditingCreatedAt("")
       setEditingSourceMois("")
       setEditingSourceAnnee("")
       return
     }
     try {
-      const parsed = JSON.parse(localStorage.getItem("tableu_tableus") ?? "[]")
-      const tableus = Array.isArray(parsed) ? (parsed as SavedTableu[]) : []
-      const decl = tableus.find((item) => safeString(item.id) === editQuery.editId)
+      const parsed = JSON.parse(localStorage.getItem("tableau_tableaus") ?? "[]")
+      const tableaus = Array.isArray(parsed) ? (parsed as Savedtableau[]) : []
+      const decl = tableaus.find((item) => safeString(item.id) === editQuery.editId)
       if (!decl) {
-        toast({ title: "Tableu introuvable", description: "La tableu demandee n'existe pas.", variant: "destructive" })
+        toast({ title: "tableau introuvable", description: "La tableau demandee n'existe pas.", variant: "destructive" })
         return
       }
       const scopedDirection = isAdminRole ? safeString(decl.direction).trim() : resolveDirectionForRole(safeString(decl.direction).trim())
-      setEditingTableuId(safeString(decl.id) || editQuery.editId)
+      setEditingtableauId(safeString(decl.id) || editQuery.editId)
       setEditingCreatedAt(safeString(decl.createdAt) || new Date().toISOString())
       setDirection(scopedDirection)
       const loadedMois  = normalizeMonthValue(safeString(decl.mois))
@@ -820,7 +820,7 @@ export default function NouvelleTableuPage() {
       setEncaissementRow(normalizeEncaissementData(decl.encaissementData))
       setParcAbonneRows(normalizeParcAbonneRows(decl.parcAbonneData))
     } catch {
-      toast({ title: "Erreur de chargement", description: "Impossible de charger la tableu.", variant: "destructive" })
+      toast({ title: "Erreur de chargement", description: "Impossible de charger la tableau.", variant: "destructive" })
     }
   }, [editQuery.editId, editQuery.tab, isAdminRole, isLoading, resolveDirectionForRole, router, status, user])
 
@@ -850,37 +850,37 @@ export default function NouvelleTableuPage() {
     if (!mois)  { toast({ title: "Mois requis",   description: "Veuillez selectionner le mois.",   variant: "destructive" }); return }
     if (!annee) { toast({ title: "Annee requise", description: "Veuillez selectionner l'annee.", variant: "destructive" }); return }
 
-    const isSourceLocked = !!editingTableuId && !!editingSourceMois && !!editingSourceAnnee
-      && isTableuPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
+    const isSourceLocked = !!editingtableauId && !!editingSourceMois && !!editingSourceAnnee
+      && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
     if (isSourceLocked) {
-      toast({ title: "Periode cloturee", description: `${getTableuPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification autorisee.`, variant: "destructive" }); return
+      toast({ title: "Periode cloturee", description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification autorisee.`, variant: "destructive" }); return
     }
-    if (isTableuPeriodLocked(mois, annee, userRole)) {
-      toast({ title: "Periode cloturee", description: `${getTableuPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification autorisee.`, variant: "destructive" }); return
+    if (istableauPeriodLocked(mois, annee, userRole)) {
+      toast({ title: "Periode cloturee", description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification autorisee.`, variant: "destructive" }); return
     }
 
     // RÃ©cupÃ©ration du cache local
-    let existingTableus: SavedTableu[] = []
+    let existingtableaus: Savedtableau[] = []
     try {
-      const parsed = JSON.parse(localStorage.getItem("tableu_tableus") ?? "[]")
-      existingTableus = Array.isArray(parsed) ? (parsed as SavedTableu[]) : []
-    } catch { existingTableus = [] }
+      const parsed = JSON.parse(localStorage.getItem("tableau_tableaus") ?? "[]")
+      existingtableaus = Array.isArray(parsed) ? (parsed as Savedtableau[]) : []
+    } catch { existingtableaus = [] }
 
-    const originalTableu = editingTableuId
-      ? existingTableus.find((item) => safeString(item.id) === editingTableuId) ?? null
+    const originaltableau = editingtableauId
+      ? existingtableaus.find((item) => safeString(item.id) === editingtableauId) ?? null
       : null
 
     setIsSubmitting(true)
     await new Promise((r) => setTimeout(r, 400))
 
-    const tableuId        = editingTableuId ?? Date.now().toString()
-    const tableuCreatedAt = editingCreatedAt || new Date().toISOString()
+    const tableauId        = editingtableauId ?? Date.now().toString()
+    const tableauCreatedAt = editingCreatedAt || new Date().toISOString()
 
-    // â”€â”€ Objet de tableu sauvegardÃ© localement â”€â”€
+    // â”€â”€ Objet de tableau sauvegardÃ© localement â”€â”€
     //    Ajoutez ici les donnÃ©es de chaque nouveau tableau (ex: recouvrementData)
-    const baseDecl: SavedTableu = {
-      id: tableuId,
-      createdAt: tableuCreatedAt,
+    const baseDecl: Savedtableau = {
+      id: tableauId,
+      createdAt: tableauCreatedAt,
       direction: saveDirection,
       mois,
       annee,
@@ -892,14 +892,14 @@ export default function NouvelleTableuPage() {
 
     // Mise Ã  jour du cache localStorage
     try {
-      if (editingTableuId) {
-        const hasTarget = existingTableus.some((item) => safeString(item.id) === editingTableuId)
+      if (editingtableauId) {
+        const hasTarget = existingtableaus.some((item) => safeString(item.id) === editingtableauId)
         const updated = hasTarget
-          ? existingTableus.map((item) => safeString(item.id) === editingTableuId ? baseDecl : item)
-          : [baseDecl, ...existingTableus]
-        localStorage.setItem("tableu_tableus", JSON.stringify(updated))
+          ? existingtableaus.map((item) => safeString(item.id) === editingtableauId ? baseDecl : item)
+          : [baseDecl, ...existingtableaus]
+        localStorage.setItem("tableau_tableaus", JSON.stringify(updated))
       } else {
-        localStorage.setItem("tableu_tableus", JSON.stringify([baseDecl, ...existingTableus]))
+        localStorage.setItem("tableau_tableaus", JSON.stringify([baseDecl, ...existingtableaus]))
       }
     } catch { /* quota ou SSR */ }
 
@@ -924,15 +924,15 @@ export default function NouvelleTableuPage() {
       }
 
       // Suppression de l'ancienne version si modification
-      if (editingTableuId) {
-        const deleteRes = await fetch(`${apiBase}/api/tableu/${encodeURIComponent(editingTableuId)}`, {
+      if (editingtableauId) {
+        const deleteRes = await fetch(`${apiBase}/api/tableau/${encodeURIComponent(editingtableauId)}`, {
           method: "DELETE", credentials: "include",
           headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         })
         if (!deleteRes.ok && deleteRes.status !== 404) {
           const errPayload = await deleteRes.json().catch(() => ({}))
           const errMsg = (errPayload as any)?.message ?? "Erreur lors de la suppression"
-          try { localStorage.setItem("tableu_tableus", JSON.stringify(existingTableus)) } catch {}
+          try { localStorage.setItem("tableau_tableaus", JSON.stringify(existingtableaus)) } catch {}
           setIsSubmitting(false)
           toast({ title: "Erreur de modification", description: String(errMsg), variant: "destructive" })
           return
@@ -940,7 +940,7 @@ export default function NouvelleTableuPage() {
       }
 
       // CrÃ©ation
-      const createRes = await fetch(`${apiBase}/api/tableu`, {
+      const createRes = await fetch(`${apiBase}/api/tableau`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(requestPayload),
@@ -952,46 +952,46 @@ export default function NouvelleTableuPage() {
 
         // Tentative de restauration
         let restoreOk = false
-        if (editingTableuId && originalTableu) {
-          const restoreTabData = { encaissementData: originalTableu.encaissementData ?? { mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "" } }
-          const restoreRes = await fetch(`${apiBase}/api/tableu`, {
+        if (editingtableauId && originaltableau) {
+          const restoreTabData = { encaissementData: originaltableau.encaissementData ?? { mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "" } }
+          const restoreRes = await fetch(`${apiBase}/api/tableau`, {
             method: "POST", credentials: "include",
             headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            body: JSON.stringify({ tabKey: activeTab, mois: originalTableu.mois, annee: originalTableu.annee, direction: originalTableu.direction, dataJson: JSON.stringify(restoreTabData) }),
+            body: JSON.stringify({ tabKey: activeTab, mois: originaltableau.mois, annee: originaltableau.annee, direction: originaltableau.direction, dataJson: JSON.stringify(restoreTabData) }),
           })
           restoreOk = restoreRes.ok
         }
 
-        try { localStorage.setItem("tableu_tableus", JSON.stringify(existingTableus)) } catch {}
+        try { localStorage.setItem("tableau_tableaus", JSON.stringify(existingtableaus)) } catch {}
         setIsSubmitting(false)
         toast({
           title: "Erreur d'enregistrement",
-          description: restoreOk ? `${errMsg} L'ancien tableu a Ã©tÃ© restaurÃ©.` : String(errMsg),
+          description: restoreOk ? `${errMsg} L'ancien tableau a Ã©tÃ© restaurÃ©.` : String(errMsg),
           variant: "destructive",
         })
         return
       }
     } catch (error) {
-      try { localStorage.setItem("tableu_tableus", JSON.stringify(existingTableus)) } catch {}
+      try { localStorage.setItem("tableau_tableaus", JSON.stringify(existingtableaus)) } catch {}
       setIsSubmitting(false)
       toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de contacter le serveur", variant: "destructive" })
       return
     }
 
     toast({
-      title: editingTableuId ? "Tableu modifiee" : "Tableu enregistree",
-      description: `La tableu "Encaissement" a ete sauvegardee avec succes.`,
+      title: editingtableauId ? "tableau modifiee" : "tableau enregistree",
+      description: `La tableau "Encaissement" a ete sauvegardee avec succes.`,
     })
     setIsSubmitting(false)
-    router.push("/tableu_dashbord")
+    router.push("/tableau_dashbord")
   }
 
   // â”€â”€ 10o. Message de verrouillage de pÃ©riode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const currentPeriodLockMessage = (() => {
-    if (editingTableuId && editingSourceMois && editingSourceAnnee && isTableuPeriodLocked(editingSourceMois, editingSourceAnnee, userRole))
-      return `${getTableuPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`
-    if (isTableuPeriodLocked(mois, annee, userRole))
-      return `${getTableuPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`
+    if (editingtableauId && editingSourceMois && editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole))
+      return `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`
+    if (istableauPeriodLocked(mois, annee, userRole))
+      return `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`
     return ""
   })()
 
@@ -1001,13 +1001,13 @@ export default function NouvelleTableuPage() {
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <LayoutWrapper user={user}>
-      {!hasTableuTabAccess ? (
+      {!hastableauTabAccess ? (
         <AccessDeniedDialog
           title="Acces refuse"
           message={user.role === "direction"
-            ? "Votre role ne vous permet pas de creer des tableus tableues."
-            : "Votre role ne vous permet pas de gerer les tableaux tableuux."}
-          redirectTo="/tableu_dashbord"
+            ? "Votre role ne vous permet pas de creer des tableaus tableaues."
+            : "Votre role ne vous permet pas de gerer les tableaux tableauux."}
+          redirectTo="/tableau_dashbord"
         />
       ) : (
         <>

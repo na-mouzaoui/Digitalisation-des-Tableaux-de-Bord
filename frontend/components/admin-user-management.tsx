@@ -45,8 +45,8 @@ const ROLE_OPTIONS = [
     label: "Global",
     privileges: [
       "Accès complet à toutes les régions",
-      "Accès aux tableus tableues de toutes les directions",
-      "Supervision des workflows tableuux",
+      "Accès aux tableaus tableaues de toutes les directions",
+      "Supervision des workflows tableauux",
     ],
   },
   {
@@ -54,8 +54,8 @@ const ROLE_OPTIONS = [
     label: "Finance",
     privileges: [
       "Accès aux fonctionnalités financières",
-      "Gestion des tableus tableues",
-      "Validation des tableus siège",
+      "Gestion des tableaus tableaues",
+      "Validation des tableaus siège",
     ],
   },
   {
@@ -64,7 +64,7 @@ const ROLE_OPTIONS = [
     privileges: [
       "Accès limité à sa région assignée uniquement",
       "Consultation de l'historique de sa région",
-      "Validation des tableus régionales",
+      "Validation des tableaus régionales",
     ],
   },
 ];
@@ -168,7 +168,7 @@ export default function AdminUserManagement() {
     region: "",
     isRegionalApprover: false,
     isFinanceApprover: false,
-    accessModules: ["tableu"] as string[],
+    accessModules: ["tableau"] as string[],
   });
 
   useEffect(() => {
@@ -398,7 +398,7 @@ export default function AdminUserManagement() {
       region: user.region || "",
       isRegionalApprover: !!user.isRegionalApprover,
       isFinanceApprover: !!user.isFinanceApprover,
-      accessModules: ["tableu"],
+      accessModules: ["tableau"],
     });
     setIsEditOpen(true);
   };
@@ -415,7 +415,7 @@ export default function AdminUserManagement() {
       region: "",
       isRegionalApprover: false,
       isFinanceApprover: false,
-      accessModules: ["tableu"],
+      accessModules: ["tableau"],
     });
     setShowPassword(false);
   };
@@ -536,7 +536,7 @@ export default function AdminUserManagement() {
               <div className="space-y-2">
                 <Label>Accès aux modules *</Label>
                 <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                  Tableuité
+                  tableauité
                 </div>
               </div>
               {formData.role === "regionale" && (
@@ -563,7 +563,7 @@ export default function AdminUserManagement() {
                       checked={formData.isRegionalApprover}
                       onChange={(e) => setFormData({ ...formData, isRegionalApprover: e.target.checked })}
                     />
-                    Compte approbateur régional (peut approuver les tableus de la même région)
+                    Compte approbateur régional (peut approuver les tableaus de la même région)
                   </label>
                 </div>
               )}
@@ -575,7 +575,7 @@ export default function AdminUserManagement() {
                     checked={formData.isFinanceApprover}
                     onChange={(e) => setFormData({ ...formData, isFinanceApprover: e.target.checked })}
                   />
-                  Compte approbateur finance (peut approuver les tableus du niveau Siège)
+                  Compte approbateur finance (peut approuver les tableaus du niveau Siège)
                 </label>
               )}
             </div>
@@ -631,9 +631,9 @@ export default function AdminUserManagement() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1 flex-wrap">
-                    {(user.accessModules || "tableu").split(",").map((m) => (
+                    {(user.accessModules || "tableau").split(",").map((m) => (
                       <Badge key={m} variant="outline" className="text-xs">
-                        {m.trim() === "tableu" ? "Tableu" : m.trim()}
+                        {m.trim() === "tableau" ? "tableau" : m.trim()}
                       </Badge>
                     ))}
                   </div>
@@ -739,7 +739,7 @@ export default function AdminUserManagement() {
             <div className="space-y-2">
               <Label>Accès aux modules</Label>
               <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                Tableuité
+                tableauité
               </div>
             </div>
             {formData.role === "regionale" && (

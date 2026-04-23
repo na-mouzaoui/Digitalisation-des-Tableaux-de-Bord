@@ -14,7 +14,7 @@ namespace CheckFillingAPI.Migrations
 IF COL_LENGTH(N'[dbo].[Users]', N'AccessModules') IS NULL
 BEGIN
     ALTER TABLE [dbo].[Users]
-    ADD [AccessModules] nvarchar(max) NOT NULL CONSTRAINT [DF_Users_AccessModules] DEFAULT N'tableu';
+    ADD [AccessModules] nvarchar(max) NOT NULL CONSTRAINT [DF_Users_AccessModules] DEFAULT N'tableau';
 END
 ");
         }

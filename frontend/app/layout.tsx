@@ -8,7 +8,7 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: "Tableau de bord",
-  description: "Tableau de bord - Application de gestion des tableus tableues",
+  description: "Tableau de bord - Application de gestion des tableaus tableaues",
   generator: "v0.app",
   icons: {
     icon: "/favicon.ico",

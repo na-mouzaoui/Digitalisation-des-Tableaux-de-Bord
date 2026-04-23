@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CheckFillingAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddTableuTable : Migration
+    public partial class AddtableauTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Tableu",
+                name: "tableau",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -28,9 +28,9 @@ namespace CheckFillingAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Tableu", x => x.Id);
+                    table.PrimaryKey("PK_tableau", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Tableu_Users_UserId",
+                        name: "FK_tableau_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -38,20 +38,20 @@ namespace CheckFillingAPI.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Tableu_UserId",
-                table: "Tableu",
+                name: "IX_tableau_UserId",
+                table: "tableau",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Tableu_UserId_TabKey_Mois_Annee",
-                table: "Tableu",
+                name: "IX_tableau_UserId_TabKey_Mois_Annee",
+                table: "tableau",
                 columns: new[] { "UserId", "TabKey", "Mois", "Annee" });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "Tableu");
+            migrationBuilder.DropTable(name: "tableau");
         }
     }
 }

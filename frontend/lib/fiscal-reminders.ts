@@ -19,39 +19,39 @@ interface RemindersResponse {
   reminders: ReminderData[]
 }
 
-export const getTableuReminders = async (mois?: string, annee?: string): Promise<ReminderData[]> => {
+export const gettableauReminders = async (mois?: string, annee?: string): Promise<ReminderData[]> => {
   try {
-    console.log("[getTableuReminders] Calling /api/tableu/reminders...")
+    console.log("[gettableauReminders] Calling /api/tableau/reminders...")
     const params = new URLSearchParams()
     if (mois) params.set("mois", mois)
     if (annee) params.set("annee", annee)
     const query = params.toString()
-    const endpoint = query ? `/api/tableu/reminders?${query}` : "/api/tableu/reminders"
+    const endpoint = query ? `/api/tableau/reminders?${query}` : "/api/tableau/reminders"
 
     const response = await authFetch(endpoint, { cache: "no-store" })
-    console.log(`[getTableuReminders] Response status: ${response.status}`)
+    console.log(`[gettableauReminders] Response status: ${response.status}`)
     
     if (!response.ok) {
-      console.log("[getTableuReminders] Response not OK, returning empty array")
+      console.log("[gettableauReminders] Response not OK, returning empty array")
       return []
     }
 
     const payload = (await response.json().catch(() => null)) as RemindersResponse | ReminderData[] | null
-    console.log("[getTableuReminders] Payload:", payload)
+    console.log("[gettableauReminders] Payload:", payload)
 
     if (Array.isArray(payload)) {
-      console.log(`[getTableuReminders] Returning ${payload.length} reminders (direct array)`)
+      console.log(`[gettableauReminders] Returning ${payload.length} reminders (direct array)`)
       return payload
     }
     if (!payload || !Array.isArray(payload.reminders)) {
-      console.log("[getTableuReminders] Invalid payload structure, returning empty array")
+      console.log("[gettableauReminders] Invalid payload structure, returning empty array")
       return []
     }
     
-    console.log(`[getTableuReminders] Returning ${payload.reminders.length} reminders`)
+    console.log(`[gettableauReminders] Returning ${payload.reminders.length} reminders`)
     return payload.reminders
   } catch (error) {
-    console.error("[getTableuReminders] Error:", error)
+    console.error("[gettableauReminders] Error:", error)
     return []
   }
 }

@@ -101,7 +101,7 @@ namespace CheckFillingAPI.Migrations
                             Id = 1,
                             Code = "BNA",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "BNA - Banque Nationale d'Algérie",
+                            Name = "BNA - Banque Nationale d'Algï¿½rie",
                             PositionsJson = "{\"City\":{\"X\":50,\"Y\":100,\"Width\":150,\"FontSize\":14,\"Rotation\":0},\"Date\":{\"X\":400,\"Y\":100,\"Width\":150,\"FontSize\":14,\"Rotation\":0},\"Payee\":{\"X\":120,\"Y\":180,\"Width\":400,\"FontSize\":14,\"Rotation\":0},\"AmountInWords\":{\"X\":120,\"Y\":240,\"Width\":500,\"FontSize\":12,\"Rotation\":0},\"AmountInWordsLine2\":null,\"Amount\":{\"X\":450,\"Y\":300,\"Width\":150,\"FontSize\":18,\"Rotation\":0},\"CheckLayout\":null}"
                         },
                         new
@@ -109,7 +109,7 @@ namespace CheckFillingAPI.Migrations
                             Id = 2,
                             Code = "CPA",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "CPA - Crédit Populaire d'Algérie",
+                            Name = "CPA - Crï¿½dit Populaire d'Algï¿½rie",
                             PositionsJson = "{\"City\":{\"X\":50,\"Y\":100,\"Width\":150,\"FontSize\":14,\"Rotation\":0},\"Date\":{\"X\":400,\"Y\":100,\"Width\":150,\"FontSize\":14,\"Rotation\":0},\"Payee\":{\"X\":120,\"Y\":180,\"Width\":400,\"FontSize\":14,\"Rotation\":0},\"AmountInWords\":{\"X\":120,\"Y\":240,\"Width\":500,\"FontSize\":12,\"Rotation\":0},\"AmountInWordsLine2\":null,\"Amount\":{\"X\":450,\"Y\":300,\"Width\":150,\"FontSize\":18,\"Rotation\":0},\"CheckLayout\":null}"
                         },
                         new
@@ -117,7 +117,7 @@ namespace CheckFillingAPI.Migrations
                             Id = 3,
                             Code = "BEA",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Name = "BEA - Banque Extérieure d'Algérie",
+                            Name = "BEA - Banque Extï¿½rieure d'Algï¿½rie",
                             PositionsJson = "{\"City\":{\"X\":50,\"Y\":100,\"Width\":150,\"FontSize\":14,\"Rotation\":0},\"Date\":{\"X\":400,\"Y\":100,\"Width\":150,\"FontSize\":14,\"Rotation\":0},\"Payee\":{\"X\":120,\"Y\":180,\"Width\":400,\"FontSize\":14,\"Rotation\":0},\"AmountInWords\":{\"X\":120,\"Y\":240,\"Width\":500,\"FontSize\":12,\"Rotation\":0},\"AmountInWordsLine2\":null,\"Amount\":{\"X\":450,\"Y\":300,\"Width\":150,\"FontSize\":18,\"Rotation\":0},\"CheckLayout\":null}"
                         });
                 });
@@ -221,7 +221,7 @@ namespace CheckFillingAPI.Migrations
                     b.ToTable("Checkbooks");
                 });
 
-            modelBuilder.Entity("CheckFillingAPI.Models.Tableu", b =>
+            modelBuilder.Entity("CheckFillingAPI.Models.tableau", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -283,7 +283,7 @@ namespace CheckFillingAPI.Migrations
 
                     b.HasIndex("UserId", "TabKey", "Mois", "Annee");
 
-                    b.ToTable("Tableu", (string)null);
+                    b.ToTable("tableau", (string)null);
                 });
 
             modelBuilder.Entity("CheckFillingAPI.Models.EtatsDeSortie", b =>
@@ -346,7 +346,7 @@ namespace CheckFillingAPI.Migrations
                     b.ToTable("EtatsDeSortie", (string)null);
                 });
 
-            modelBuilder.Entity("CheckFillingAPI.Models.TableuFournisseur", b =>
+            modelBuilder.Entity("CheckFillingAPI.Models.tableauFournisseur", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -397,7 +397,7 @@ namespace CheckFillingAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TableuFournisseurs");
+                    b.ToTable("tableauFournisseurs");
                 });
 
             modelBuilder.Entity("CheckFillingAPI.Models.Region", b =>
@@ -446,14 +446,14 @@ namespace CheckFillingAPI.Migrations
                             Id = 3,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "est",
-                            VillesJson = "[\"Constantine\", \"Annaba\", \"Sétif\", \"Batna\", \"Guelma\"]"
+                            VillesJson = "[\"Constantine\", \"Annaba\", \"Sï¿½tif\", \"Batna\", \"Guelma\"]"
                         },
                         new
                         {
                             Id = 4,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Name = "ouest",
-                            VillesJson = "[\"Oran\", \"Tlemcen\", \"Sidi Bel Abbès\", \"Mostaganem\", \"Mascara\"]"
+                            VillesJson = "[\"Oran\", \"Tlemcen\", \"Sidi Bel Abbï¿½s\", \"Mostaganem\", \"Mascara\"]"
                         });
                 });
 
@@ -559,7 +559,7 @@ namespace CheckFillingAPI.Migrations
                         new
                         {
                             Id = 1,
-                            AccessModules = "cheque,tableu",
+                            AccessModules = "cheque,tableau",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Direction = "Test",
                             Email = "test@gmail.com",
@@ -574,7 +574,7 @@ namespace CheckFillingAPI.Migrations
                         new
                         {
                             Id = 2,
-                            AccessModules = "cheque,tableu",
+                            AccessModules = "cheque,tableau",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Direction = "Administration",
                             Email = "admin@test.com",
@@ -589,7 +589,7 @@ namespace CheckFillingAPI.Migrations
                         new
                         {
                             Id = 3,
-                            AccessModules = "cheque,tableu",
+                            AccessModules = "cheque,tableau",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Direction = "Administration",
                             Email = "admin@gmail.com",
@@ -677,7 +677,7 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("Bank");
                 });
 
-            modelBuilder.Entity("CheckFillingAPI.Models.Tableu", b =>
+            modelBuilder.Entity("CheckFillingAPI.Models.tableau", b =>
                 {
                     b.HasOne("CheckFillingAPI.Models.User", "ApprovedByUser")
                         .WithMany()
@@ -706,7 +706,7 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CheckFillingAPI.Models.TableuFournisseur", b =>
+            modelBuilder.Entity("CheckFillingAPI.Models.tableauFournisseur", b =>
                 {
                     b.HasOne("CheckFillingAPI.Models.User", "User")
                         .WithMany()

@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CheckFillingAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddTableuRecapsTable : Migration
+    public partial class AddtableauRecapsTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "TableuRecaps",
+                name: "tableauRecaps",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -31,9 +31,9 @@ namespace CheckFillingAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TableuRecaps", x => x.Id);
+                    table.PrimaryKey("PK_tableauRecaps", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TableuRecaps_Users_UserId",
+                        name: "FK_tableauRecaps_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -41,14 +41,14 @@ namespace CheckFillingAPI.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TableuRecaps_Key_Mois_Annee",
-                table: "TableuRecaps",
+                name: "IX_tableauRecaps_Key_Mois_Annee",
+                table: "tableauRecaps",
                 columns: new[] { "Key", "Mois", "Annee" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_TableuRecaps_UserId",
-                table: "TableuRecaps",
+                name: "IX_tableauRecaps_UserId",
+                table: "tableauRecaps",
                 column: "UserId");
         }
 
@@ -56,7 +56,7 @@ namespace CheckFillingAPI.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "TableuRecaps");
+                name: "tableauRecaps");
         }
     }
 }

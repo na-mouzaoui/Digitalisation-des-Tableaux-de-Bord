@@ -54,7 +54,7 @@ const TAXE2_LABELS = ["Taxe sur l'importation des biens et services"]
 const TAXE12_LABELS = ["Taxe de Formation Professionnelle 1%", "Taxe d'Apprentissage 1%"]
 const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Août","Sept","Oct","Nov","Déc"]
 
-interface SavedTableu {
+interface Savedtableau {
   id: string
   userId?: number
   createdAt: string
@@ -83,7 +83,7 @@ interface SavedTableu {
   tva16Rows?: Tva16Row[]
 }
 
-interface ApiTableuTableu {
+interface Apitableautableau {
   id: number
   userId: number
   tabKey: string
@@ -97,7 +97,7 @@ interface ApiTableuTableu {
   createdAt: string
 }
 
-interface ApiTableuRecap {
+interface ApitableauRecap {
   id: number
   key: string
   title: string
@@ -146,7 +146,7 @@ const getStoredToken = () => {
   }
 }
 
-const mapApiTableuToSaved = (item: ApiTableuTableu): SavedTableu => {
+const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
   const parsedData = (() => {
     try {
       const payload = JSON.parse(item.dataJson ?? "{}")
@@ -156,7 +156,7 @@ const mapApiTableuToSaved = (item: ApiTableuTableu): SavedTableu => {
     }
   })()
 
-  const tableu: SavedTableu = {
+  const tableau: Savedtableau = {
     id: String(item.id),
     userId: item.userId,
     createdAt: item.createdAt,
@@ -187,59 +187,59 @@ const mapApiTableuToSaved = (item: ApiTableuTableu): SavedTableu => {
 
   switch ((item.tabKey ?? "").trim().toLowerCase()) {
     case "encaissement":
-      tableu.encRows = toArray<EncRow>(parsedData.encRows)
+      tableau.encRows = toArray<EncRow>(parsedData.encRows)
       break
     case "tva_immo":
-      tableu.tvaImmoRows = toArray<TvaRow>(parsedData.tvaImmoRows)
+      tableau.tvaImmoRows = toArray<TvaRow>(parsedData.tvaImmoRows)
       break
     case "tva_biens":
-      tableu.tvaBiensRows = toArray<TvaRow>(parsedData.tvaBiensRows)
+      tableau.tvaBiensRows = toArray<TvaRow>(parsedData.tvaBiensRows)
       break
     case "droits_timbre":
-      tableu.timbreRows = toArray<TimbreRow>(parsedData.timbreRows)
+      tableau.timbreRows = toArray<TimbreRow>(parsedData.timbreRows)
       break
     case "ca_tap":
-      tableu.b12 = String(parsedData.b12 ?? "")
-      tableu.b13 = String(parsedData.b13 ?? "")
+      tableau.b12 = String(parsedData.b12 ?? "")
+      tableau.b13 = String(parsedData.b13 ?? "")
       break
     case "etat_tap":
-      tableu.tapRows = toArray<TAPRow>(parsedData.tapRows)
+      tableau.tapRows = toArray<TAPRow>(parsedData.tapRows)
       break
     case "ca_siege":
-      tableu.caSiegeRows = toArray<SiegeEncRow>(parsedData.caSiegeRows)
+      tableau.caSiegeRows = toArray<SiegeEncRow>(parsedData.caSiegeRows)
       break
     case "irg":
-      tableu.irgRows = toArray<IrgRow>(parsedData.irgRows)
+      tableau.irgRows = toArray<IrgRow>(parsedData.irgRows)
       break
     case "taxe2":
-      tableu.taxe2Rows = toArray<Taxe2Row>(parsedData.taxe2Rows)
+      tableau.taxe2Rows = toArray<Taxe2Row>(parsedData.taxe2Rows)
       break
     case "taxe_masters":
-      tableu.masterRows = toArray<MasterRow>(parsedData.masterRows)
+      tableau.masterRows = toArray<MasterRow>(parsedData.masterRows)
       break
     case "taxe_vehicule":
-      tableu.taxe11Montant = String(parsedData.taxe11Montant ?? "")
+      tableau.taxe11Montant = String(parsedData.taxe11Montant ?? "")
       break
     case "taxe_formation":
-      tableu.taxe12Rows = toArray<Taxe12Row>(parsedData.taxe12Rows)
+      tableau.taxe12Rows = toArray<Taxe12Row>(parsedData.taxe12Rows)
       break
     case "acompte":
-      tableu.acompteMonths = toStringArray(parsedData.acompteMonths)
+      tableau.acompteMonths = toStringArray(parsedData.acompteMonths)
       break
     case "ibs":
-      tableu.ibs14Rows = toArray<Ibs14Row>(parsedData.ibs14Rows)
+      tableau.ibs14Rows = toArray<Ibs14Row>(parsedData.ibs14Rows)
       break
     case "taxe_domicil":
-      tableu.taxe15Rows = toArray<Taxe15Row>(parsedData.taxe15Rows)
+      tableau.taxe15Rows = toArray<Taxe15Row>(parsedData.taxe15Rows)
       break
     case "tva_autoliq":
-      tableu.tva16Rows = toArray<Tva16Row>(parsedData.tva16Rows)
+      tableau.tva16Rows = toArray<Tva16Row>(parsedData.tva16Rows)
       break
     default:
       break
   }
 
-  return tableu
+  return tableau
 }
 
 const MONTHS: Record<string, string> = {
@@ -312,7 +312,7 @@ function RemindersCard({
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <CardTitle className="text-base flex items-center gap-2">
             <CalendarDays size={18} className="text-amber-700" />
-            Rappels et delais tableuux
+            Rappels et delais tableauux
           </CardTitle>
           <div className="flex items-center gap-2">
             <select
@@ -375,7 +375,7 @@ const resolveEncaissementAmounts = (row: EncRow) => {
     return { ht, tva, ttc: ht + tva }
   }
 
-  // Backward compatibility for tableus saved with TTC as input.
+  // Backward compatibility for tableaus saved with TTC as input.
   const ttc = num(row.ttc ?? "")
   const ht = ttc / 1.19
   return { ht, tva: ttc - ht, ttc }
@@ -891,7 +891,7 @@ function Tva16Table({ rows }: { rows: Tva16Row[] }) {
   )
 }
 
-function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: SavedTableu; color: string }) {
+function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtableau; color: string }) {
   switch (tabKey) {
     case "encaissement":  return <EncTable rows={decl.encRows ?? []} />
     case "tva_immo":      return <TvaTable rows={decl.tvaImmoRows ?? []} totalLabel="TOTAL TVA SUR IMMOBILISATION 445620" />
@@ -915,7 +915,7 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: SavedTable
 
 // aaa Print Zone aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 function DashPrintZone({ decl, tabKey, tabTitle }: {
-  decl: SavedTableu | null; tabKey: string; tabTitle: string; color: string
+  decl: Savedtableau | null; tabKey: string; tabTitle: string; color: string
 }) {
   if (!decl) return null
   const moisLabel = MONTHS[decl.mois] ?? decl.mois
@@ -985,7 +985,7 @@ function DashPrintZone({ decl, tabKey, tabTitle }: {
               color: "#000",
             }}
           >
-            Tableu Mois : {moisLabel}
+            tableau Mois : {moisLabel}
           </div>
           <div
             style={{
@@ -1015,15 +1015,15 @@ function DashPrintZone({ decl, tabKey, tabTitle }: {
   )
 }
 
-export default function TableuDashboardPage() {
+export default function tableauDashboardPage() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const router = useRouter()
   const { toast } = useToast()
-  const [tableus, setTableus] = useState<SavedTableu[]>([])
+  const [tableaus, settableaus] = useState<Savedtableau[]>([])
   const [recaps, setRecaps] = useState<SavedRecap[]>([])
-  const [viewDecl, setViewDecl] = useState<SavedTableu | null>(null)
+  const [viewDecl, setViewDecl] = useState<Savedtableau | null>(null)
   const [viewRecap, setViewRecap] = useState<SavedRecap | null>(null)
-  const [printDecl, setPrintDecl] = useState<SavedTableu | null>(null)
+  const [printDecl, setPrintDecl] = useState<Savedtableau | null>(null)
   const [showDialog, setShowDialog] = useState(false)
   const [showRecapDialog, setShowRecapDialog] = useState(false)
   const [showRecapFilters, setShowRecapFilters] = useState(false)
@@ -1047,22 +1047,22 @@ export default function TableuDashboardPage() {
   const normalizedRegion = (user?.region ?? "").trim().toLowerCase()
   const isFinanceRole = normalizedRole === "finance" || normalizedRole === "comptabilite"
   const isAdminRole = normalizedRole === "admin"
-  const canApproveRegionalTableus = normalizedRole === "regionale" && !!user?.isRegionalApprover
-  const canApproveFinanceTableus = isFinanceRole && !!user?.isFinanceApprover
+  const canApproveRegionaltableaus = normalizedRole === "regionale" && !!user?.isRegionalApprover
+  const canApproveFinancetableaus = isFinanceRole && !!user?.isFinanceApprover
 
 
   useEffect(() => {
     if (!user || status !== "authenticated") {
-      setTableus([])
+      settableaus([])
       return
     }
 
     let cancelled = false
 
-    const loadTableus = async () => {
+    const loadtableaus = async () => {
       try {
         const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-        const response = await fetch(`${API_BASE}/api/tableu`, {
+        const response = await fetch(`${API_BASE}/api/tableau`, {
           method: "GET",
           credentials: "include",
           cache: "no-store",
@@ -1070,29 +1070,29 @@ export default function TableuDashboardPage() {
         })
 
         if (!response.ok) {
-          if (!cancelled) setTableus([])
+          if (!cancelled) settableaus([])
           return
         }
 
         const payload = await response.json().catch(() => null)
-        const nextTableus = Array.isArray(payload)
-          ? (payload as ApiTableuTableu[]).map(mapApiTableuToSaved)
+        const nexttableaus = Array.isArray(payload)
+          ? (payload as Apitableautableau[]).map(mapApitableauToSaved)
           : []
 
         if (!cancelled) {
-          setTableus(nextTableus)
+          settableaus(nexttableaus)
           try {
-            localStorage.setItem("tableu_tableus", JSON.stringify(nextTableus))
+            localStorage.setItem("tableau_tableaus", JSON.stringify(nexttableaus))
           } catch {
             // Ignore storage errors.
           }
         }
       } catch {
-        if (!cancelled) setTableus([])
+        if (!cancelled) settableaus([])
       }
     }
 
-    loadTableus()
+    loadtableaus()
 
     return () => {
       cancelled = true
@@ -1112,24 +1112,24 @@ export default function TableuDashboardPage() {
       .withAutomaticReconnect([0, 2000, 5000, 10000])
       .build()
 
-    const handleTableuTableuChanged = () => {
+    const handletableautableauChanged = () => {
       setRefreshRevision((prev) => prev + 1)
     }
 
-    connection.on("tableuTableuChanged", handleTableuTableuChanged)
+    connection.on("tableautableauChanged", handletableautableauChanged)
 
     const timeoutId = setTimeout(() => {
       connection.start().catch((error) => {
-        console.error("SignalR tableu connection error:", error)
+        console.error("SignalR tableau connection error:", error)
       })
     }, 500)
 
     return () => {
       clearTimeout(timeoutId)
-      connection.off("tableuTableuChanged", handleTableuTableuChanged)
+      connection.off("tableautableauChanged", handletableautableauChanged)
       connection
         .stop()
-        .catch((error) => console.error("SignalR tableu stop error:", error))
+        .catch((error) => console.error("SignalR tableau stop error:", error))
     }
   }, [status, user])
 
@@ -1189,17 +1189,17 @@ export default function TableuDashboardPage() {
     )
   }
 
-  const isTableuLocked = (_decl: SavedTableu) => false
+  const istableauLocked = (_decl: Savedtableau) => false
 
-  const handleDelete = async (decl: SavedTableu) => {
+  const handleDelete = async (decl: Savedtableau) => {
     try {
-      const tableuId = Number(decl.id)
-      if (!Number.isFinite(tableuId)) {
-        throw new Error("ID de tableu invalide")
+      const tableauId = Number(decl.id)
+      if (!Number.isFinite(tableauId)) {
+        throw new Error("ID de tableau invalide")
       }
 
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-      const response = await fetch(`${API_BASE}/api/tableu/${tableuId}`, {
+      const response = await fetch(`${API_BASE}/api/tableau/${tableauId}`, {
         method: "DELETE",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1213,32 +1213,32 @@ export default function TableuDashboardPage() {
         throw new Error(message || "Suppression impossible")
       }
 
-      const updated = tableus.filter((d) => d.id !== decl.id)
-      setTableus(updated)
+      const updated = tableaus.filter((d) => d.id !== decl.id)
+      settableaus(updated)
       try {
-        localStorage.setItem("tableu_tableus", JSON.stringify(updated))
+        localStorage.setItem("tableau_tableaus", JSON.stringify(updated))
       } catch {
         // Ignore storage errors.
       }
       setRefreshRevision((prev) => prev + 1)
 
-      toast({ title: "Tableu supprimée" })
+      toast({ title: "tableau supprimée" })
     } catch (error) {
       toast({
         title: "Erreur de suppression",
-        description: error instanceof Error ? error.message : "Impossible de supprimer la tableu.",
+        description: error instanceof Error ? error.message : "Impossible de supprimer la tableau.",
         variant: "destructive",
       })
     }
   }
 
-  const handleView = (decl: SavedTableu, tabKey: string) => {
+  const handleView = (decl: Savedtableau, tabKey: string) => {
     setViewDecl(decl)
     setViewTabKey(tabKey)
     setShowDialog(true)
   }
 
-  const handlePrint = (decl: SavedTableu, tabKey: string) => {
+  const handlePrint = (decl: Savedtableau, tabKey: string) => {
     setPrintDecl(decl)
     setViewTabKey(tabKey)
     setTimeout(async () => {
@@ -1254,7 +1254,7 @@ export default function TableuDashboardPage() {
 
         const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" })
         const periodText = `${MONTHS[decl.mois] ?? decl.mois} ${decl.annee}`
-        const tableTitle = DASH_TABS.find((t) => t.key === tabKey)?.title ?? "TABLEAU TABLEU"
+        const tableTitle = DASH_TABS.find((t) => t.key === tabKey)?.title ?? "TABLEAU tableau"
         const pdfTableTitle =
           tabKey === "ca_tap"
             ? "ETAT DU CHIFFRE D'AFFAIRES RECHARGEMENT HT (7%) et CHIFFRE D'AFFAIRES GLOBAL HT (1%)"
@@ -1445,7 +1445,7 @@ export default function TableuDashboardPage() {
         pdf.setFontSize(11)
         drawUnderlinedText("ATM MOBILIS SPA", 10, 33 + layoutShiftY)
         drawUnderlinedText("DIRECTION DES FINANCES ET DE LA COMPTABILITE", 10, 38 + layoutShiftY)
-        drawUnderlinedText("SOUS DIRECTION TABLEUITE", 10, 43 + layoutShiftY)
+        drawUnderlinedText("SOUS DIRECTION tableauITE", 10, 43 + layoutShiftY)
         pdf.setFontSize(14)
         drawUnderlinedText(headerTitle, 10, 64 + layoutShiftY)
 
@@ -1609,29 +1609,29 @@ export default function TableuDashboardPage() {
     }, 200)
   }
 
-  const handleEdit = (decl: SavedTableu, tabKey: string) => {
-    router.push(`/tableu?editId=${encodeURIComponent(decl.id)}&tab=${encodeURIComponent(tabKey)}`)
+  const handleEdit = (decl: Savedtableau, tabKey: string) => {
+    router.push(`/tableau?editId=${encodeURIComponent(decl.id)}&tab=${encodeURIComponent(tabKey)}`)
   }
 
-  const handleApprove = async (decl: SavedTableu) => {
-    if (!isAdminRole && !canApproveRegionalTableus && !canApproveFinanceTableus) {
+  const handleApprove = async (decl: Savedtableau) => {
+    if (!isAdminRole && !canApproveRegionaltableaus && !canApproveFinancetableaus) {
       toast({
         title: "Accès refusé",
-        description: "Seuls les comptes admin ou approbateurs (régional/finance) peuvent valider les tableus.",
+        description: "Seuls les comptes admin ou approbateurs (régional/finance) peuvent valider les tableaus.",
         variant: "destructive",
       })
       return
     }
 
-    const tableuId = Number(decl.id)
-    if (!Number.isFinite(tableuId)) {
-      toast({ title: "Erreur", description: "ID de tableu invalide", variant: "destructive" })
+    const tableauId = Number(decl.id)
+    if (!Number.isFinite(tableauId)) {
+      toast({ title: "Erreur", description: "ID de tableau invalide", variant: "destructive" })
       return
     }
 
     try {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-      const response = await fetch(`${API_BASE}/api/tableu/${tableuId}/approve`, {
+      const response = await fetch(`${API_BASE}/api/tableau/${tableauId}/approve`, {
         method: "POST",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1646,7 +1646,7 @@ export default function TableuDashboardPage() {
       }
 
       const nowIso = new Date().toISOString()
-      const updated = tableus.map((item) =>
+      const updated = tableaus.map((item) =>
         item.id === decl.id
           ? {
               ...item,
@@ -1657,25 +1657,25 @@ export default function TableuDashboardPage() {
           : item,
       )
 
-      setTableus(updated)
+      settableaus(updated)
       try {
-        localStorage.setItem("tableu_tableus", JSON.stringify(updated))
+        localStorage.setItem("tableau_tableaus", JSON.stringify(updated))
       } catch {
         // Ignore storage errors.
       }
       setRefreshRevision((prev) => prev + 1)
 
-      toast({ title: "Tableu approuvée" })
+      toast({ title: "tableau approuvée" })
     } catch (error) {
       toast({
         title: "Erreur d'approbation",
-        description: error instanceof Error ? error.message : "Impossible d'approuver la tableu.",
+        description: error instanceof Error ? error.message : "Impossible d'approuver la tableau.",
         variant: "destructive",
       })
     }
   }
 
-  const getTableuType = (decl: SavedTableu) => {
+  const gettableauType = (decl: Savedtableau) => {
     if ((decl.encRows?.length ?? 0) > 0) return { key: "encaissement", label: "Encaissement", color: "#2db34b" }
     if ((decl.tvaImmoRows?.length ?? 0) > 0) return { key: "tva_immo", label: "TVA / IMMO", color: "#1d6fb8" }
     if ((decl.tvaBiensRows?.length ?? 0) > 0) return { key: "tva_biens", label: "TVA / Biens & Serv", color: "#7c3aed" }
@@ -1697,8 +1697,8 @@ export default function TableuDashboardPage() {
 
   const hasActiveFilters = !!(filterType || filterMois || filterAnnee || filterDirection || filterStatus || filterDateFrom || filterDateTo)
 
-  const filteredTableus = tableus.filter((decl) => {
-    const declType = getTableuType(decl)
+  const filteredtableaus = tableaus.filter((decl) => {
+    const declType = gettableauType(decl)
     if (filterType && declType.key !== filterType) return false
     if (filterMois && decl.mois !== filterMois) return false
     if (filterAnnee && decl.annee !== filterAnnee) return false
@@ -1710,12 +1710,12 @@ export default function TableuDashboardPage() {
     return true
   })
 
-  const recentTableus = [...filteredTableus].sort((a, b) => {
+  const recenttableaus = [...filteredtableaus].sort((a, b) => {
     let cmp = 0
     if (sortCol === "date") {
       cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     } else if (sortCol === "type") {
-      cmp = getTableuType(a).label.localeCompare(getTableuType(b).label, "fr")
+      cmp = gettableauType(a).label.localeCompare(gettableauType(b).label, "fr")
     } else if (sortCol === "direction") {
       cmp = (a.direction ?? "").localeCompare(b.direction ?? "", "fr")
     } else if (sortCol === "periode") {
@@ -1750,7 +1750,7 @@ export default function TableuDashboardPage() {
       mois: recap.mois,
       annee: recap.annee,
     })
-    router.push(`/tableu?${params.toString()}`)
+    router.push(`/tableau?${params.toString()}`)
   }
 
   const handlePrintRecap = (recap: SavedRecap) => {
@@ -1765,7 +1765,7 @@ export default function TableuDashboardPage() {
     void (async () => {
       try {
         const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-        await fetch(`${API_BASE}/api/tableu-recaps/${recap.id}/print`, {
+        await fetch(`${API_BASE}/api/tableau-recaps/${recap.id}/print`, {
           method: "POST",
           credentials: "include",
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1801,7 +1801,7 @@ export default function TableuDashboardPage() {
         pdf.setFontSize(11)
         drawUnderlinedText("ATM MOBILIS SPA", 10, 33)
         drawUnderlinedText("DIRECTION DES FINANCES ET DE LA COMPTABILITE", 10, 38)
-        drawUnderlinedText("SOUS DIRECTION TABLEUITE", 10, 43)
+        drawUnderlinedText("SOUS DIRECTION tableauITE", 10, 43)
         pdf.setFontSize(14)
         drawUnderlinedText(`${recap.title} ${period}`.trim(), 10, 64)
 
@@ -1876,7 +1876,7 @@ export default function TableuDashboardPage() {
   const handleDeleteRecap = async (recap: SavedRecap) => {
     try {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-      await fetch(`${API_BASE}/api/tableu-recaps/${recap.id}`, {
+      await fetch(`${API_BASE}/api/tableau-recaps/${recap.id}`, {
         method: "DELETE",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -1912,12 +1912,12 @@ export default function TableuDashboardPage() {
       return value.trim()
     }
 
-    const tableuDirections = tableus
-      .map((tableu) => normalizeDirection(tableu.direction ?? ""))
+    const tableauDirections = tableaus
+      .map((tableau) => normalizeDirection(tableau.direction ?? ""))
       .filter(Boolean)
 
-    if (tableuDirections.length > 0) {
-      return Array.from(new Set(tableuDirections)).sort((a, b) => a.localeCompare(b, "fr"))
+    if (tableauDirections.length > 0) {
+      return Array.from(new Set(tableauDirections)).sort((a, b) => a.localeCompare(b, "fr"))
     }
 
     const fallbackDirections = [
@@ -2011,21 +2011,21 @@ export default function TableuDashboardPage() {
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Tableu</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard tableau</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Tableus tableues récentes
+            tableaus tableaues récentes
           </p>
         </div>
 
-        {/* Recent tableus */}
+        {/* Recent tableaus */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-base">
-                Tableus récentes
-                {tableus.length > 0 && (
+                tableaus récentes
+                {tableaus.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({filteredTableus.length}{hasActiveFilters ? ` / ${tableus.length}` : ""})
+                    ({filteredtableaus.length}{hasActiveFilters ? ` / ${tableaus.length}` : ""})
                   </span>
                 )}
               </CardTitle>
@@ -2114,9 +2114,9 @@ export default function TableuDashboardPage() {
             )}
           </CardHeader>
           <CardContent>
-            {recentTableus.length === 0 ? (
+            {recenttableaus.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Aucune tableu tableue enregistrée pour le moment.
+                Aucune tableau tableaue enregistrée pour le moment.
               </p>
             ) : (
               <div className="max-h-[540px] overflow-auto">
@@ -2124,7 +2124,7 @@ export default function TableuDashboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("type")}>
-                        Type de tableu <SortIcon col="type" />
+                        Type de tableau <SortIcon col="type" />
                       </TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("direction")}>
                         Direction <SortIcon col="direction" />
@@ -2140,23 +2140,23 @@ export default function TableuDashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentTableus.map((decl) => {
-                      const declType = getTableuType(decl)
-                      const isLocked = isTableuLocked(decl)
-                      const tableuDirection = (decl.direction ?? "").trim().toLowerCase()
-                      const isSiegeTableu = tableuDirection === "siège"
-                        || tableuDirection === "siege"
-                        || tableuDirection.includes("siège")
-                        || tableuDirection.includes("siege")
-                      const isOwnTableu = String(decl.userId ?? "") === String(user.id)
-                      const canApproveAsRegional = canApproveRegionalTableus
+                    {recenttableaus.map((decl) => {
+                      const declType = gettableauType(decl)
+                      const isLocked = istableauLocked(decl)
+                      const tableauDirection = (decl.direction ?? "").trim().toLowerCase()
+                      const isSiegetableau = tableauDirection === "siège"
+                        || tableauDirection === "siege"
+                        || tableauDirection.includes("siège")
+                        || tableauDirection.includes("siege")
+                      const isOwntableau = String(decl.userId ?? "") === String(user.id)
+                      const canApproveAsRegional = canApproveRegionaltableaus
                         && !decl.isApproved
-                        && (isOwnTableu || (!!normalizedRegion && tableuDirection === normalizedRegion))
-                      const canApproveAsFinance = canApproveFinanceTableus
+                        && (isOwntableau || (!!normalizedRegion && tableauDirection === normalizedRegion))
+                      const canApproveAsFinance = canApproveFinancetableaus
                         && !decl.isApproved
-                        && (isOwnTableu || isSiegeTableu)
+                        && (isOwntableau || isSiegetableau)
                       const canApproveAsAdmin = isAdminRole && !decl.isApproved
-                      const canApproveThisTableu = canApproveAsAdmin || canApproveAsRegional || canApproveAsFinance
+                      const canApproveThistableau = canApproveAsAdmin || canApproveAsRegional || canApproveAsFinance
                       return (
                         <TableRow
                           key={decl.id}
@@ -2198,17 +2198,17 @@ export default function TableuDashboardPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
-                              {(isAdminRole || canApproveRegionalTableus || canApproveFinanceTableus) && (
+                              {(isAdminRole || canApproveRegionaltableaus || canApproveFinancetableaus) && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="h-8 w-8 p-0 border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                  disabled={!canApproveThisTableu}
+                                  disabled={!canApproveThistableau}
                                   onClick={(event) => {
                                     event.stopPropagation()
                                     handleApprove(decl)
                                   }}
-                                  title={decl.isApproved ? "Tableu déjà approuvée" : !canApproveThisTableu ? "Action non autorisée pour cette tableu" : "Approuver"}
+                                  title={decl.isApproved ? "tableau déjà approuvée" : !canApproveThistableau ? "Action non autorisée pour cette tableau" : "Approuver"}
                                 >
                                   <CheckCircle size={16} />
                                 </Button>
@@ -2274,7 +2274,7 @@ export default function TableuDashboardPage() {
               </div>
               <div className="mt-4 flex justify-end gap-2">
                 {(() => {
-                  const isLocked = isTableuLocked(viewDecl)
+                  const isLocked = istableauLocked(viewDecl)
 
                   return (
                     <Button

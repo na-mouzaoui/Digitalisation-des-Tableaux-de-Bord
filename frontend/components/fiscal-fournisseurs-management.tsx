@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, Trash2, Upload, Download, Search, Loader2 } from "lucide-react"
 
-interface TableuFournisseur {
+interface tableauFournisseur {
   id: number
   raisonSociale: string
   adresse: string
@@ -57,7 +57,7 @@ interface FormData {
 type ConflictDecision = "update" | "keep"
 
 interface ImportConflict {
-  existing: TableuFournisseur
+  existing: tableauFournisseur
   incoming: FormData
 }
 
@@ -150,7 +150,7 @@ const fileToBase64Data = (file: Blob) =>
     reader.readAsDataURL(file)
   })
 
-const hasDifferentSupplierDetails = (existing: TableuFournisseur, incoming: FormData) => {
+const hasDifferentSupplierDetails = (existing: tableauFournisseur, incoming: FormData) => {
   return (
     normalizeField(existing.adresse) !== normalizeField(incoming.adresse) ||
     normalizeField(existing.nif) !== normalizeField(incoming.nif) ||
@@ -160,19 +160,19 @@ const hasDifferentSupplierDetails = (existing: TableuFournisseur, incoming: Form
   )
 }
 
-export function TableuFournisseursManagement() {
+export function tableauFournisseursManagement() {
   const { toast } = useToast()
 
-  const [fournisseurs, setFournisseurs] = useState<TableuFournisseur[]>([])
+  const [fournisseurs, setFournisseurs] = useState<tableauFournisseur[]>([])
   const [fetching, setFetching] = useState(false)
   const [search, setSearch] = useState("")
 
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<TableuFournisseur | null>(null)
+  const [editTarget, setEditTarget] = useState<tableauFournisseur | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
 
-  const [deleteTarget, setDeleteTarget] = useState<TableuFournisseur | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<tableauFournisseur | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const [importDialogOpen, setImportDialogOpen] = useState(false)
@@ -202,7 +202,7 @@ export function TableuFournisseursManagement() {
   const fetchFournisseurs = async () => {
     setFetching(true)
     try {
-      const res = await authFetch("/api/tableu-fournisseurs")
+      const res = await authFetch("/api/tableau-fournisseurs")
       if (!res.ok) throw new Error()
       setFournisseurs(await res.json())
     } catch {
@@ -215,7 +215,7 @@ export function TableuFournisseursManagement() {
   useEffect(() => { fetchFournisseurs() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCreate = () => { setEditTarget(null); setForm(EMPTY_FORM); setDialogOpen(true) }
-  const openEdit = (f: TableuFournisseur) => {
+  const openEdit = (f: tableauFournisseur) => {
     setEditTarget(f)
     setForm({
       raisonSociale: f.raisonSociale,
@@ -250,7 +250,7 @@ export function TableuFournisseursManagement() {
     setSaving(true)
     try {
       const method = editTarget ? "PUT" : "POST"
-      const url = editTarget ? `/api/tableu-fournisseurs/${editTarget.id}` : "/api/tableu-fournisseurs"
+      const url = editTarget ? `/api/tableau-fournisseurs/${editTarget.id}` : "/api/tableau-fournisseurs"
       const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -275,7 +275,7 @@ export function TableuFournisseursManagement() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      const res = await authFetch(`/api/tableu-fournisseurs/${deleteTarget.id}`, { method: "DELETE" })
+      const res = await authFetch(`/api/tableau-fournisseurs/${deleteTarget.id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
       toast({ title: "SupprimÃ©", description: `${deleteTarget.raisonSociale} a Ã©tÃ© supprimÃ©.` })
       setDeleteTarget(null)
@@ -302,7 +302,7 @@ export function TableuFournisseursManagement() {
 
     for (const supplier of creates) {
       try {
-        const res = await authFetch("/api/tableu-fournisseurs", {
+        const res = await authFetch("/api/tableau-fournisseurs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(toSupplierPayload(supplier)),
@@ -322,7 +322,7 @@ export function TableuFournisseursManagement() {
       }
 
       try {
-        const res = await authFetch(`/api/tableu-fournisseurs/${conflict.existing.id}`, {
+        const res = await authFetch(`/api/tableau-fournisseurs/${conflict.existing.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(toSupplierPayload(conflict.incoming)),
@@ -343,7 +343,7 @@ export function TableuFournisseursManagement() {
     if (summary.length === 0) summary.push("Aucun changement")
 
     try {
-      await authFetch("/api/tableu-fournisseurs/import-audit", {
+      await authFetch("/api/tableau-fournisseurs/import-audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -387,7 +387,7 @@ export function TableuFournisseursManagement() {
       workbook.creator = "DFC Portal"
       workbook.created = new Date()
 
-      const worksheet = workbook.addWorksheet("Fournisseurs tableuux", {
+      const worksheet = workbook.addWorksheet("Fournisseurs tableauux", {
         pageSetup: {
           orientation: "landscape",
           paperSize: 9,
@@ -446,7 +446,7 @@ export function TableuFournisseursManagement() {
       const titleRowIndex = 7
       worksheet.mergeCells(`A${titleRowIndex}:F${titleRowIndex}`)
       const titleCell = worksheet.getCell(`A${titleRowIndex}`)
-      titleCell.value = "LISTE DES FOURNISSEURS TABLEUUX"
+      titleCell.value = "LISTE DES FOURNISSEURS tableauUX"
       titleCell.font = { bold: true, size: 14, color: { argb: "FF000000" }, name: "Calibri" }
       titleCell.alignment = { horizontal: "center", vertical: "middle" }
 
@@ -524,7 +524,7 @@ export function TableuFournisseursManagement() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = "fournisseurs-tableuux.xlsx"
+      a.download = "fournisseurs-tableauux.xlsx"
       a.click()
       URL.revokeObjectURL(url)
     } catch {
@@ -615,7 +615,7 @@ export function TableuFournisseursManagement() {
         return
       }
 
-      const existingByName = new Map<string, TableuFournisseur>()
+      const existingByName = new Map<string, tableauFournisseur>()
       for (const fournisseur of fournisseurs) {
         const key = normalizeSupplierName(fournisseur.raisonSociale)
         if (key && !existingByName.has(key)) {
@@ -753,7 +753,7 @@ export function TableuFournisseursManagement() {
               <Input id="adresse" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} placeholder="Ex: Alger Centre" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="nif">NumÃ©ro d'Identification Tableue (NIF)</Label>
+              <Label htmlFor="nif">NumÃ©ro d'Identification tableaue (NIF)</Label>
               <Input id="nif" value={form.nif} onChange={(e) => setForm({ ...form, nif: e.target.value })} placeholder="Ex: 000016001234567" />
             </div>
             <div className="space-y-1.5">

@@ -59,27 +59,27 @@ const actionLabels: Record<string, string> = {
   RESET_PASSWORD: "RÃ©initialiser le mot de passe d'un utilisateur",
   
   // Tableaux
-  TABLEU_SAVE: "Enregistrement d'un tableu",
-  TABLEU_APPROVE: "Approuver un tableu",
-  TABLEU_DELETE: "Suppression d'un tableu",
-  TABLEU_PRINT: "Exporter un tableu en PDF",
-  CREATE_TABLEU: "Ajout d'un tableu",
-  UPDATE_TABLEU: "Modification d'un tableu",
-  DELETE_TABLEU: "Suppression d'un tableu",
-  SUBMIT_TABLEU: "Soumettre un tableu",
-  APPROVE_TABLEU: "Approuver un tableu",
-  REJECT_TABLEU: "Rejeter un tableu",
-  EXPORT_TABLEU: "Exporter un tableu en PDF",
+  tableau_SAVE: "Enregistrement d'un tableau",
+  tableau_APPROVE: "Approuver un tableau",
+  tableau_DELETE: "Suppression d'un tableau",
+  tableau_PRINT: "Exporter un tableau en PDF",
+  CREATE_tableau: "Ajout d'un tableau",
+  UPDATE_tableau: "Modification d'un tableau",
+  DELETE_tableau: "Suppression d'un tableau",
+  SUBMIT_tableau: "Soumettre un tableau",
+  APPROVE_tableau: "Approuver un tableau",
+  REJECT_tableau: "Rejeter un tableau",
+  EXPORT_tableau: "Exporter un tableau en PDF",
 
   // Tableaux Ã©tendus
-  CREATE_TABLEU_TABLEU: "Ajout d'un tableu Ã©tendu",
-  UPDATE_TABLEU_TABLEU: "Modification d'un tableu Ã©tendu",
-  DELETE_TABLEU_TABLEU: "Suppression d'un tableu Ã©tendu",
+  CREATE_tableau_tableau: "Ajout d'un tableau Ã©tendu",
+  UPDATE_tableau_tableau: "Modification d'un tableau Ã©tendu",
+  DELETE_tableau_tableau: "Suppression d'un tableau Ã©tendu",
   LOCK_PERIOD: "Verrouiller une pÃ©riode",
   UNLOCK_PERIOD: "DÃ©verrouiller une pÃ©riode",
 
-  // ParamÃ¨tres tableuux
-  UPDATE_TABLEU_SETTING: "Activer / dÃ©sactiver le Tableau 6",
+  // ParamÃ¨tres tableauux
+  UPDATE_tableau_SETTING: "Activer / dÃ©sactiver le Tableau 6",
   
   // GÃ©nÃ©riques (fallback)
   CREATE: "CrÃ©ation",
@@ -91,8 +91,8 @@ const actionGroups: Record<string, string[]> = {
   "Banques": ["CREATE_BANK", "UPDATE_BANK", "DELETE_BANK"],
   "RÃ©gions": ["CREATE_REGION", "UPDATE_REGION", "DELETE_REGION"],
   "Utilisateurs": ["CREATE_USER", "UPDATE_USER", "DELETE_USER", "RESET_PASSWORD"],
-  "Tableaux": ["TABLEU_SAVE", "TABLEU_APPROVE", "TABLEU_DELETE", "TABLEU_PRINT"],
-  "ParamÃ¨tres tableuux": ["UPDATE_TABLEU_SETTING"]
+  "Tableaux": ["tableau_SAVE", "tableau_APPROVE", "tableau_DELETE", "tableau_PRINT"],
+  "ParamÃ¨tres tableauux": ["UPDATE_tableau_SETTING"]
 };
 
 const fieldLabels: Record<string, string> = {
@@ -118,12 +118,12 @@ const fieldLabels: Record<string, string> = {
   ville: "Ville",
   
   // Tableaux
-  tableuId: "Tableu",
+  tableauId: "tableau",
   direction: "Direction",
   mois: "Mois",
   annee: "AnnÃ©e",
   period: "PÃ©riode",
-  tableuStatus: "Statut du tableu",
+  tableauStatus: "Statut du tableau",
   settingName: "ParamÃ¨tre",
   oldValue: "Ancienne valeur",
   newValue: "Nouvelle valeur",
@@ -135,9 +135,9 @@ const fieldLabels: Record<string, string> = {
   totalAmount: "Montant total",
   
   // Tableaux Ã©tendus
-  tableuTableuId: "Tableu Ã©tendu",
-  tableuYear: "AnnÃ©e tableue",
-  tableuStatus: "Statut tableu",
+  tableautableauId: "tableau Ã©tendu",
+  tableauYear: "AnnÃ©e tableaue",
+  tableauStatus: "Statut tableau",
   
   // Calibrage
   x: "Position X",
