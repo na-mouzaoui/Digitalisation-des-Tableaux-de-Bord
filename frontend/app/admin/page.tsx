@@ -20,7 +20,7 @@ export default function AdminPage() {
       status === "authenticated" &&
       (user as { role?: string } | null)?.role !== "admin"
     ) {
-      router.replace("/tableu_dashbord")
+      router.replace("/dashbord")
     }
   }, [isLoading, status, user, router])
 
@@ -50,9 +50,9 @@ export default function AdminPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => router.push("/tableu_dashbord")}
+              onClick={() => router.push("/dashbord")}
             >
-              Retour Ã  la plateforme
+              Retour a la plateforme
             </Button>
 
             <Button variant="outline" onClick={handleLogout}>

@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
-// Polices Google supprimÃ©es pour compatibilitÃ© VM entreprise
+
 // Les polices systÃ¨me (sans-serif, monospace) sont utilisÃ©es via globals.css
 
 export const metadata: Metadata = {

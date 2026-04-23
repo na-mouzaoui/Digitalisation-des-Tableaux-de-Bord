@@ -105,9 +105,9 @@ export function Sidebar({ user }: SidebarProps) {
             <div className="mt-2">
               <div className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">
                 
-                {/* Lien vers /declaration */}
+                {/* Lien vers /tableu */}
                 <Link
-                  href="/declaration"
+                  href="/tableu"
                   className="flex items-center gap-2 flex-1"
                 >
                   <FilePlus className="h-5 w-5 text-red-500" />
