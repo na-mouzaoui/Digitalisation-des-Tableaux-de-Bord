@@ -1,10 +1,10 @@
-using CheckFillingAPI.Data;
+using DigitalisationDesTableauxDeBordAPI.Data;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
 #nullable disable
 
-namespace CheckFillingAPI.Migrations
+namespace DigitalisationDesTableauxDeBordAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260315093000_AddtableauFournisseurExtendedFields")]

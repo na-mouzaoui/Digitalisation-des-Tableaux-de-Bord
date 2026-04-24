@@ -52,12 +52,12 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
   const normalizedCurrentRole = (currentUser.role || "").trim().toLowerCase()
   const normalizedCurrentRegion = (currentUser.region || "").trim().toLowerCase()
 
-  // Le backend filtre dÃ©jÃ  les chÃ¨ques par rÃ©gion pour les profils rÃ©gionaux.
-  // Le frontend garde la mÃªme logique: mÃªme rÃ©gion, indÃ©pendamment du rÃ´le de l'Ã©metteur.
+  // Le backend filtre déjé les chéques par région pour les profils régionaux.
+  // Le frontend garde la méme logique: méme région, indépendamment du réle de l'émetteur.
   let filteredChecks = normalizedCurrentRole === "regionale" && normalizedCurrentRegion
     ? checks.filter(check => {
         const checkUser = users.find(u => String(u.id) === String(check.userId))
-        // Si l'utilisateur n'est pas trouvÃ© dans la liste, on fait confiance au backend
+        // Si l'utilisateur n'est pas trouvé dans la liste, on fait confiance au backend
         if (!checkUser) return true
         return (checkUser.region || "").trim().toLowerCase() === normalizedCurrentRegion
       })
@@ -77,12 +77,12 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
     })
   }
 
-  // SÃ©parer les chÃ¨ques par statut (traiter les chÃ¨ques sans status comme "emit")
+  // Séparer les chéques par statut (traiter les chéques sans status comme "emit")
   const activeChecks = filteredChecks.filter(c => !c.status || c.status === "emit")
   const canceledChecks = filteredChecks.filter(c => c.status === "annule")
   const rejectedChecks = filteredChecks.filter(c => c.status === "rejete")
 
-  // Recalculer les statistiques avec UNIQUEMENT les chÃ¨ques Ã©mis (status="emit")
+  // Recalculer les statistiques avec UNIQUEMENT les chéques émis (status="emit")
   const filteredStats = {
     totalAmount: activeChecks.reduce((sum, c) => sum + c.amount, 0),
     totalChecks: activeChecks.length,
@@ -179,7 +179,7 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="startDate">Date de dÃ©but</Label>
+                <Label htmlFor="startDate">Date de début</Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -207,7 +207,7 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
                   setEndDate("")
                 }}
               >
-                RÃ©initialiser les filtres
+                Réinitialiser les filtres
               </Button>
             )}
           </CardContent>
@@ -222,13 +222,13 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatNumber(filteredStats.totalAmount || 0)} DZD</div>
-            <p className="text-xs text-muted-foreground">ChÃ¨ques Ã©mis uniquement</p>
+            <p className="text-xs text-muted-foreground">Chéques émis uniquement</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">ChÃ¨ques Ã‰mis</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Chéques ??mis</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -239,23 +239,23 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">ChÃ¨ques AnnulÃ©s</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Chéques Annulés</CardTitle>
             <XCircle className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">{(filteredStats.canceledChecks || 0).toLocaleString('fr-FR')}</div>
-            <p className="text-xs text-muted-foreground">AnnulÃ©s</p>
+            <p className="text-xs text-muted-foreground">Annulés</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">ChÃ¨ques RejetÃ©s</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Chéques Rejetés</CardTitle>
             <AlertTriangle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{(filteredStats.rejectedChecks || 0).toLocaleString('fr-FR')}</div>
-            <p className="text-xs text-muted-foreground">RejetÃ©s</p>
+            <p className="text-xs text-muted-foreground">Rejetés</p>
           </CardContent>
         </Card>
       </div>

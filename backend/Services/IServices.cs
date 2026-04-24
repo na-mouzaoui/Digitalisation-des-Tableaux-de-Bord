@@ -1,6 +1,6 @@
-using CheckFillingAPI.Models;
+using DigitalisationDesTableauxDeBordAPI.Models;
 
-namespace CheckFillingAPI.Services;
+namespace DigitalisationDesTableauxDeBordAPI.Services;
 
 public interface IAuthService
 {

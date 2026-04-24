@@ -68,7 +68,7 @@ export default function AdminRegionConfig() {
     } catch (error) {
       toast({
         title: "Erreur",
-        description: "Impossible de charger les rÃ©gions",
+        description: "Impossible de charger les régions",
         variant: "destructive",
       });
     } finally {
@@ -76,7 +76,7 @@ export default function AdminRegionConfig() {
     }
   };
 
-  // Obtenir toutes les villes dÃ©jÃ  assignÃ©es
+  // Obtenir toutes les villes déjé assignées
   const getAssignedVilles = () => {
     const assigned = new Set<string>();
     regions.forEach(region => {
@@ -107,7 +107,7 @@ export default function AdminRegionConfig() {
     try {
       const body: { villes: string[]; name?: string } = { villes: selectedVilles };
       
-      // Ajouter le nom s'il a Ã©tÃ© modifiÃ©
+      // Ajouter le nom s'il a été modifié
       if (editedName.trim() && editedName !== regions.find(r => r.id === regionId)?.name) {
         body.name = editedName.trim();
       }
@@ -128,8 +128,8 @@ export default function AdminRegionConfig() {
       }
 
       toast({
-        title: "SuccÃ¨s",
-        description: "RÃ©gion mise Ã  jour avec succÃ¨s",
+        title: "Succés",
+        description: "Région mise é jour avec succés",
       });
 
       setEditingRegion(null);
@@ -139,7 +139,7 @@ export default function AdminRegionConfig() {
     } catch (error) {
       toast({
         title: "Erreur",
-        description: "Ã‰chec de la modification",
+        description: "??chec de la modification",
         variant: "destructive",
       });
     }
@@ -155,7 +155,7 @@ export default function AdminRegionConfig() {
     if (!newRegionName.trim()) {
       toast({
         title: "Erreur",
-        description: "Le nom de la rÃ©gion est requis",
+        description: "Le nom de la région est requis",
         variant: "destructive",
       });
       return;
@@ -178,12 +178,12 @@ export default function AdminRegionConfig() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Erreur lors de la crÃ©ation");
+        throw new Error(error.message || "Erreur lors de la création");
       }
 
       toast({
-        title: "SuccÃ¨s",
-        description: "RÃ©gion crÃ©Ã©e avec succÃ¨s",
+        title: "Succés",
+        description: "Région créée avec succés",
       });
 
       setShowCreateDialog(false);
@@ -193,7 +193,7 @@ export default function AdminRegionConfig() {
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error.message || "Ã‰chec de la crÃ©ation",
+        description: error.message || "??chec de la création",
         variant: "destructive",
       });
     }
@@ -216,8 +216,8 @@ export default function AdminRegionConfig() {
       }
 
       toast({
-        title: "SuccÃ¨s",
-        description: "RÃ©gion supprimÃ©e avec succÃ¨s",
+        title: "Succés",
+        description: "Région supprimée avec succés",
       });
 
       setRegionToDelete(null);
@@ -225,7 +225,7 @@ export default function AdminRegionConfig() {
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error.message || "Ã‰chec de la suppression",
+        description: error.message || "??chec de la suppression",
         variant: "destructive",
       });
     }
@@ -267,7 +267,7 @@ export default function AdminRegionConfig() {
       <div className="flex justify-end">
         <Button onClick={() => setShowCreateDialog(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nouvelle rÃ©gion
+          Nouvelle région
         </Button>
       </div>
 
@@ -282,7 +282,7 @@ export default function AdminRegionConfig() {
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
                     className="w-48"
-                    placeholder="Nom de la rÃ©gion"
+                    placeholder="Nom de la région"
                   />
                 ) : (
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getRegionColor(region.name)}`}>
@@ -339,7 +339,7 @@ export default function AdminRegionConfig() {
                         }`}
                       >
                         {ville.name}
-                        {isAssigned && !isSelected && " (assignÃ©e)"}
+                        {isAssigned && !isSelected && " (assignée)"}
                       </Label>
                     </div>
                   );
@@ -359,18 +359,18 @@ export default function AdminRegionConfig() {
       ))}
       </div>
 
-      {/* Dialog de crÃ©ation */}
+      {/* Dialog de création */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>CrÃ©er une nouvelle rÃ©gion</DialogTitle>
+            <DialogTitle>Créer une nouvelle région</DialogTitle>
             <DialogDescription>
-              Entrez le nom de la rÃ©gion et sÃ©lectionnez les villes Ã  assigner
+              Entrez le nom de la région et sélectionnez les villes é assigner
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="region-name">Nom de la rÃ©gion *</Label>
+              <Label htmlFor="region-name">Nom de la région *</Label>
               <Input
                 id="region-name"
                 value={newRegionName}
@@ -379,7 +379,7 @@ export default function AdminRegionConfig() {
               />
             </div>
             <div>
-              <Label>Villes ({newRegionVilles.length} sÃ©lectionnÃ©es)</Label>
+              <Label>Villes ({newRegionVilles.length} sélectionnées)</Label>
               <div className="mt-2 space-y-2 max-h-96 overflow-y-auto border rounded-md p-4">
                 {VILLES.map((ville) => {
                   const isAssigned = assignedVilles.has(ville.name);
@@ -400,7 +400,7 @@ export default function AdminRegionConfig() {
                         }`}
                       >
                         {ville.name}
-                        {isAssigned && " (dÃ©jÃ  assignÃ©e)"}
+                        {isAssigned && " (déjé assignée)"}
                       </Label>
                     </div>
                   );
@@ -416,7 +416,7 @@ export default function AdminRegionConfig() {
             }}>
               Annuler
             </Button>
-            <Button onClick={handleCreateRegion}>CrÃ©er</Button>
+            <Button onClick={handleCreateRegion}>Créer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -427,8 +427,8 @@ export default function AdminRegionConfig() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              ÃŠtes-vous sÃ»r de vouloir supprimer la rÃ©gion <strong>{regionToDelete?.name}</strong> ?
-              Cette action est irrÃ©versible. Les {regionToDelete?.villes.length} villes assignÃ©es seront libÃ©rÃ©es.
+              ?Stes-vous sér de vouloir supprimer la région <strong>{regionToDelete?.name}</strong> ?
+              Cette action est irréversible. Les {regionToDelete?.villes.length} villes assignées seront libérées.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,6 +1,6 @@
-using CheckFillingAPI.Data;
-using CheckFillingAPI.RealTime;
-using CheckFillingAPI.Services;
+using DigitalisationDesTableauxDeBordAPI.Data;
+using DigitalisationDesTableauxDeBordAPI.RealTime;
+using DigitalisationDesTableauxDeBordAPI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.StaticFiles;
@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Kestrel to listen on all network interfaces
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.ListenAnyIP(5241); // Écoute sur 0.0.0.0:5241
+    serverOptions.ListenAnyIP(5241); // écoute sur 0.0.0.0:5241
 });
 
 // Add services to the container.

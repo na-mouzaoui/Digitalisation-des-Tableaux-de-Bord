@@ -342,7 +342,7 @@ export function CheckForm({ user }: CheckFormProps) {
 
   useEffect(() => {
     if (checkbookId) {
-      // Charger automatiquement le premier numÃ©ro disponible
+      // Charger automatiquement le premier numéro disponible
       loadNextReference()
     } else {
       setReference("")
@@ -363,7 +363,7 @@ export function CheckForm({ user }: CheckFormProps) {
         if (available.length === 0) {
           toast({
             title: "Attention",
-            description: "Aucun chÃ©quier disponible pour cette banque",
+            description: "Aucun chéquier disponible pour cette banque",
             variant: "destructive"
           })
         }
@@ -391,7 +391,7 @@ export function CheckForm({ user }: CheckFormProps) {
       const response = await requestWithAuth(`${API_BASE}/api/checks/check-reference?reference=${encodeURIComponent(ref)}`)
       if (response.ok) {
         const data = await response.json()
-        return { unique: !data.exists, error: data.exists ? `La rÃ©fÃ©rence ${ref} est dÃ©jÃ  utilisÃ©e` : undefined }
+        return { unique: !data.exists, error: data.exists ? `La référence ${ref} est déjé utilisée` : undefined }
       }
       return { unique: true }
     } catch (error) {
@@ -427,7 +427,7 @@ export function CheckForm({ user }: CheckFormProps) {
   }
 
   const handleAmountChange = (value: string) => {
-    // VÃ©rifier que la valeur ne contient que des chiffres, espaces, points et virgules
+    // Vérifier que la valeur ne contient que des chiffres, espaces, points et virgules
     const hasInvalidChars = /[^0-9\s.,]/.test(value)
     if (hasInvalidChars) {
       toast({
@@ -462,36 +462,36 @@ export function CheckForm({ user }: CheckFormProps) {
 
   const validateReference = (ref: string, checkbook: Checkbook | undefined): { valid: boolean; error?: string } => {
     if (!checkbook) {
-      return { valid: false, error: "ChÃ©quier non trouvÃ©" }
+      return { valid: false, error: "Chéquier non trouvé" }
     }
 
-    // La rÃ©fÃ©rence doit Ãªtre au format: SÃ‰RIE (2 car.) + NUMÃ‰RO (7 chiffres)
+    // La référence doit étre au format: S??RIE (2 car.) + NUM??RO (7 chiffres)
     if (ref.length !== 9) {
-      return { valid: false, error: "La rÃ©fÃ©rence doit contenir exactement 9 caractÃ¨res (2 lettres + 7 chiffres)" }
+      return { valid: false, error: "La référence doit contenir exactement 9 caractéres (2 lettres + 7 chiffres)" }
     }
 
     const serie = ref.substring(0, 2).toUpperCase()
     const numeroStr = ref.substring(2)
 
-    // VÃ©rifier que la sÃ©rie correspond
+    // Vérifier que la série correspond
     if (serie !== checkbook.serie.toUpperCase()) {
       return { 
         valid: false, 
-        error: `La sÃ©rie "${serie}" ne correspond pas au chÃ©quier sÃ©lectionnÃ© (sÃ©rie attendue: "${checkbook.serie}")` 
+        error: `La série "${serie}" ne correspond pas au chéquier sélectionné (série attendue: "${checkbook.serie}")` 
       }
     }
 
-    // VÃ©rifier que le numÃ©ro est bien un nombre
+    // Vérifier que le numéro est bien un nombre
     const numero = parseInt(numeroStr, 10)
     if (isNaN(numero)) {
-      return { valid: false, error: "Les 7 derniers caractÃ¨res doivent Ãªtre des chiffres" }
+      return { valid: false, error: "Les 7 derniers caractéres doivent étre des chiffres" }
     }
 
-    // VÃ©rifier que le numÃ©ro est dans l'intervalle du chÃ©quier
+    // Vérifier que le numéro est dans l'intervalle du chéquier
     if (numero < checkbook.startNumber || numero > checkbook.endNumber) {
       return { 
         valid: false, 
-        error: `Le numÃ©ro ${numero} n'est pas dans l'intervalle du chÃ©quier (${checkbook.startNumber} - ${checkbook.endNumber})` 
+        error: `Le numéro ${numero} n'est pas dans l'intervalle du chéquier (${checkbook.startNumber} - ${checkbook.endNumber})` 
       }
     }
 
@@ -502,13 +502,13 @@ export function CheckForm({ user }: CheckFormProps) {
     setIsPrinting(true)
     
     try {
-      // Valider la rÃ©fÃ©rence avec le chÃ©quier
+      // Valider la référence avec le chéquier
       const selectedCheckbook = checkbooks.find(cb => cb.id === parseInt(checkbookId))
       const validation = validateReference(reference, selectedCheckbook)
       
       if (!validation.valid) {
         toast({
-          title: "âŒ Erreur de validation",
+          title: "Erreur de validation",
           description: validation.error,
           variant: "destructive"
         })
@@ -516,11 +516,11 @@ export function CheckForm({ user }: CheckFormProps) {
         return
       }
 
-      // VÃ©rifier l'unicitÃ© de la rÃ©fÃ©rence
+      // Vérifier l'unicité de la référence
       const uniqueCheck = await checkReferenceUnique(reference)
       if (!uniqueCheck.unique) {
         toast({
-          title: "âŒ RÃ©fÃ©rence dÃ©jÃ  utilisÃ©e",
+          title: "Reference deja utilisee",
           description: uniqueCheck.error,
           variant: "destructive"
         })
@@ -528,7 +528,7 @@ export function CheckForm({ user }: CheckFormProps) {
         return
       }
 
-      // Sauvegarder le chÃ¨que dans la base de donnÃ©es
+      // Sauvegarder le chéque dans la base de données
       await createCheck({
         userId: user.id.toString(),
         amount: parseAmountToNumber(amount) ?? 0,
@@ -540,7 +540,7 @@ export function CheckForm({ user }: CheckFormProps) {
         checkbookId: checkbookId ? parseInt(checkbookId) : undefined
       })
 
-      // GÃ©nÃ©rer et imprimer le PDF avec les positions de calibrage
+      // Générer et imprimer le PDF avec les positions de calibrage
       const currentBank = banks.find((b) => b.name === bank)
       const positions = currentBank?.positions
       const pdfUrl = currentBank?.pdfUrl
@@ -569,17 +569,17 @@ export function CheckForm({ user }: CheckFormProps) {
         printCheckPDF(pdfBytes)
       } else {
         toast({
-          title: "âš ï¸ Alerte",
-          description: "PDF de la banque ou positions manquants, impression sautÃ©e",
+          title: "Alerte",
+          description: "PDF de la banque ou positions manquants, impression sautée",
         })
       }
 
       toast({
-        title: "âœ“ SuccÃ¨s",
-        description: "ChÃ¨que enregistrÃ© et PDF gÃ©nÃ©rÃ©",
+        title: "Succes",
+        description: "Chéque enregistré et PDF généré",
       })
 
-      // RÃ©initialiser le formulaire aprÃ¨s un dÃ©lai
+      // Réinitialiser le formulaire aprés un délai
       setTimeout(() => {
         setAmount("")
         setAmountInWords("")
@@ -598,7 +598,7 @@ export function CheckForm({ user }: CheckFormProps) {
     } catch (error) {
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Ã‰chec de l'impression",
+        description: error instanceof Error ? error.message : "??chec de l'impression",
         variant: "destructive",
       })
       setIsPrinting(false)
@@ -619,7 +619,7 @@ export function CheckForm({ user }: CheckFormProps) {
                 <Label htmlFor="bank">Banque</Label>
                 <Select value={bank} onValueChange={setBank} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="SÃ©lectionner une banque" />
+                    <SelectValue placeholder="Sélectionner une banque" />
                   </SelectTrigger>
                   <SelectContent>
                       {validBanks.map((b) => (
@@ -632,7 +632,7 @@ export function CheckForm({ user }: CheckFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="checkbook">ChÃ©quier *</Label>
+                <Label htmlFor="checkbook">Chéquier *</Label>
                 <Select 
                   value={checkbookId} 
                   onValueChange={setCheckbookId} 
@@ -640,7 +640,7 @@ export function CheckForm({ user }: CheckFormProps) {
                   required
                 >
                   <SelectTrigger id="checkbook">
-                    <SelectValue placeholder={loadingCheckbooks ? "Chargement..." : "SÃ©lectionner un chÃ©quier"} />
+                    <SelectValue placeholder={loadingCheckbooks ? "Chargement..." : "Sélectionner un chéquier"} />
                   </SelectTrigger>
                   <SelectContent>
                     {checkbooks.map((cb) => (
@@ -652,7 +652,7 @@ export function CheckForm({ user }: CheckFormProps) {
                 </Select>
                 {bank && checkbooks.length === 0 && !loadingCheckbooks && (
                   <p className="text-xs text-emerald-500">
-                    Aucun chÃ©quier disponible
+                    Aucun chéquier disponible
                   </p>
                 )}
               </div>
@@ -682,12 +682,12 @@ export function CheckForm({ user }: CheckFormProps) {
                     disabled={!isBankSelected || !amount}
                   >
                     <RefreshCcw className="mr-1 h-3 w-3" style={{ color: '#e82c2a' }} />
-                    RÃ©gÃ©nÃ©rer
+                    Régénérer
                   </Button>
                 </div>
                 <Textarea
                   id="amountInWords"
-                  placeholder="dix mille dinars algÃ©riens"
+                  placeholder="dix mille dinars algériens"
                   value={amountInWords}
                   onChange={(e) => {
                     setAmountInWords(e.target.value)
@@ -699,7 +699,7 @@ export function CheckForm({ user }: CheckFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="payee">Ã€ l'ordre de</Label>
+                <Label htmlFor="payee">?? l'ordre de</Label>
                 <Select 
                   value={payee} 
                   onValueChange={setPayee} 
@@ -707,7 +707,7 @@ export function CheckForm({ user }: CheckFormProps) {
                   required
                 >
                   <SelectTrigger id="payee">
-                    <SelectValue placeholder="SÃ©lectionner un bÃ©nÃ©ficiaire" />
+                    <SelectValue placeholder="Sélectionner un bénéficiaire" />
                   </SelectTrigger>
                   <SelectContent>
                     {suppliers.map((supplier) => (
@@ -724,7 +724,7 @@ export function CheckForm({ user }: CheckFormProps) {
                   <Label htmlFor="city">Wilaya</Label>
                   <Select value={city} onValueChange={setCity} required disabled={!isBankSelected}>
                     <SelectTrigger>
-                      <SelectValue placeholder="SÃ©lectionner une wilaya" />
+                      <SelectValue placeholder="Sélectionner une wilaya" />
                     </SelectTrigger>
                     <SelectContent>
                       {VILLES.map((wilaya) => {
@@ -736,7 +736,7 @@ export function CheckForm({ user }: CheckFormProps) {
                             disabled={!isCityAllowed}
                             className={!isCityAllowed ? "text-gray-400 cursor-not-allowed" : ""}
                           >
-                            {wilaya.code} - {wilaya.name} {!isCityAllowed && "(Non autorisÃ©)"}
+                            {wilaya.code} - {wilaya.name} {!isCityAllowed && "(Non autorisé)"}
                           </SelectItem>
                         )
                       })}
@@ -758,7 +758,7 @@ export function CheckForm({ user }: CheckFormProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reference">RÃ©fÃ©rence du chÃ¨que</Label>
+                <Label htmlFor="reference">Référence du chéque</Label>
                 <Input
                   id="reference"
                   type="text"
@@ -770,8 +770,8 @@ export function CheckForm({ user }: CheckFormProps) {
                 />
                 <p className="text-xs text-muted-foreground">
                   {checkbookId 
-                    ? "Premier numÃ©ro disponible suggÃ©rÃ© automatiquement (modifiable)" 
-                    : "SÃ©lectionnez un chÃ©quier pour obtenir le numÃ©ro disponible"}
+                    ? "Premier numéro disponible suggéré automatiquement (modifiable)" 
+                    : "Sélectionnez un chéquier pour obtenir le numéro disponible"}
                 </p>
               </div>
 
@@ -783,28 +783,28 @@ export function CheckForm({ user }: CheckFormProps) {
                     // Validation avant impression
                     if (!amount || !payee || !city || !date || !bank) {
                       toast({
-                        title: "âŒ Erreur",
+                        title: "Erreur",
                         description: "Veuillez remplir tous les champs obligatoires",
                         variant: "destructive"
                       })
                       return
                     }
 
-                    // VÃ©rifier que le montant est un nombre valide
+                    // Vérifier que le montant est un nombre valide
                     const numericAmount = parseAmountToNumber(amount)
                     if (numericAmount === null || numericAmount <= 0) {
                       toast({
-                        title: "âŒ Erreur",
-                        description: "Le montant doit Ãªtre un nombre valide et positif",
+                        title: "Erreur",
+                        description: "Le montant doit étre un nombre valide et positif",
                         variant: "destructive"
                       })
                       return
                     }
 
-                    // VÃ©rifier que le montant en lettres n'est pas vide
+                    // Vérifier que le montant en lettres n'est pas vide
                     if (!amountInWords || amountInWords.trim().length === 0) {
                       toast({
-                        title: "âŒ Erreur",
+                        title: "Erreur",
                         description: "Le montant en lettres est requis",
                         variant: "destructive"
                       })
@@ -839,7 +839,7 @@ export function CheckForm({ user }: CheckFormProps) {
             <Card ref={generatedPreviewRef}>
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold">PDF gÃ©nÃ©rÃ©</h3>
+                  <h3 className="text-base font-semibold">PDF généré</h3>
                 </div>
                 <PDFViewer fileUrl={generatedPdfUrl} width={generatedPreviewWidth} className="w-full" />
               </CardContent>

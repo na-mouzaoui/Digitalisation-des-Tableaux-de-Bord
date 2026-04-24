@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
-namespace CheckFillingAPI.RealTime;
+namespace DigitalisationDesTableauxDeBordAPI.RealTime;
 
 [Authorize]
 public class CheckUpdatesHub : Hub

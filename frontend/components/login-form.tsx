@@ -49,14 +49,14 @@ export function LoginForm() {
     <Card>
       <CardHeader>
         <CardTitle>Connexion</CardTitle>
-        <CardDescription>Entrez vos identifiants pour accÃ©der Ã  votre compte</CardDescription>
+        <CardDescription>Entrez vos identifiants pour accéder é votre compte</CardDescription>
       </CardHeader>
       <CardContent>
         {registered && (
           <Alert className="mb-4" style={{ borderColor: '#2db34b', backgroundColor: '#f0fdf4' }}>
             <CheckCircle2 className="h-4 w-4" style={{ color: '#2db34b' }} />
             <AlertDescription style={{ color: '#2db34b' }}>
-              Votre compte a Ã©tÃ© crÃ©Ã© avec succÃ¨s ! Vous pouvez maintenant vous connecter.
+              Votre compte a été créé avec succés ! Vous pouvez maintenant vous connecter.
             </AlertDescription>
           </Alert>
         )}
@@ -78,7 +78,7 @@ export function LoginForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="????????????????????????"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

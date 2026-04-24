@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CheckFillingAPI.Migrations
+namespace DigitalisationDesTableauxDeBordAPI.Migrations
 {
     public partial class AddDisabledTabKeysToAdminSettings : Migration
     {

@@ -1,10 +1,10 @@
-using CheckFillingAPI.Models;
-using CheckFillingAPI.Services;
+using DigitalisationDesTableauxDeBordAPI.Models;
+using DigitalisationDesTableauxDeBordAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace CheckFillingAPI.Controllers;
+namespace DigitalisationDesTableauxDeBordAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -62,7 +62,7 @@ public class AuthController : ControllerBase
 
         if (!success)
         {
-            return BadRequest(new { message = "Cet email est déjà utilisé" });
+            return BadRequest(new { message = "Cet email est déjé utilisé" });
         }
 
         var token = _authService.GenerateJwtToken(user!);
@@ -151,14 +151,14 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Mot de passe actuel incorrect" });
         }
 
-        // Mettre à jour le mot de passe
+        // Mettre é jour le mot de passe
         var success = await _authService.ChangePasswordAsync(int.Parse(userId), request.NewPassword);
         if (!success)
         {
-            return BadRequest(new { message = "Échec de la modification du mot de passe" });
+            return BadRequest(new { message = "échec de la modification du mot de passe" });
         }
 
-        return Ok(new { success = true, message = "Mot de passe modifié avec succès" });
+        return Ok(new { success = true, message = "Mot de passe modifié avec succés" });
     }
 }
 

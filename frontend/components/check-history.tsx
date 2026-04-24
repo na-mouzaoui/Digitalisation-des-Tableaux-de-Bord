@@ -158,7 +158,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
 
     const matchesBank = bankFilter === "all" || check.bank === bankFilter
     const matchesUser = userFilter === "all" || String(check.userId) === userFilter
-    // Traiter les chÃ¨ques sans status comme "emit"
+    // Traiter les chéques sans status comme "emit"
     const checkStatus = check.status || "emit"
     const matchesStatus = statusFilter === "all" || checkStatus === statusFilter
 
@@ -195,8 +195,8 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
     // Validation: motif requis UNIQUEMENT pour annule
     if (newStatus === "annule" && !motif.trim()) {
       toast({
-        title: "âŒ Erreur",
-        description: "Un motif est requis pour annuler un chÃ¨que",
+        title: "Erreur",
+        description: "Un motif est requis pour annuler un chéque",
         variant: "destructive"
       })
       return
@@ -240,18 +240,18 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
       )
 
       toast({
-        title: "âœ“ SuccÃ¨s",
-        description: `Statut du chÃ¨que mis Ã  jour: ${newStatus === "emit" ? "Ã‰mis" : newStatus === "annule" ? "AnnulÃ©" : "RejetÃ©"}`,
+        title: "Succes",
+        description: `Statut du chéque mis é jour: ${newStatus === "emit" ? "??mis" : newStatus === "annule" ? "Annulé" : "Rejeté"}`,
       })
 
       setShowStatusDialog(false)
       
-      // Recharger la page pour mettre Ã  jour les stats
+      // Recharger la page pour mettre é jour les stats
       setTimeout(() => router.refresh(), 500)
     } catch (error: any) {
       toast({
-        title: "âŒ Erreur",
-        description: error.message || "Erreur lors de la mise Ã  jour du statut",
+        title: "Erreur",
+        description: error.message || "Erreur lors de la mise é jour du statut",
         variant: "destructive"
       })
     } finally {
@@ -322,7 +322,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <CardTitle>Historique des ChÃ¨ques</CardTitle>
+          <CardTitle>Historique des Chéques</CardTitle>
           <div className="flex gap-2">
             <Button onClick={() => setShowFilters(!showFilters)} variant="outline" size="sm" className="gap-2">
               <Filter className="h-4 w-4" style={{ color: '#e82c2a' }} />
@@ -341,7 +341,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
 
         {showFilters && (
           <div className="mt-4 rounded-lg border bg-muted/50 p-4">
-            <h3 className="mb-4 text-sm font-semibold text-foreground">Filtres AvancÃ©s</h3>
+            <h3 className="mb-4 text-sm font-semibold text-foreground">Filtres Avancés</h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {/* User Filter */}
               <div>
@@ -388,9 +388,9 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les statuts</SelectItem>
-                    <SelectItem value="emit">Ã‰mis</SelectItem>
-                    <SelectItem value="annule">AnnulÃ©</SelectItem>
-                    <SelectItem value="rejete">RejetÃ©</SelectItem>
+                    <SelectItem value="emit">??mis</SelectItem>
+                    <SelectItem value="annule">Annulé</SelectItem>
+                    <SelectItem value="rejete">Rejeté</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -423,7 +423,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
 
               {/* Start Date */}
               <div>
-                <label className="mb-2 block text-sm font-medium">Date dÃ©but</label>
+                <label className="mb-2 block text-sm font-medium">Date début</label>
                 <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               </div>
 
@@ -436,7 +436,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
 
             <div className="mt-4 flex justify-end">
               <Button onClick={resetFilters} variant="outline" size="sm">
-                RÃ©initialiser
+                Réinitialiser
               </Button>
             </div>
           </div>
@@ -446,7 +446,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4" style={{ color: '#e82c2a' }} />
             <Input
-              placeholder="Rechercher par bÃ©nÃ©ficiaire, rÃ©fÃ©rence ou utilisateur..."
+              placeholder="Rechercher par bénéficiaire, référence ou utilisateur..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -462,7 +462,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                 <TableRow>
                   <TableHead>
                     <Button variant="ghost" size="sm" onClick={() => handleSort('reference')} className="h-8 p-0 font-semibold hover:underline">
-                      RÃ©fÃ©rence
+                      Référence
                     </Button>
                   </TableHead>
                   <TableHead>
@@ -472,7 +472,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" size="sm" onClick={() => handleSort('payee')} className="h-8 p-0 font-semibold hover:underline">
-                      BÃ©nÃ©ficiaire
+                      Bénéficiaire
                     </Button>
                   </TableHead>
                   <TableHead>
@@ -497,7 +497,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                   </TableHead>
                   <TableHead>
                     <Button variant="ghost" size="sm" onClick={() => handleSort('createdAt')} className="h-8 p-0 font-semibold hover:underline">
-                      CrÃ©Ã© le
+                      Créé le
                     </Button>
                   </TableHead>
                   <TableHead>
@@ -513,7 +513,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
               <TableBody>
                 {filteredChecks.map((check) => (
                 <TableRow key={check.reference}>
-                    <TableCell className="font-mono text-sm">{check.reference || "â€”"}</TableCell>
+                  <TableCell className="font-mono text-sm">{check.reference || "??"}</TableCell>
                     <TableCell className="text-sm">{userMap[String(check.userId)] || "Inconnu"}</TableCell>
                     <TableCell className="font-medium">{check.payee}</TableCell>
                     <TableCell>
@@ -523,7 +523,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                     <TableCell className="text-sm">
                       {formatDateFR(check.date)}
                     </TableCell>
-                    <TableCell className="text-sm">{check.city || "â€”"}</TableCell>
+                    <TableCell className="text-sm">{check.city || "??"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatDate(check.createdAt)}</TableCell>
                     <TableCell>
                       {!mounted ? (
@@ -538,8 +538,8 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                           // Interdire le retour vers emit
                           if (check.status !== "emit" && newStatus === "emit") {
                             toast({
-                              title: "âŒ Erreur",
-                              description: "Impossible de revenir au statut 'Ã‰mis' depuis 'AnnulÃ©' ou 'RejetÃ©'",
+                              title: "Erreur",
+                              description: "Impossible de revenir au statut '??mis' depuis 'Annulé' ou 'Rejeté'",
                               variant: "destructive"
                             })
                             return
@@ -550,7 +550,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                             setMotif("")
                             setShowStatusDialog(true)
                           } else if (newStatus === "rejete") {
-                            // Pour rejetÃ©, changer directement sans motif
+                            // Pour rejeté, changer directement sans motif
                             setIsUpdating(true)
                             try {
                               const token = localStorage.getItem("jwt")
@@ -589,16 +589,16 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                               )
 
                               toast({
-                                title: "âœ“ SuccÃ¨s",
-                                description: "Statut du chÃ¨que mis Ã  jour: RejetÃ©",
+                                title: "Succes",
+                                description: "Statut du chéque mis é jour: Rejeté",
                               })
 
-                              // Recharger la page pour mettre Ã  jour les stats
+                              // Recharger la page pour mettre é jour les stats
                               setTimeout(() => router.refresh(), 500)
                             } catch (error: any) {
                               toast({
-                                title: "âŒ Erreur",
-                                description: error.message || "Erreur lors de la mise Ã  jour du statut",
+                                title: "Erreur",
+                                description: error.message || "Erreur lors de la mise é jour du statut",
                                 variant: "destructive"
                               })
                             } finally {
@@ -614,19 +614,19 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                           <SelectItem value="emit">
                             <span className="flex items-center gap-2">
                               <div className="h-2 w-2 rounded-full bg-green-500" />
-                              Ã‰mis
+                              ??mis
                             </span>
                           </SelectItem>
                           <SelectItem value="annule">
                             <span className="flex items-center gap-2">
                               <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                              AnnulÃ©
+                              Annulé
                             </span>
                           </SelectItem>
                           <SelectItem value="rejete">
                             <span className="flex items-center gap-2">
                               <div className="h-2 w-2 rounded-full bg-orange-500" />
-                              RejetÃ©
+                              Rejeté
                             </span>
                           </SelectItem>
                         </SelectContent>
@@ -634,7 +634,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
                       )}
                     </TableCell>
                     <TableCell className="text-sm max-w-xs truncate" title={check.motif || ""}>
-                      {check.motif || "â€”"}
+                      {check.motif || "??"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -643,18 +643,18 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
           </div>
         ) : (
           <div className="flex h-32 items-center justify-center text-muted-foreground">
-            {checks.length === 0 ? "Aucun chÃ¨que Ã©mis pour le moment" : "Aucun rÃ©sultat trouvÃ©"}
+            {checks.length === 0 ? "Aucun chéque émis pour le moment" : "Aucun résultat trouvé"}
           </div>
         )}
 
         {filteredChecks.length > 0 && (
           <div className="mt-4 flex items-center justify-between border-t pt-4">
             <p className="text-sm text-muted-foreground">
-              {filteredChecks.length} chÃ¨que{filteredChecks.length > 1 ? "s" : ""} trouvÃ©
+              {filteredChecks.length} chéque{filteredChecks.length > 1 ? "s" : ""} trouvé
               {filteredChecks.length > 1 ? "s" : ""}
             </p>
             <p className="text-sm font-medium">
-              Total (Ã©mis uniquement):{" "}
+              Total (émis uniquement):{" "}
               <span className="text-lg font-bold" style={{ color: '#2db34b' }}>
                 {formatNumber(filteredChecks.filter(c => !c.status || c.status === "emit").reduce((sum, check) => sum + check.amount, 0))} DZD
               </span>
@@ -667,9 +667,9 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
       <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Annuler le chÃ¨que</DialogTitle>
+            <DialogTitle>Annuler le chéque</DialogTitle>
             <DialogDescription>
-              ChÃ¨que #{selectedCheck?.reference} - {selectedCheck?.payee}
+              Chéque #{selectedCheck?.reference} - {selectedCheck?.payee}
             </DialogDescription>
           </DialogHeader>
 
@@ -691,7 +691,7 @@ export function CheckHistory({ checks: initialChecks, users, banks }: CheckHisto
               Annuler
             </Button>
             <Button onClick={handleUpdateStatus} disabled={isUpdating || !motif.trim()}>
-              {isUpdating ? "Mise Ã  jour..." : "Confirmer"}
+              {isUpdating ? "Mise é jour..." : "Confirmer"}
             </Button>
           </DialogFooter>
         </DialogContent>

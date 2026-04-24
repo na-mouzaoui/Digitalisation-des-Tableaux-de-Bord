@@ -1,9 +1,9 @@
-using CheckFillingAPI.Data;
-using CheckFillingAPI.Models;
+using DigitalisationDesTableauxDeBordAPI.Data;
+using DigitalisationDesTableauxDeBordAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace CheckFillingAPI.Services;
+namespace DigitalisationDesTableauxDeBordAPI.Services;
 
 public interface IAuditService
 {

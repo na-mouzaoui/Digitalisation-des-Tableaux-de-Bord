@@ -111,7 +111,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
 
   const onDocumentLoadSuccess = ({ numPages, pageWidth, pageHeight }: { numPages: number; pageWidth: number; pageHeight: number }) => {
     setNumPages(numPages)
-    // Utiliser la taille native du PDF pour conserver l'Ã©chelle 1:1 durant le calibrage
+    // Utiliser la taille native du PDF pour conserver l'échelle 1:1 durant le calibrage
     setPageWidth(Math.round(pageWidth))
     setPageHeight(Math.round(pageHeight))
   }
@@ -133,7 +133,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
     if (!selectedBank) {
       toast({
         title: "Erreur",
-        description: "Aucune banque sÃ©lectionnÃ©e",
+        description: "Aucune banque sélectionnée",
         variant: "destructive",
       })
       return
@@ -153,8 +153,8 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
       if (response.ok) {
         const result = await response.json()
         toast({
-          title: "âœ“ SuccÃ¨s",
-          description: "Votre calibrage personnel a Ã©tÃ© sauvegardÃ© avec succÃ¨s!",
+          title: "Succes",
+          description: "Votre calibrage personnel a ete sauvegarde avec succes!",
         })
         await loadBanks()
       } else {
@@ -162,10 +162,10 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
         
         const errorMessage = errorData?.error 
           ? `${errorData.error} (Banque ID: ${selectedBank.id})`
-          : `La banque avec l'ID "${selectedBank.id}" n'a pas Ã©tÃ© trouvÃ©e. Code: ${response.status}`
+          : `La banque avec l'ID "${selectedBank.id}" n'a pas été trouvée. Code: ${response.status}`
         
         toast({
-          title: "âœ— Erreur de sauvegarde",
+          title: "Erreur de sauvegarde",
           description: errorMessage,
           variant: "destructive",
         })
@@ -173,7 +173,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Erreur inconnue"
       toast({
-        title: "âœ— Erreur rÃ©seau",
+        title: "Erreur reseau",
         description: `Impossible de se connecter au serveur: ${errorMsg}`,
         variant: "destructive",
       })
@@ -199,7 +199,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
     }))
   }
 
-  const sampleText = "cinquante mille trois cent quarante-deux dinars algÃ©riens"
+  const sampleText = "cinquante mille trois cent quarante-deux dinars algériens"
   const { line1, line2 } = hasSecondLine
     ? splitAmountInWords(sampleText, positions.amountInWords.width, positions.amountInWords.fontSize)
     : { line1: sampleText, line2: "" }
@@ -211,7 +211,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
         <div className="flex-1 overflow-y-auto pr-2 mb-3">
           <div className="space-y-3">
           <div>
-            <Label>SÃ©lectionner une banque</Label>
+            <Label>Sélectionner une banque</Label>
             <Select
               value={selectedBank?.id}
               onValueChange={(id) => {
@@ -297,10 +297,10 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0">0Â°</SelectItem>
-                          <SelectItem value="90">90Â°</SelectItem>
-                          <SelectItem value="180">180Â°</SelectItem>
-                          <SelectItem value="270">270Â°</SelectItem>
+                          <SelectItem value="0">0é</SelectItem>
+                          <SelectItem value="90">90é</SelectItem>
+                          <SelectItem value="180">180é</SelectItem>
+                          <SelectItem value="270">270é</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -391,10 +391,10 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0">0Â°</SelectItem>
-                          <SelectItem value="90">90Â°</SelectItem>
-                          <SelectItem value="180">180Â°</SelectItem>
-                          <SelectItem value="270">270Â°</SelectItem>
+                          <SelectItem value="0">0é</SelectItem>
+                          <SelectItem value="90">90é</SelectItem>
+                          <SelectItem value="180">180é</SelectItem>
+                          <SelectItem value="270">270é</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -465,10 +465,10 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0">0Â°</SelectItem>
-                          <SelectItem value="90">90Â°</SelectItem>
-                          <SelectItem value="180">180Â°</SelectItem>
-                          <SelectItem value="270">270Â°</SelectItem>
+                          <SelectItem value="0">0é</SelectItem>
+                          <SelectItem value="90">90é</SelectItem>
+                          <SelectItem value="180">180é</SelectItem>
+                          <SelectItem value="270">270é</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -480,7 +480,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
               {/* Payee field */}
               <div className="space-y-2 rounded-lg border p-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold">BÃ©nÃ©ficiaire</Label>
+                  <Label className="text-sm font-semibold">Bénéficiaire</Label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -538,10 +538,10 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0">0Â°</SelectItem>
-                          <SelectItem value="90">90Â°</SelectItem>
-                          <SelectItem value="180">180Â°</SelectItem>
-                          <SelectItem value="270">270Â°</SelectItem>
+                          <SelectItem value="0">0é</SelectItem>
+                          <SelectItem value="90">90é</SelectItem>
+                          <SelectItem value="180">180é</SelectItem>
+                          <SelectItem value="270">270é</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -610,10 +610,10 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0">0Â°</SelectItem>
-                          <SelectItem value="90">90Â°</SelectItem>
-                          <SelectItem value="180">180Â°</SelectItem>
-                          <SelectItem value="270">270Â°</SelectItem>
+                          <SelectItem value="0">0é</SelectItem>
+                          <SelectItem value="90">90é</SelectItem>
+                          <SelectItem value="180">180é</SelectItem>
+                          <SelectItem value="270">270é</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -682,10 +682,10 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0">0Â°</SelectItem>
-                          <SelectItem value="90">90Â°</SelectItem>
-                          <SelectItem value="180">180Â°</SelectItem>
-                          <SelectItem value="270">270Â°</SelectItem>
+                          <SelectItem value="0">0é</SelectItem>
+                          <SelectItem value="90">90é</SelectItem>
+                          <SelectItem value="180">180é</SelectItem>
+                          <SelectItem value="270">270é</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -697,7 +697,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
           </div>
         </div>
         
-        {/* Bouton de sauvegarde fixÃ© en bas */}
+        {/* Bouton de sauvegarde fixé en bas */}
         {selectedBank && (
           <div className="pt-3 border-t">
             <Button onClick={handleSave} className="w-full" disabled={isSaving}>
@@ -709,7 +709,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
       </Card>
 
       <Card className="p-4 flex flex-col h-[calc(160vh-200px)]">
-        <h2 className="mb-3 text-lg font-semibold">AperÃ§u du chÃ¨que</h2>
+        <h2 className="mb-3 text-lg font-semibold">Aperéu du chéque</h2>
         {selectedBank ? (
           <div className="flex-1 overflow-auto space-y-3">
             <CheckCanvas
@@ -722,7 +722,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
               values={{
                 city: "Alger",
                 date: new Date().toLocaleDateString("fr-FR"),
-                payee: "M. Exemple BÃ©nÃ©ficiaire",
+                payee: "M. Exemple Bénéficiaire",
                 amount: "50,342",
                 amountLine1: line1,
                 amountLine2: hasSecondLine ? line2 : "",
@@ -733,7 +733,7 @@ export function CalibrationTool({ refreshKey, preSelectedBankId }: CalibrationTo
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center flex-1 text-sm text-muted-foreground bg-gray-50 rounded-lg border border-dashed p-6">
-            <p className="text-center">SÃ©lectionnez une banque pour voir l'aperÃ§u.</p>
+            <p className="text-center">Sélectionnez une banque pour voir l'aperéu.</p>
           </div>
         )}
       </Card>

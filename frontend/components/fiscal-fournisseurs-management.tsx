@@ -98,11 +98,11 @@ const parseCsvLine = (line: string) => {
 const normalizeCsvHeader = (value: string) =>
   value
     .toLowerCase()
-    .replace(/[Ã Ã¢Ã¤]/g, "a")
-    .replace(/[Ã©Ã¨ÃªÃ«]/g, "e")
-    .replace(/[Ã®Ã¯]/g, "i")
-    .replace(/[Ã´Ã¶]/g, "o")
-    .replace(/[Ã¹Ã»Ã¼]/g, "u")
+    .replace(/[???]/g, "a")
+    .replace(/[????]/g, "e")
+    .replace(/[??]/g, "i")
+    .replace(/[??]/g, "o")
+    .replace(/[???]/g, "u")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
 
@@ -241,7 +241,7 @@ export function tableauFournisseursManagement() {
     if (duplicate) {
       toast({
         title: "Validation",
-        description: "Un fournisseur avec ce Nom / Raison Sociale existe dÃ©jÃ .",
+        description: "Un fournisseur avec ce Nom / Raison Sociale existe d?j?.",
         variant: "destructive",
       })
       return
@@ -260,7 +260,7 @@ export function tableauFournisseursManagement() {
         const err = await res.json().catch(() => ({}))
         throw new Error((err as { message?: string }).message ?? "Erreur lors de l'enregistrement.")
       }
-      toast({ title: editTarget ? "Fournisseur modifiÃ©" : "Fournisseur crÃ©Ã©", description: `${form.raisonSociale} a Ã©tÃ© ${editTarget ? "mis Ã  jour" : "ajoutÃ©"}.` })
+      toast({ title: editTarget ? "Fournisseur modifi?" : "Fournisseur cr??", description: `${form.raisonSociale} a ?t? ${editTarget ? "mis ? jour" : "ajout?"}.` })
       setDialogOpen(false)
       fetchFournisseurs()
     } catch (e: unknown) {
@@ -277,7 +277,7 @@ export function tableauFournisseursManagement() {
     try {
       const res = await authFetch(`/api/tableau-fournisseurs/${deleteTarget.id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
-      toast({ title: "SupprimÃ©", description: `${deleteTarget.raisonSociale} a Ã©tÃ© supprimÃ©.` })
+      toast({ title: "Supprim?", description: `${deleteTarget.raisonSociale} a ?t? supprim?.` })
       setDeleteTarget(null)
       fetchFournisseurs()
     } catch {
@@ -335,11 +335,11 @@ export function tableauFournisseursManagement() {
     }
 
     const summary: string[] = []
-    if (created > 0) summary.push(`${created} importÃ©(s)`)
-    if (updated > 0) summary.push(`${updated} modifiÃ©(s)`)
-    if (kept > 0) summary.push(`${kept} conservÃ©(s)`)
-    if (unchangedCount > 0) summary.push(`${unchangedCount} dÃ©jÃ  existant(s)`)
-    if (ignoredCount > 0) summary.push(`${ignoredCount} ligne(s) ignorÃ©e(s)`)
+    if (created > 0) summary.push(`${created} import?(s)`)
+    if (updated > 0) summary.push(`${updated} modifi?(s)`)
+    if (kept > 0) summary.push(`${kept} conserv?(s)`)
+    if (unchangedCount > 0) summary.push(`${unchangedCount} d?j? existant(s)`)
+    if (ignoredCount > 0) summary.push(`${ignoredCount} ligne(s) ignor?e(s)`)
     if (summary.length === 0) summary.push("Aucun changement")
 
     try {
@@ -361,7 +361,7 @@ export function tableauFournisseursManagement() {
     }
 
     toast({
-      title: "Import terminÃ©",
+      title: "Import termin?",
       description: `${summary.join(", ")}${errors > 0 ? `, ${errors} erreur(s)` : ""}.`,
       variant: errors > 0 ? "destructive" : "default",
     })
@@ -463,8 +463,8 @@ export function tableauFournisseursManagement() {
         "Adresse",
         "NIF",
         "Auth. NIF",
-        "NÂ° RC",
-        "Auth. NÂ° RC",
+        "N? RC",
+        "Auth. N? RC",
       ]
       headerRow.height = 22
 
@@ -609,7 +609,7 @@ export function tableauFournisseursManagement() {
       if (parsedRows.length === 0) {
         toast({
           title: "Import CSV",
-          description: ignoredCount > 0 ? "Aucune ligne valide Ã  importer." : "Aucun fournisseur trouvÃ© dans le fichier.",
+          description: ignoredCount > 0 ? "Aucune ligne valide ? importer." : "Aucun fournisseur trouv? dans le fichier.",
           variant: "destructive",
         })
         return
@@ -705,8 +705,8 @@ export function tableauFournisseursManagement() {
               <TableHead>Adresse</TableHead>
               <TableHead>NIF</TableHead>
               <TableHead>Auth. NIF</TableHead>
-              <TableHead>NÂ° RC</TableHead>
-              <TableHead>Auth. NÂ° RC</TableHead>
+              <TableHead>N? RC</TableHead>
+              <TableHead>Auth. N? RC</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -714,17 +714,17 @@ export function tableauFournisseursManagement() {
             {fetching ? (
               <TableRow><TableCell colSpan={8} className="h-32 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" /></TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">{search ? "Aucun rÃ©sultat." : "Aucun fournisseur enregistrÃ©."}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="h-32 text-center text-muted-foreground">{search ? "Aucun r?sultat." : "Aucun fournisseur enregistr?."}</TableCell></TableRow>
             ) : (
               filtered.map((f, idx) => (
                 <TableRow key={f.id}>
                   <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
                   <TableCell className="font-medium">{f.raisonSociale}</TableCell>
-                  <TableCell>{f.adresse || "â€”"}</TableCell>
-                  <TableCell>{f.nif || "â€”"}</TableCell>
-                  <TableCell>{f.authNif || "â€”"}</TableCell>
-                  <TableCell>{f.rc || "â€”"}</TableCell>
-                  <TableCell>{f.authRc || "â€”"}</TableCell>
+                  <TableCell>{f.adresse || "??"}</TableCell>
+                  <TableCell>{f.nif || "??"}</TableCell>
+                  <TableCell>{f.authNif || "??"}</TableCell>
+                  <TableCell>{f.rc || "??"}</TableCell>
+                  <TableCell>{f.authRc || "??"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(f)} title="Modifier"><Pencil className="h-4 w-4" /></Button>
@@ -737,7 +737,7 @@ export function tableauFournisseursManagement() {
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs text-muted-foreground">{filtered.length} fournisseur{filtered.length !== 1 ? "s" : ""}{search && ` (filtrÃ©s sur ${fournisseurs.length} au total)`}</p>
+      <p className="text-xs text-muted-foreground">{filtered.length} fournisseur{filtered.length !== 1 ? "s" : ""}{search && ` (filtr?s sur ${fournisseurs.length} au total)`}</p>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -746,14 +746,14 @@ export function tableauFournisseursManagement() {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label htmlFor="raisonSociale">Nom / Raison Sociale <span className="text-destructive">*</span></Label>
-              <Input id="raisonSociale" value={form.raisonSociale} onChange={(e) => setForm({ ...form, raisonSociale: e.target.value })} placeholder="Ex: SARL ALGÃ‰RIE TÃ‰LÃ‰COMS" />
+              <Input id="raisonSociale" value={form.raisonSociale} onChange={(e) => setForm({ ...form, raisonSociale: e.target.value })} placeholder="Ex: SARL ALG??RIE T??L??COMS" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="adresse">Adresse</Label>
               <Input id="adresse" value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} placeholder="Ex: Alger Centre" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="nif">NumÃ©ro d'Identification tableaue (NIF)</Label>
+              <Label htmlFor="nif">Num?ro d'Identification tableau (NIF)</Label>
               <Input id="nif" value={form.nif} onChange={(e) => setForm({ ...form, nif: e.target.value })} placeholder="Ex: 000016001234567" />
             </div>
             <div className="space-y-1.5">
@@ -761,11 +761,11 @@ export function tableauFournisseursManagement() {
               <Input id="authNif" value={form.authNif} onChange={(e) => setForm({ ...form, authNif: e.target.value })} placeholder="Ex: 2026/00123" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="rc">NÂ° RC</Label>
+              <Label htmlFor="rc">N? RC</Label>
               <Input id="rc" value={form.rc} onChange={(e) => setForm({ ...form, rc: e.target.value })} placeholder="Ex: 16B123456" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="authRc">Auth. NÂ° RC</Label>
+              <Label htmlFor="authRc">Auth. N? RC</Label>
               <Input id="authRc" value={form.authRc} onChange={(e) => setForm({ ...form, authRc: e.target.value })} placeholder="Ex: RC/2026/0145" />
             </div>
           </div>
@@ -773,7 +773,7 @@ export function tableauFournisseursManagement() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Annuler</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editTarget ? "Enregistrer" : "CrÃ©er"}
+              {editTarget ? "Enregistrer" : "Cr?er"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -790,15 +790,15 @@ export function tableauFournisseursManagement() {
       >
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Conflits dÃ©tectÃ©s lors de l'import</DialogTitle>
+            <DialogTitle>Conflits d?tect?s lors de l'import</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              {importConflicts.length} conflit(s) dÃ©tectÃ©(s), {pendingImportCreates.length} nouveau(x) fournisseur(s), {pendingUnchanged} dÃ©jÃ  identique(s).
+              {importConflicts.length} conflit(s) d?tect?(s), {pendingImportCreates.length} nouveau(x) fournisseur(s), {pendingUnchanged} d?j? identique(s).
             </p>
             {pendingIgnoredCount > 0 && (
-              <p className="text-muted-foreground">{pendingIgnoredCount} ligne(s) CSV ont Ã©tÃ© ignorÃ©e(s) (nom vide).</p>
+              <p className="text-muted-foreground">{pendingIgnoredCount} ligne(s) CSV ont ?t? ignor?e(s) (nom vide).</p>
             )}
 
             {importConflicts.map((conflict) => {
@@ -832,19 +832,19 @@ export function tableauFournisseursManagement() {
                   <div className="grid gap-2 text-xs sm:grid-cols-2">
                     <div className="rounded border bg-muted/30 p-2">
                       <p className="mb-1 font-medium text-emerald-700">Existant (base actuelle)</p>
-                      <p>Adresse existante: {conflict.existing.adresse || "â€”"}</p>
-                      <p>NIF existant: {conflict.existing.nif || "â€”"}</p>
-                      <p>Auth. NIF existant: {conflict.existing.authNif || "â€”"}</p>
-                      <p>NÂ° RC existant: {conflict.existing.rc || "â€”"}</p>
-                      <p>Auth. NÂ° RC existant: {conflict.existing.authRc || "â€”"}</p>
+                      <p>Adresse existante: {conflict.existing.adresse || "??"}</p>
+                      <p>NIF existant: {conflict.existing.nif || "??"}</p>
+                      <p>Auth. NIF existant: {conflict.existing.authNif || "??"}</p>
+                      <p>N? RC existant: {conflict.existing.rc || "??"}</p>
+                      <p>Auth. N? RC existant: {conflict.existing.authRc || "??"}</p>
                     </div>
                     <div className="rounded border bg-muted/30 p-2">
                       <p className="mb-1 font-medium text-blue-700">Import (fichier CSV)</p>
-                      <p>Adresse importÃ©e: {conflict.incoming.adresse || "â€”"}</p>
-                      <p>NIF importÃ©: {conflict.incoming.nif || "â€”"}</p>
-                      <p>Auth. NIF importÃ©: {conflict.incoming.authNif || "â€”"}</p>
-                      <p>NÂ° RC importÃ©: {conflict.incoming.rc || "â€”"}</p>
-                      <p>Auth. NÂ° RC importÃ©: {conflict.incoming.authRc || "â€”"}</p>
+                      <p>Adresse import?e: {conflict.incoming.adresse || "??"}</p>
+                      <p>NIF import?: {conflict.incoming.nif || "??"}</p>
+                      <p>Auth. NIF import?: {conflict.incoming.authNif || "??"}</p>
+                      <p>N? RC import?: {conflict.incoming.rc || "??"}</p>
+                      <p>Auth. N? RC import?: {conflict.incoming.authRc || "??"}</p>
                     </div>
                   </div>
                 </div>
@@ -867,7 +867,7 @@ export function tableauFournisseursManagement() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le fournisseur ?</AlertDialogTitle>
-            <AlertDialogDescription>Cette action est irrÃ©versible. <strong>{deleteTarget?.raisonSociale}</strong> sera dÃ©finitivement supprimÃ©.</AlertDialogDescription>
+            <AlertDialogDescription>Cette action est irr?versible. <strong>{deleteTarget?.raisonSociale}</strong> sera d?finitivement supprim?.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Annuler</AlertDialogCancel>
@@ -880,3 +880,4 @@ export function tableauFournisseursManagement() {
     </div>
   )
 }
+

@@ -100,7 +100,7 @@ export default function UserProfileMenu() {
     if (newPassword.length < 6) {
       toast({
         title: "Erreur",
-        description: "Le mot de passe doit contenir au moins 6 caractÃ¨res",
+        description: "Le mot de passe doit contenir au moins 6 caractéres",
         variant: "destructive",
       });
       return;
@@ -123,8 +123,8 @@ export default function UserProfileMenu() {
       }
 
       toast({
-        title: "SuccÃ¨s",
-        description: "Mot de passe modifiÃ© avec succÃ¨s",
+        title: "Succés",
+        description: "Mot de passe modifié avec succés",
       });
 
       setIsPasswordDialogOpen(false);
@@ -134,7 +134,7 @@ export default function UserProfileMenu() {
     } catch (error) {
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Ã‰chec de la modification",
+        description: error instanceof Error ? error.message : "??chec de la modification",
         variant: "destructive",
       });
     }
@@ -205,7 +205,7 @@ export default function UserProfileMenu() {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
-            DÃ©connexion
+            Déconnexion
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

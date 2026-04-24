@@ -11,8 +11,8 @@ import { ReminderData } from "@/lib/tableau-reminders"
 const normalizeDirectionKey = (value: string) => {
   const normalized = (value ?? "").trim().toLowerCase()
   if (!normalized) return ""
-  if (normalized === "siege" || normalized === "siÃ¨ge" || normalized.includes("siege") || normalized.includes("siÃ¨ge")) {
-    return "siÃ¨ge"
+  if (normalized === "siege" || normalized === "siége" || normalized.includes("siege") || normalized.includes("siége")) {
+    return "siége"
   }
   return normalized
 }
@@ -120,7 +120,7 @@ export function RemindersCard({
 
   const remindersForDisplay = useMemo(() => {
     // Utiliser directement les rappels du backend sans recalcul local
-    // Le backend calcule correctement la pÃ©riode tableaue et le deadline
+    // Le backend calcule correctement la période tableau et le deadline
 
     if (isAdmin && selectedDirection === "all") {
       if (availableDirectionOptions.length === 0) {
@@ -137,7 +137,7 @@ export function RemindersCard({
         .filter((reminder) => reminder !== undefined) as ReminderData[]
     }
 
-    // Pour les non-admins ou quand une direction est sÃ©lectionnÃ©e, retourner les rappels directement
+    // Pour les non-admins ou quand une direction est sélectionnée, retourner les rappels directement
     return filteredReminders
   }, [availableDirectionOptions, filteredReminders, isAdmin, selectedDirection])
 
@@ -256,13 +256,13 @@ export function RemindersCard({
       {hasActiveReminder ? (
         <div className="rounded-md bg-red-700 px-3 py-2">
           <p className="text-sm font-semibold text-yellow-300 whitespace-nowrap overflow-hidden text-ellipsis">
-            Rappel: delai proche. Verifiez et completez vos tableaus tableaues en attente ({lastDeadlineLabel})
+            Rappel: delai proche. Verifiez et completez vos tableaux tableaus en attente ({lastDeadlineLabel})
           </p>
         </div>
       ) : (
         <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2">
           <p className="text-sm font-medium text-green-800">
-            Les tableaus de la direction sont a jour. Dernier delai: {lastDeadlineLabel}.
+            Les tableaux de la direction sont a jour. Dernier delai: {lastDeadlineLabel}.
           </p>
         </div>
       )}
@@ -282,7 +282,7 @@ function ReminderKpiRow({
     return (
       <Card className="border-amber-200 bg-amber-50">
         <CardContent className="pt-6">
-          <p className="text-sm text-amber-800">Aucun rappel disponible pour cette pÃ©riode.</p>
+          <p className="text-sm text-amber-800">Aucun rappel disponible pour cette période.</p>
         </CardContent>
       </Card>
     )
@@ -325,7 +325,7 @@ function ReminderKpiRow({
         </div>
         <div>
           <IndicatorBrick
-            label="tableaux approuvÃ©s"
+            label="tableaux approuvés"
             value={`${approvedTabs}/${totalTabs}`}
             icon={<ShieldCheck className="h-4 w-4 text-green-500" />}
             valueClassName="text-green-600"

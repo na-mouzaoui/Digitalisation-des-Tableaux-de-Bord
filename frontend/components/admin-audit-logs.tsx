@@ -47,16 +47,16 @@ const actionLabels: Record<string, string> = {
   UPDATE_BANK: "Modification d'une banque",
   DELETE_BANK: "Suppression d'une banque",
   
-  // RÃ©gions
-  CREATE_REGION: "Ajout d'une rÃ©gion",
-  UPDATE_REGION: "Modification d'une rÃ©gion",
-  DELETE_REGION: "Suppression d'une rÃ©gion",
+  // Régions
+  CREATE_REGION: "Ajout d'une région",
+  UPDATE_REGION: "Modification d'une région",
+  DELETE_REGION: "Suppression d'une région",
   
   // Utilisateurs
   CREATE_USER: "Ajout d'un utilisateur",
   UPDATE_USER: "Modification d'un utilisateur",
   DELETE_USER: "Suppression d'un utilisateur",
-  RESET_PASSWORD: "RÃ©initialiser le mot de passe d'un utilisateur",
+  RESET_PASSWORD: "Réinitialiser le mot de passe d'un utilisateur",
   
   // Tableaux
   tableau_SAVE: "Enregistrement d'un tableau",
@@ -71,28 +71,28 @@ const actionLabels: Record<string, string> = {
   REJECT_tableau: "Rejeter un tableau",
   EXPORT_tableau: "Exporter un tableau en PDF",
 
-  // Tableaux Ã©tendus
-  CREATE_tableau_tableau: "Ajout d'un tableau Ã©tendu",
-  UPDATE_tableau_tableau: "Modification d'un tableau Ã©tendu",
-  DELETE_tableau_tableau: "Suppression d'un tableau Ã©tendu",
-  LOCK_PERIOD: "Verrouiller une pÃ©riode",
-  UNLOCK_PERIOD: "DÃ©verrouiller une pÃ©riode",
+  // Tableaux étendus
+  CREATE_tableau_tableau: "Ajout d'un tableau étendu",
+  UPDATE_tableau_tableau: "Modification d'un tableau étendu",
+  DELETE_tableau_tableau: "Suppression d'un tableau étendu",
+  LOCK_PERIOD: "Verrouiller une période",
+  UNLOCK_PERIOD: "Déverrouiller une période",
 
-  // ParamÃ¨tres tableauux
-  UPDATE_tableau_SETTING: "Activer / dÃ©sactiver le Tableau 6",
+  // Paramétres tableauux
+  UPDATE_tableau_SETTING: "Activer / désactiver le Tableau 6",
   
-  // GÃ©nÃ©riques (fallback)
-  CREATE: "CrÃ©ation",
+  // Génériques (fallback)
+  CREATE: "Création",
   UPDATE: "Modification",
   DELETE: "Suppression"
 };
 
 const actionGroups: Record<string, string[]> = {
   "Banques": ["CREATE_BANK", "UPDATE_BANK", "DELETE_BANK"],
-  "RÃ©gions": ["CREATE_REGION", "UPDATE_REGION", "DELETE_REGION"],
+  "Régions": ["CREATE_REGION", "UPDATE_REGION", "DELETE_REGION"],
   "Utilisateurs": ["CREATE_USER", "UPDATE_USER", "DELETE_USER", "RESET_PASSWORD"],
   "Tableaux": ["tableau_SAVE", "tableau_APPROVE", "tableau_DELETE", "tableau_PRINT"],
-  "ParamÃ¨tres tableauux": ["UPDATE_tableau_SETTING"]
+  "Paramétres tableauux": ["UPDATE_tableau_SETTING"]
 };
 
 const fieldLabels: Record<string, string> = {
@@ -100,18 +100,18 @@ const fieldLabels: Record<string, string> = {
   id: "ID",
   name: "Nom",
   code: "Code",
-  createdAt: "CrÃ©Ã© le",
-  updatedAt: "ModifiÃ© le",
+  createdAt: "Créé le",
+  updatedAt: "Modifié le",
   
   // Banques
   bankId: "Banque",
   bankName: "Nom de la banque",
   bankCode: "Code de la banque",
   
-  // RÃ©gions
-  regionId: "RÃ©gion",
-  regionName: "Nom de la rÃ©gion",
-  regionCode: "Code de la rÃ©gion",
+  // Régions
+  regionId: "Région",
+  regionName: "Nom de la région",
+  regionCode: "Code de la région",
   wilayaId: "Wilaya",
   wilayaName: "Wilaya",
   wilayaCode: "Code Wilaya",
@@ -121,22 +121,22 @@ const fieldLabels: Record<string, string> = {
   tableauId: "tableau",
   direction: "Direction",
   mois: "Mois",
-  annee: "AnnÃ©e",
-  period: "PÃ©riode",
+  annee: "Année",
+  period: "Période",
   tableauStatus: "Statut du tableau",
-  settingName: "ParamÃ¨tre",
+  settingName: "Paramétre",
   oldValue: "Ancienne valeur",
   newValue: "Nouvelle valeur",
   
-  // RÃ©capitulatifs TVA
-  recapId: "RÃ©capitulatif",
+  // Récapitulatifs TVA
+  recapId: "Récapitulatif",
   tvaType: "Type de TVA",
   totalBase: "Base totale",
   totalAmount: "Montant total",
   
-  // Tableaux Ã©tendus
-  tableautableauId: "tableau Ã©tendu",
-  tableauYear: "AnnÃ©e tableaue",
+  // Tableaux étendus
+  tableautableauId: "tableau étendu",
+  tableauYear: "Année tableau",
   tableauStatus: "Statut tableau",
   
   // Calibrage
@@ -149,7 +149,7 @@ const fieldLabels: Record<string, string> = {
   userId: "Utilisateur",
   username: "Nom d'utilisateur",
   fullName: "Nom complet",
-  role: "RÃ´le",
+  role: "Réle",
   password: "Mot de passe",
   UserEmail: "Email utilisateur",
   NewPassword: "Nouveau mot de passe",
@@ -167,7 +167,7 @@ const getActionLabel = (action: string): string => {
   const explicit = actionLabels[action];
   if (explicit) return explicit;
 
-  // Fallback lisible en franÃ§ais pour les actions non mappÃ©es
+  // Fallback lisible en franéais pour les actions non mappées
   return action
     .toLowerCase()
     .split("_")
@@ -374,7 +374,7 @@ export default function AdminAuditLogs() {
 
       {showFilters && (
         <div className="rounded-lg border bg-muted/50 p-4">
-          <h3 className="mb-4 text-sm font-semibold">Filtres AvancÃ©s</h3>
+          <h3 className="mb-4 text-sm font-semibold">Filtres Avancés</h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <Label>Utilisateur</Label>
@@ -418,7 +418,7 @@ export default function AdminAuditLogs() {
             </div>
 
             <div>
-              <Label>Date dÃ©but</Label>
+              <Label>Date début</Label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -438,7 +438,7 @@ export default function AdminAuditLogs() {
 
           <div className="mt-4 flex justify-end">
             <Button onClick={handleReset} variant="outline" size="sm">
-              RÃ©initialiser
+              Réinitialiser
             </Button>
           </div>
         </div>
@@ -447,7 +447,7 @@ export default function AdminAuditLogs() {
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4" style={{ color: '#e82c2a' }} />
         <Input
-          placeholder="Rechercher par utilisateur, action ou dÃ©tails..."
+          placeholder="Rechercher par utilisateur, action ou détails..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -459,7 +459,7 @@ export default function AdminAuditLogs() {
         <div className="text-center py-8">Chargement...</div>
       ) : filteredLogs.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          Aucun log trouvÃ©
+          Aucun log trouvé
         </div>
       ) : (
         <div className="border rounded-lg overflow-x-auto">
@@ -483,7 +483,7 @@ export default function AdminAuditLogs() {
                 </TableHead>
                 <TableHead>
                   <Button variant="ghost" size="sm" onClick={() => handleSort('details')} className="h-8 p-0 font-semibold hover:underline">
-                    DÃ©tails
+                    Détails
                   </Button>
                 </TableHead>
               </TableRow>
@@ -539,16 +539,16 @@ export default function AdminAuditLogs() {
 
       {/* Statistiques */}
       <div className="text-sm text-muted-foreground">
-        Total: {filteredLogs.length} entrÃ©e{filteredLogs.length > 1 ? "s" : ""}
+        Total: {filteredLogs.length} entrée{filteredLogs.length > 1 ? "s" : ""}
       </div>
 
-      {/* Dialog dÃ©tails */}
+      {/* Dialog détails */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>DÃ©tails de l'action</DialogTitle>
+            <DialogTitle>Détails de l'action</DialogTitle>
             <DialogDescription>
-              Informations complÃ¨tes sur cette action d'audit
+              Informations complétes sur cette action d'audit
             </DialogDescription>
           </DialogHeader>
           {selectedLog && (
@@ -572,23 +572,23 @@ export default function AdminAuditLogs() {
                     {(() => {
                       const timestamp = new Date(selectedLog.createdAt);
                       const isValidDate = !isNaN(timestamp.getTime());
-                      return isValidDate ? format(timestamp, "dd MMMM yyyy 'Ã ' HH:mm:ss", { locale: fr }) : selectedLog.createdAt;
+                      return isValidDate ? format(timestamp, "dd MMMM yyyy 'é' HH:mm:ss", { locale: fr }) : selectedLog.createdAt;
                     })()}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold text-muted-foreground">Type d'entitÃ©</Label>
+                  <Label className="text-sm font-semibold text-muted-foreground">Type d'entité</Label>
                   <p className="mt-1">{selectedLog.entityType || "-"}</p>
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-semibold text-muted-foreground">DÃ©tails complets</Label>
+                <Label className="text-sm font-semibold text-muted-foreground">Détails complets</Label>
                 <div className="mt-1 p-3 bg-muted rounded-md max-h-96 overflow-y-auto">
                   {(() => {
                     const parsedDetails = parseDetails(selectedLog.details);
                     
                     if (!parsedDetails) {
-                      return <p className="text-sm text-muted-foreground">Aucun dÃ©tail disponible</p>;
+                      return <p className="text-sm text-muted-foreground">Aucun détail disponible</p>;
                     }
                     
                     if (typeof parsedDetails === 'object' && parsedDetails !== null) {

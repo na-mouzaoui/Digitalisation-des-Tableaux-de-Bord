@@ -124,17 +124,17 @@ export default function AuditLogViewer() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Toutes</SelectItem>
-              <SelectItem value="CREATE_BANK">CrÃ©er banque</SelectItem>
+              <SelectItem value="CREATE_BANK">Créer banque</SelectItem>
               <SelectItem value="UPDATE_BANK">Modifier banque</SelectItem>
               <SelectItem value="DELETE_BANK">Supprimer banque</SelectItem>
-              <SelectItem value="CREATE_USER">CrÃ©er utilisateur</SelectItem>
+              <SelectItem value="CREATE_USER">Créer utilisateur</SelectItem>
               <SelectItem value="UPDATE_USER">Modifier utilisateur</SelectItem>
               <SelectItem value="DELETE_USER">Supprimer utilisateur</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Date de dÃ©but</Label>
+          <Label>Date de début</Label>
           <Input
             type="date"
             value={fromDate}
@@ -154,7 +154,7 @@ export default function AuditLogViewer() {
             Filtrer
           </Button>
           <Button onClick={handleResetFilters} variant="outline">
-            RÃ©initialiser
+            Réinitialiser
           </Button>
         </div>
       </div>
@@ -168,15 +168,15 @@ export default function AuditLogViewer() {
               <TableHead>Utilisateur</TableHead>
               <TableHead>Action</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>ID EntitÃ©</TableHead>
-              <TableHead className="min-w-[300px]">DÃ©tails</TableHead>
+              <TableHead>ID Entité</TableHead>
+              <TableHead className="min-w-[300px]">Détails</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {logs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  Aucune action enregistrÃ©e
+                  Aucune action enregistrée
                 </TableCell>
               </TableRow>
             ) : (

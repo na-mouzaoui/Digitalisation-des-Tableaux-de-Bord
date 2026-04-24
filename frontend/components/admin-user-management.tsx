@@ -44,8 +44,8 @@ const ROLE_OPTIONS = [
     value: "direction",
     label: "Global",
     privileges: [
-      "Accès complet à toutes les régions",
-      "Accès aux tableaus tableaues de toutes les directions",
+      "Accés complet é toutes les régions",
+      "Accés aux tableaux tableaus de toutes les directions",
       "Supervision des workflows tableauux",
     ],
   },
@@ -53,18 +53,18 @@ const ROLE_OPTIONS = [
     value: "comptabilite",
     label: "Finance",
     privileges: [
-      "Accès aux fonctionnalités financières",
-      "Gestion des tableaus tableaues",
-      "Validation des tableaus siège",
+      "Accés aux fonctionnalités financiéres",
+      "Gestion des tableaux tableaus",
+      "Validation des tableaux siége",
     ],
   },
   {
     value: "regionale",
     label: "Régionale",
     privileges: [
-      "Accès limité à sa région assignée uniquement",
+      "Accés limité é sa région assignée uniquement",
       "Consultation de l'historique de sa région",
-      "Validation des tableaus régionales",
+      "Validation des tableaux régionales",
     ],
   },
 ];
@@ -111,7 +111,7 @@ function RoleSelector({
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-[220px] text-xs">
-              <p className="font-semibold mb-1">Privilèges — {opt.label}</p>
+              <p className="font-semibold mb-1">Priviléges - {opt.label}</p>
               <ul className="space-y-0.5 list-disc list-inside">
                 {opt.privileges.map((p) => (
                   <li key={p}>{p}</li>
@@ -237,7 +237,7 @@ export default function AdminUserManagement() {
     if (formData.role === "regionale" && !formData.region) {
       toast({
         title: "Erreur de validation",
-        description: "La région est obligatoire pour le rôle régionale",
+        description: "La région est obligatoire pour le réle régionale",
         variant: "destructive",
       });
       return;
@@ -266,8 +266,8 @@ export default function AdminUserManagement() {
       }
 
       toast({
-        title: "Succès",
-        description: "Utilisateur créé avec succès",
+        title: "Succés",
+        description: "Utilisateur créé avec succés",
       });
 
       setIsCreateOpen(false);
@@ -276,7 +276,7 @@ export default function AdminUserManagement() {
     } catch (error) {
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Échec de la création",
+        description: error instanceof Error ? error.message : "échec de la création",
         variant: "destructive",
       });
     }
@@ -308,8 +308,8 @@ export default function AdminUserManagement() {
       }
 
       toast({
-        title: "Succès",
-        description: "Utilisateur modifié avec succès",
+        title: "Succés",
+        description: "Utilisateur modifié avec succés",
       });
 
       setIsEditOpen(false);
@@ -319,14 +319,14 @@ export default function AdminUserManagement() {
     } catch (error) {
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Échec de la modification",
+        description: error instanceof Error ? error.message : "échec de la modification",
         variant: "destructive",
       });
     }
   };
 
   const handleDelete = async (userId: number) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) return;
+    if (!confirm("étes-vous sér de vouloir supprimer cet utilisateur ?")) return;
 
     try {
       const token = localStorage.getItem("jwt");
@@ -342,22 +342,22 @@ export default function AdminUserManagement() {
       }
 
       toast({
-        title: "Succès",
-        description: "Utilisateur supprimé avec succès",
+        title: "Succés",
+        description: "Utilisateur supprimé avec succés",
       });
 
       fetchUsers();
     } catch (error) {
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Échec de la suppression",
+        description: error instanceof Error ? error.message : "échec de la suppression",
         variant: "destructive",
       });
     }
   };
 
   const handleResetPassword = async (userId: number, userEmail: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir réinitialiser le mot de passe de ${userEmail} à "123456789" ?`)) return;
+    if (!confirm(`étes-vous sér de vouloir réinitialiser le mot de passe de ${userEmail} é "123456789" ?`)) return;
 
     try {
       const token = localStorage.getItem("jwt");
@@ -373,13 +373,13 @@ export default function AdminUserManagement() {
       }
 
       toast({
-        title: "Succès",
-        description: "Mot de passe réinitialisé à 123456789",
+        title: "Succés",
+        description: "Mot de passe réinitialisé é 123456789",
       });
     } catch (error) {
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Échec de la réinitialisation",
+        description: error instanceof Error ? error.message : "échec de la réinitialisation",
         variant: "destructive",
       });
     }
@@ -527,14 +527,14 @@ export default function AdminUserManagement() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Rôle *</Label>
+                <Label>Réle *</Label>
                 <RoleSelector
                   value={formData.role}
                   onChange={(value) => setFormData({ ...formData, role: value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Accès aux modules *</Label>
+                <Label>Accés aux modules *</Label>
                 <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
                   tableauité
                 </div>
@@ -563,7 +563,7 @@ export default function AdminUserManagement() {
                       checked={formData.isRegionalApprover}
                       onChange={(e) => setFormData({ ...formData, isRegionalApprover: e.target.checked })}
                     />
-                    Compte approbateur régional (peut approuver les tableaus de la même région)
+                    Compte approbateur régional (peut approuver les tableaux de la méme région)
                   </label>
                 </div>
               )}
@@ -575,7 +575,7 @@ export default function AdminUserManagement() {
                     checked={formData.isFinanceApprover}
                     onChange={(e) => setFormData({ ...formData, isFinanceApprover: e.target.checked })}
                   />
-                  Compte approbateur finance (peut approuver les tableaus du niveau Siège)
+                  Compte approbateur finance (peut approuver les tableaux du niveau Siége)
                 </label>
               )}
             </div>
@@ -597,7 +597,7 @@ export default function AdminUserManagement() {
               <TableHead>Email</TableHead>
               <TableHead>Direction</TableHead>
               <TableHead>Téléphone</TableHead>
-              <TableHead>Rôle</TableHead>
+              <TableHead>Réle</TableHead>
               <TableHead>Région</TableHead>
               <TableHead>Approbateur</TableHead>
               <TableHead>Modules</TableHead>
@@ -730,14 +730,14 @@ export default function AdminUserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Rôle</Label>
+              <Label>Réle</Label>
               <RoleSelector
                 value={formData.role}
                 onChange={(value) => setFormData({ ...formData, role: value })}
               />
             </div>
             <div className="space-y-2">
-              <Label>Accès aux modules</Label>
+              <Label>Accés aux modules</Label>
               <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
                 tableauité
               </div>

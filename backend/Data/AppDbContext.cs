@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using CheckFillingAPI.Models;
+using DigitalisationDesTableauxDeBordAPI.Models;
 
-namespace CheckFillingAPI.Data;
+namespace DigitalisationDesTableauxDeBordAPI.Data;
 
 public class AppDbContext : DbContext
 {
@@ -134,7 +134,7 @@ public class AppDbContext : DbContext
             new Region { Id = 1, Name = "nord", VillesJson = "[\"Alger\", \"Tipaza\", \"Boumerdes\", \"Blida\", \"Ain Defla\"]", CreatedAt = seedCreatedAt },
             new Region { Id = 2, Name = "sud", VillesJson = "[\"Ouargla\", \"Ghardaia\", \"Tamanrasset\", \"Adrar\", \"Illizi\"]", CreatedAt = seedCreatedAt },
             new Region { Id = 3, Name = "est", VillesJson = "[\"Constantine\", \"Annaba\", \"Sétif\", \"Batna\", \"Guelma\"]", CreatedAt = seedCreatedAt },
-            new Region { Id = 4, Name = "ouest", VillesJson = "[\"Oran\", \"Tlemcen\", \"Sidi Bel Abbès\", \"Mostaganem\", \"Mascara\"]", CreatedAt = seedCreatedAt }
+            new Region { Id = 4, Name = "ouest", VillesJson = "[\"Oran\", \"Tlemcen\", \"Sidi Bel Abbés\", \"Mostaganem\", \"Mascara\"]", CreatedAt = seedCreatedAt }
         );
 
         modelBuilder.Entity<AdminSetting>().HasData(

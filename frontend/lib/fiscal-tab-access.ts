@@ -35,7 +35,7 @@ export const isFinancetableauRole = (role?: string | null) => {
 
 export const isHeadOfficeDirection = (direction?: string | null) => {
   const normalizedDirection = normalizeDirection(direction)
-  return normalizedDirection === "siege" || normalizedDirection === "siÃ¨ge"
+  return normalizedDirection === "siege" || normalizedDirection === "siége"
 }
 
 const getPolicyForRole = (role?: string | null) => {

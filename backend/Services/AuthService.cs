@@ -1,12 +1,12 @@
-using CheckFillingAPI.Data;
-using CheckFillingAPI.Models;
+using DigitalisationDesTableauxDeBordAPI.Data;
+using DigitalisationDesTableauxDeBordAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace CheckFillingAPI.Services;
+namespace DigitalisationDesTableauxDeBordAPI.Services;
 
 public class AuthService : IAuthService
 {

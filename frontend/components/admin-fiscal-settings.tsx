@@ -135,7 +135,7 @@ export default function AdmintableauSettings() {
                 </Label>
                 <p className="text-xs text-muted-foreground">
                   {tab.isEnabled ? "Actif" : "Desactive"}
-                  {isSaving ? " • Enregistrement..." : ""}
+                  {isSaving ? " . Enregistrement..." : ""}
                 </p>
               </div>
             </div>

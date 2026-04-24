@@ -6,7 +6,7 @@ export interface FieldPosition {
   y: number // Position verticale (px)
   width: number // Largeur disponible pour le champ (px)
   fontSize: number // Taille de la police (px)
-  rotation: number // Rotation en degrÃ©s (optionnel)
+  rotation: number // Rotation en degrés (optionnel)
 }
 
 export interface CheckTemplate {
@@ -29,7 +29,7 @@ export interface CheckTemplate {
 export const checkTemplates: Record<string, CheckTemplate> = {
   BNA: {
     bankCode: "BNA",
-    bankName: "BNA - Banque Nationale d'AlgÃ©rie",
+    bankName: "BNA - Banque Nationale d'Algérie",
     positions: {
       city: { x: 301, y: 215, width: 80, fontSize: 14, rotation: 270 },
       date: { x: 301, y: 125, width: 78, fontSize: 13, rotation: 270 },

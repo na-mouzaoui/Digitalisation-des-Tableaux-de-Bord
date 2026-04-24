@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using CheckFillingAPI.Data;
-using CheckFillingAPI.Models;
-using CheckFillingAPI.Services;
+using DigitalisationDesTableauxDeBordAPI.Data;
+using DigitalisationDesTableauxDeBordAPI.Models;
+using DigitalisationDesTableauxDeBordAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Security.Claims;
 
-namespace CheckFillingAPI.Controllers;
+namespace DigitalisationDesTableauxDeBordAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -88,13 +88,13 @@ public class RegionsController : ControllerBase
 
         var oldValues = new { region.Name, Villes = JsonSerializer.Deserialize<List<string>>(region.VillesJson) };
 
-        // Mettre à jour le nom si fourni
+        // Mettre é jour le nom si fourni
         if (!string.IsNullOrWhiteSpace(request.Name))
         {
             region.Name = request.Name;
         }
 
-        // Mettre à jour les villes (même si la liste est vide pour permettre la dé-assignation)
+        // Mettre é jour les villes (méme si la liste est vide pour permettre la dé-assignation)
         if (request.Villes != null)
         {
             region.VillesJson = JsonSerializer.Serialize(request.Villes);
@@ -130,11 +130,11 @@ public class RegionsController : ControllerBase
             return BadRequest(new { message = "Le nom de la région est requis" });
         }
 
-        // Vérifier si une région avec ce nom existe déjà
+        // Vérifier si une région avec ce nom existe déjé
         var existingRegion = await _context.Regions.FirstOrDefaultAsync(r => r.Name == request.Name);
         if (existingRegion != null)
         {
-            return Conflict(new { message = "Une région avec ce nom existe déjà" });
+            return Conflict(new { message = "Une région avec ce nom existe déjé" });
         }
 
         var region = new Region
@@ -175,11 +175,11 @@ public class RegionsController : ControllerBase
             return NotFound(new { message = "Région non trouvée" });
         }
 
-        // Vérifier s'il y a des utilisateurs associés à cette région
+        // Vérifier s'il y a des utilisateurs associés é cette région
         var usersInRegion = await _context.Users.AnyAsync(u => u.Region == region.Name);
         if (usersInRegion)
         {
-            return BadRequest(new { message = "Impossible de supprimer une région assignée à des utilisateurs" });
+            return BadRequest(new { message = "Impossible de supprimer une région assignée é des utilisateurs" });
         }
 
         var deletedData = new

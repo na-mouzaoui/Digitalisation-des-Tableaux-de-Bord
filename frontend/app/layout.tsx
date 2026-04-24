@@ -4,11 +4,11 @@ import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 
-// Les polices systÃ¨me (sans-serif, monospace) sont utilisÃ©es via globals.css
+// Les polices systéme (sans-serif, monospace) sont utilisées via globals.css
 
 export const metadata: Metadata = {
   title: "Tableau de bord",
-  description: "Tableau de bord - Application de gestion des tableaus tableaues",
+  description: "Tableau de bord - Application de gestion des tableaux tableaus",
   generator: "v0.app",
   icons: {
     icon: "/favicon.ico",
@@ -26,7 +26,7 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         {children}
         <Toaster />
-        {/* Vercel Analytics supprimÃ© */}
+        {/* Vercel Analytics supprimé */}
       </body>
     </html>
   )

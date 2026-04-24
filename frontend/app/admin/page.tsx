@@ -57,7 +57,7 @@ export default function AdminPage() {
             </Button>
 
             <Button variant="outline" onClick={handleLogout}>
-              DÃ©connexion
+              Déconnexion
             </Button>
           </div>
         </div>

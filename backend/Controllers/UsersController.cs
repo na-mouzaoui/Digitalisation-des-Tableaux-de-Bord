@@ -1,9 +1,9 @@
-using CheckFillingAPI.Data;
+using DigitalisationDesTableauxDeBordAPI.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace CheckFillingAPI.Controllers;
+namespace DigitalisationDesTableauxDeBordAPI.Controllers;
 
 [Authorize]
 [ApiController]

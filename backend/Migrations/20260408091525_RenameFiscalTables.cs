@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CheckFillingAPI.Migrations
+namespace DigitalisationDesTableauxDeBordAPI.Migrations
 {
     /// <inheritdoc />
     public partial class RenametableauTables : Migration
@@ -62,7 +62,7 @@ BEGIN
         ADD CONSTRAINT [FK_tableau_Users_ApprovedByUserId]
             FOREIGN KEY([ApprovedByUserId]) REFERENCES [dbo].[Users]([Id]) ON DELETE NO ACTION;
 
-    -- ✅ CORRECTION : CASCADE → NO ACTION pour éviter le cycle de cascade
+    -- ? CORRECTION : CASCADE ? NO ACTION pour éviter le cycle de cascade
     IF COL_LENGTH(N'[dbo].[tableau]', N'UserId') IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_tableau_Users_UserId')
         ALTER TABLE [dbo].[tableau] WITH CHECK
@@ -169,7 +169,7 @@ END
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
 
-            // ✅ CORRECTION aussi dans Down()
+            // ? CORRECTION aussi dans Down()
             migrationBuilder.AddForeignKey(
                 name: "FK_tableau_Users_UserId",
                 table: "tableau",

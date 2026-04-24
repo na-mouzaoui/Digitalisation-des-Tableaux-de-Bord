@@ -52,7 +52,7 @@ const IRG_LABELS = [
 ]
 const TAXE2_LABELS = ["Taxe sur l'importation des biens et services"]
 const TAXE12_LABELS = ["Taxe de Formation Professionnelle 1%", "Taxe d'Apprentissage 1%"]
-const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Août","Sept","Oct","Nov","Déc"]
+const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Aoét","Sept","Oct","Nov","Déc"]
 
 interface Savedtableau {
   id: string
@@ -244,7 +244,7 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
 
 const MONTHS: Record<string, string> = {
   "01": "Janvier", "02": "Février", "03": "Mars", "04": "Avril",
-  "05": "Mai", "06": "Juin", "07": "Juillet", "08": "Août",
+  "05": "Mai", "06": "Juin", "07": "Juillet", "08": "Aoét",
   "09": "Septembre", "10": "Octobre", "11": "Novembre", "12": "Décembre",
 }
 
@@ -255,7 +255,7 @@ const DASH_TABS = [
   { key: "droits_timbre", label: "4 - Droits Timbre",      color: "#0891b2", title: "ETAT DROITS DE TIMBRE" },
   { key: "ca_tap",        label: "5 - CA 7% & CA Glob 1%", color: "#ea580c", title: "CA 7% & CA GLOBAL 1%" },
   { key: "etat_tap",      label: "6 - ETAT TAP",           color: "#be123c", title: "ETAT TAP" },
-  { key: "ca_siege",      label: "7 a CA Siège",           color: "#854d0e", title: "CHIFFRE D'AFFAIRE ENCAISSÉ SIÈGE" },
+  { key: "ca_siege",      label: "7 a CA Siége",           color: "#854d0e", title: "CHIFFRE D'AFFAIRE ENCAISSé SIéGE" },
   { key: "irg",           label: "8 a Situation IRG",      color: "#0f766e", title: "SITUATION IRG" },
   { key: "taxe2",         label: "9 a Taxe 2%",            color: "#6d28d9", title: "SITUATION DE LA TAXE 2%" },
   { key: "taxe_masters",  label: "10 a Taxe des Master 1,5%", color: "#0369a1", title: "ÉTAT DE LA TAXE 1,5% DES MASTERS" },
@@ -375,7 +375,7 @@ const resolveEncaissementAmounts = (row: EncRow) => {
     return { ht, tva, ttc: ht + tva }
   }
 
-  // Backward compatibility for tableaus saved with TTC as input.
+  // Backward compatibility for tableaux saved with TTC as input.
   const ttc = num(row.ttc ?? "")
   const ht = ttc / 1.19
   return { ht, tva: ttc - ht, ttc }
@@ -449,7 +449,7 @@ function TvaTable({ rows, totalLabel = "TOTAL" }: { rows: TvaRow[]; totalLabel?:
     <Table>
       <TableHeader>
         <TableRow>
-          {["Nom et prénoms /Raison sociale","Adresse","NIF","Authentification du NIF","RC n°","Authentification du n°RC","Facture n°","Date","Montant HT", "TVA","Montant TTC"].map((h) => (
+          {["Nom et prénoms /Raison sociale","Adresse","NIF","Authentification du NIF","RC né","Authentification du néRC","Facture né","Date","Montant HT", "TVA","Montant TTC"].map((h) => (
             <TableHead key={h} className={["Montant HT", "TVA", "Montant TTC"].includes(h) ? "text-right" : undefined}>{h}</TableHead>
           ))}
         </TableRow>
@@ -595,7 +595,7 @@ function CaSiegeTable({ rows }: { rows: SiegeEncRow[] }) {
     { label: "TOTAL 1", ttc: fmt(t1ttc), ht: fmt(t1ht), total: true },
     ...g2.map((r, i) => ({ label: SIEGE_G2_LABELS[i], ttc: fmt(r.ttc), ht: fmt(r.ht) })),
     { label: "TOTAL 2", ttc: fmt(t2ttc), ht: fmt(t2ht), total: true },
-    { label: "TOTAL GÉNÉRAL", ttc: fmt(t1ttc + t2ttc), ht: fmt(t1ht + t2ht), total: true },
+    { label: "TOTAL GéNéRAL", ttc: fmt(t1ttc + t2ttc), ht: fmt(t1ht + t2ht), total: true },
   ]
   return (
     <Table>
@@ -683,7 +683,7 @@ function MastersTable({ rows }: { rows: MasterRow[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          {["#","Date","Nom du Master","N° Facture","Date Facture","Montant HT","Taxe 1,5%","Mois","Observation"].map(h=><TableHead key={h} className={["Montant HT","Taxe 1,5%"].includes(h) ? "text-right" : undefined}>{h}</TableHead>)}
+          {["#","Date","Nom du Master","Né Facture","Date Facture","Montant HT","Taxe 1,5%","Mois","Observation"].map(h=><TableHead key={h} className={["Montant HT","Taxe 1,5%"].includes(h) ? "text-right" : undefined}>{h}</TableHead>)}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -828,7 +828,7 @@ function Taxe15Table({ rows }: { rows: Taxe15Row[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          {["#","N° Facture","Date Facture","Raison Sociale","Mont. Net Devise","Monnaie","Taux Change","Mont. Dinars","Taux Taxe","Mont. A Payer"].map(h=><TableHead key={h} className={["Mont. Net Devise","Mont. Dinars","Mont. A Payer"].includes(h) ? "text-right" : undefined}>{h}</TableHead>)}
+          {["#","Né Facture","Date Facture","Raison Sociale","Mont. Net Devise","Monnaie","Taux Change","Mont. Dinars","Taux Taxe","Mont. A Payer"].map(h=><TableHead key={h} className={["Mont. Net Devise","Mont. Dinars","Mont. A Payer"].includes(h) ? "text-right" : undefined}>{h}</TableHead>)}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -865,7 +865,7 @@ function Tva16Table({ rows }: { rows: Tva16Row[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          {["#","N° Facture","Mont. Brut Devises","Taux Change","Mont. Brut Dinars","TVA 19%"].map(h=><TableHead key={h} className={["Mont. Brut Devises","Mont. Brut Dinars","TVA 19%"].includes(h) ? "text-right" : undefined}>{h}</TableHead>)}
+          {["#","Né Facture","Mont. Brut Devises","Taux Change","Mont. Brut Dinars","TVA 19%"].map(h=><TableHead key={h} className={["Mont. Brut Devises","Mont. Brut Dinars","TVA 19%"].includes(h) ? "text-right" : undefined}>{h}</TableHead>)}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -1019,7 +1019,7 @@ export default function tableauDashboardPage() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const router = useRouter()
   const { toast } = useToast()
-  const [tableaus, settableaus] = useState<Savedtableau[]>([])
+  const [tableaux, settableaux] = useState<Savedtableau[]>([])
   const [recaps, setRecaps] = useState<SavedRecap[]>([])
   const [viewDecl, setViewDecl] = useState<Savedtableau | null>(null)
   const [viewRecap, setViewRecap] = useState<SavedRecap | null>(null)
@@ -1049,19 +1049,19 @@ export default function tableauDashboardPage() {
   const normalizedRegion = (user?.region ?? "").trim().toLowerCase()
   const isFinanceRole = normalizedRole === "finance" || normalizedRole === "comptabilite"
   const isAdminRole = normalizedRole === "admin"
-  const canApproveRegionaltableaus = normalizedRole === "regionale" && !!user?.isRegionalApprover
-  const canApproveFinancetableaus = isFinanceRole && !!user?.isFinanceApprover
+  const canApproveRegionaltableaux = normalizedRole === "regionale" && !!user?.isRegionalApprover
+  const canApproveFinancetableaux = isFinanceRole && !!user?.isFinanceApprover
 
 
   useEffect(() => {
     if (!user || status !== "authenticated") {
-      settableaus([])
+      settableaux([])
       return
     }
 
     let cancelled = false
 
-    const loadtableaus = async () => {
+    const loadtableaux = async () => {
       try {
         const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
         const response = await fetch(`${API_BASE}/api/tableau`, {
@@ -1072,29 +1072,29 @@ export default function tableauDashboardPage() {
         })
 
         if (!response.ok) {
-          if (!cancelled) settableaus([])
+          if (!cancelled) settableaux([])
           return
         }
 
         const payload = await response.json().catch(() => null)
-        const nexttableaus = Array.isArray(payload)
+        const nexttableaux = Array.isArray(payload)
           ? (payload as Apitableautableau[]).map(mapApitableauToSaved)
           : []
 
         if (!cancelled) {
-          settableaus(nexttableaus)
+          settableaux(nexttableaux)
           try {
-            localStorage.setItem("tableau_tableaus", JSON.stringify(nexttableaus))
+            localStorage.setItem("tableau_tableaux", JSON.stringify(nexttableaux))
           } catch {
             // Ignore storage errors.
           }
         }
       } catch {
-        if (!cancelled) settableaus([])
+        if (!cancelled) settableaux([])
       }
     }
 
-    loadtableaus()
+    loadtableaux()
 
     return () => {
       cancelled = true
@@ -1215,10 +1215,10 @@ export default function tableauDashboardPage() {
         throw new Error(message || "Suppression impossible")
       }
 
-      const updated = tableaus.filter((d) => d.id !== decl.id)
-      settableaus(updated)
+      const updated = tableaux.filter((d) => d.id !== decl.id)
+      settableaux(updated)
       try {
-        localStorage.setItem("tableau_tableaus", JSON.stringify(updated))
+        localStorage.setItem("tableau_tableaux", JSON.stringify(updated))
       } catch {
         // Ignore storage errors.
       }
@@ -1320,16 +1320,16 @@ export default function tableauDashboardPage() {
           // Titre encadré
           drawBox(8, 72, 281, 20)
           write("Etat de déduction de la TVA", 148.5, 81.5, "bolditalic", 16, "center")
-          write("(Conformément à l'article 29 tel modifié par l'article 42 de la Loi de Finances pour 2021)", 148.5, 88.5, "italic", 10, "center")
+          write("(Conformément é l'article 29 tel modifié par l'article 42 de la Loi de Finances pour 2021)", 148.5, 88.5, "italic", 10, "center")
 
           const head = [[
             "Nom et prénoms /Raison sociale",
             "Adresse",
             "NIF",
             "Authentification du NIF",
-            "RC n°",
-            "Authentification du n°RC",
-            "Facture n°",
+            "RC né",
+            "Authentification du néRC",
+            "Facture né",
             "Date",
             "Montant HT",
             "TVA",
@@ -1405,13 +1405,13 @@ export default function tableauDashboardPage() {
                 line.replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim(),
               )
 
-              // Lignes normales: plus hautes que l'actuel, mais plus basses que l'entête
+              // Lignes normales: plus hautes que l'actuel, mais plus basses que l'entéte
               if (data.section === "body" && data.row.index < bodyRows.length) {
                 data.cell.styles.minCellHeight = 8.4
                 data.cell.styles.cellPadding = 1.0
               }
 
-              // Ligne de total (dernière ligne du body): hauteur renforcée
+              // Ligne de total (derniére ligne du body): hauteur renforcée
               if (data.section === "body" && data.row.index === bodyRows.length) {
                 data.cell.styles.minCellHeight = 12
                 data.cell.styles.cellPadding = 1.4
@@ -1438,7 +1438,7 @@ export default function tableauDashboardPage() {
           img.src = "/logo_doc.png"
         })
 
-        // Logo en haut à gauche
+        // Logo en haut é gauche
         if (logo) {
           pdf.addImage(logo, "PNG", 10, 12 + layoutShiftY, 40, 15)
         }
@@ -1725,10 +1725,10 @@ export default function tableauDashboardPage() {
   }
 
   const handleApprove = async (decl: Savedtableau) => {
-    if (!isAdminRole && !canApproveRegionaltableaus && !canApproveFinancetableaus) {
+    if (!isAdminRole && !canApproveRegionaltableaux && !canApproveFinancetableaux) {
       toast({
-        title: "Accès refusé",
-        description: "Seuls les comptes admin ou approbateurs (régional/finance) peuvent valider les tableaus.",
+        title: "Accés refusé",
+        description: "Seuls les comptes admin ou approbateurs (régional/finance) peuvent valider les tableaux.",
         variant: "destructive",
       })
       return
@@ -1757,7 +1757,7 @@ export default function tableauDashboardPage() {
       }
 
       const nowIso = new Date().toISOString()
-      const updated = tableaus.map((item) =>
+      const updated = tableaux.map((item) =>
         item.id === decl.id
           ? {
               ...item,
@@ -1768,9 +1768,9 @@ export default function tableauDashboardPage() {
           : item,
       )
 
-      settableaus(updated)
+      settableaux(updated)
       try {
-        localStorage.setItem("tableau_tableaus", JSON.stringify(updated))
+        localStorage.setItem("tableau_tableaux", JSON.stringify(updated))
       } catch {
         // Ignore storage errors.
       }
@@ -1808,7 +1808,7 @@ export default function tableauDashboardPage() {
 
   const hasActiveFilters = !!(filterType || filterMois || filterAnnee || filterDirection || filterStatus || filterDateFrom || filterDateTo)
 
-  const filteredtableaus = tableaus.filter((decl) => {
+  const filteredtableaux = tableaux.filter((decl) => {
     const declType = gettableauType(decl)
     if (filterType && declType.key !== filterType) return false
     if (filterMois && decl.mois !== filterMois) return false
@@ -1821,7 +1821,7 @@ export default function tableauDashboardPage() {
     return true
   })
 
-  const recenttableaus = [...filteredtableaus].sort((a, b) => {
+  const recenttableaux = [...filteredtableaux].sort((a, b) => {
     let cmp = 0
     if (sortCol === "date") {
       cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -1903,7 +1903,7 @@ export default function tableauDashboardPage() {
           pdf.line(x, y + 0.6, x + width, y + 0.6)
         }
 
-        // Logo en haut à gauche
+        // Logo en haut é gauche
         if (logo) {
           pdf.addImage(logo, "PNG", 10, 12, 40, 15)
         }
@@ -2017,13 +2017,13 @@ export default function tableauDashboardPage() {
     const normalizeDirection = (value: string) => {
       const normalized = value.trim().toLowerCase()
       if (!normalized) return ""
-      if (normalized === "siege" || normalized === "siège" || normalized.includes("siege") || normalized.includes("siège")) {
-        return "Siège"
+      if (normalized === "siege" || normalized === "siége" || normalized.includes("siege") || normalized.includes("siége")) {
+        return "Siége"
       }
       return value.trim()
     }
 
-    const tableauDirections = tableaus
+    const tableauDirections = tableaux
       .map((tableau) => normalizeDirection(tableau.direction ?? ""))
       .filter(Boolean)
 
@@ -2034,7 +2034,7 @@ export default function tableauDashboardPage() {
     const fallbackDirections = [
       ...reminders.map((reminder) => normalizeDirection(reminder.direction ?? "")),
       ...regions.map((region) => normalizeDirection(region.name)),
-      "Siège",
+      "Siége",
     ].filter(Boolean)
 
     return Array.from(new Set(fallbackDirections)).sort((a, b) => a.localeCompare(b, "fr"))
@@ -2126,19 +2126,19 @@ export default function tableauDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard tableau</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            tableaus tableaues récentes
+            tableaux tableaus récentes
           </p>
         </div>
 
-        {/* Recent tableaus */}
+        {/* Recent tableaux */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-base">
-                tableaus récentes
-                {tableaus.length > 0 && (
+                tableaux récentes
+                {tableaux.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({filteredtableaus.length}{hasActiveFilters ? ` / ${tableaus.length}` : ""})
+                    ({filteredtableaux.length}{hasActiveFilters ? ` / ${tableaux.length}` : ""})
                   </span>
                 )}
               </CardTitle>
@@ -2175,7 +2175,7 @@ export default function tableauDashboardPage() {
                     <option value="droits_timbre">Droits Timbre</option>
                     <option value="ca_tap">CA 7% &amp; CA Glob 1%</option>
                     <option value="etat_tap">ETAT TAP</option>
-                    <option value="ca_siege">CA Siège</option>
+                    <option value="ca_siege">CA Siége</option>
                     <option value="irg">Situation IRG</option>
                     <option value="taxe2">Taxe 2%</option>
                     <option value="taxe_masters">Taxe des Master 1,5%</option>
@@ -2227,9 +2227,9 @@ export default function tableauDashboardPage() {
             )}
           </CardHeader>
           <CardContent>
-            {recenttableaus.length === 0 ? (
+            {recenttableaux.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Aucune tableau tableaue enregistrée pour le moment.
+                Aucune tableau tableau enregistrée pour le moment.
               </p>
             ) : (
               <div className="max-h-[540px] overflow-auto">
@@ -2253,19 +2253,19 @@ export default function tableauDashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recenttableaus.map((decl) => {
+                    {recenttableaux.map((decl) => {
                       const declType = gettableauType(decl)
                       const isLocked = istableauLocked(decl)
                       const tableauDirection = (decl.direction ?? "").trim().toLowerCase()
-                      const isSiegetableau = tableauDirection === "siège"
+                      const isSiegetableau = tableauDirection === "siége"
                         || tableauDirection === "siege"
-                        || tableauDirection.includes("siège")
+                        || tableauDirection.includes("siége")
                         || tableauDirection.includes("siege")
                       const isOwntableau = String(decl.userId ?? "") === String(user.id)
-                      const canApproveAsRegional = canApproveRegionaltableaus
+                      const canApproveAsRegional = canApproveRegionaltableaux
                         && !decl.isApproved
                         && (isOwntableau || (!!normalizedRegion && tableauDirection === normalizedRegion))
-                      const canApproveAsFinance = canApproveFinancetableaus
+                      const canApproveAsFinance = canApproveFinancetableaux
                         && !decl.isApproved
                         && (isOwntableau || isSiegetableau)
                       const canApproveAsAdmin = isAdminRole && !decl.isApproved
@@ -2289,7 +2289,7 @@ export default function tableauDashboardPage() {
                             </Badge>
                             {isLocked && (
                               <Badge variant="secondary" className="ml-2 text-[10px] text-emerald-700">
-                                Clôturée
+                                Cléturée
                               </Badge>
                             )}
                           </TableCell>
@@ -2311,7 +2311,7 @@ export default function tableauDashboardPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
-                              {(isAdminRole || canApproveRegionaltableaus || canApproveFinancetableaus) && (
+                              {(isAdminRole || canApproveRegionaltableaux || canApproveFinancetableaux) && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -2321,7 +2321,7 @@ export default function tableauDashboardPage() {
                                     event.stopPropagation()
                                     handleApprove(decl)
                                   }}
-                                  title={decl.isApproved ? "tableau déjà approuvée" : !canApproveThistableau ? "Action non autorisée pour cette tableau" : "Approuver"}
+                                  title={decl.isApproved ? "tableau déjé approuvée" : !canApproveThistableau ? "Action non autorisée pour cette tableau" : "Approuver"}
                                 >
                                   <CheckCircle size={16} />
                                 </Button>
@@ -2335,7 +2335,7 @@ export default function tableauDashboardPage() {
                                   event.stopPropagation()
                                   handleDelete(decl)
                                 }}
-                                title={isLocked ? "Période clôturée (suppression impossible)" : "Supprimer"}
+                                title={isLocked ? "Période cléturée (suppression impossible)" : "Supprimer"}
                               >
                                 <Trash2 size={16} />
                               </Button>
@@ -2395,7 +2395,7 @@ export default function tableauDashboardPage() {
                       variant="outline"
                       className="gap-1.5 text-xs h-8 border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
                       disabled={isLocked}
-                      title={isLocked ? "Période clôturée (modification impossible)" : "Modifier"}
+                      title={isLocked ? "Période cléturée (modification impossible)" : "Modifier"}
                       onClick={() => {
                         setShowDialog(false)
                         handleEdit(viewDecl, viewTabKey)

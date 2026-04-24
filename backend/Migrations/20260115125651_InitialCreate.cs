@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CheckFillingAPI.Migrations
+namespace DigitalisationDesTableauxDeBordAPI.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

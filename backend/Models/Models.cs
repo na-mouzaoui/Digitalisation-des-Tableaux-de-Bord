@@ -1,4 +1,4 @@
-namespace CheckFillingAPI.Models;
+namespace DigitalisationDesTableauxDeBordAPI.Models;
 
 public class User
 {
@@ -42,7 +42,7 @@ public class Tableau
     public int Id { get; set; }
     public int UserId { get; set; }
     public string TabKey { get; set; } = "";        // ex: "tva_immo", "encaissement"
-    public string Mois { get; set; } = "";          // "01" à "12"
+    public string Mois { get; set; } = "";          // "01" é "12"
     public string Annee { get; set; } = "";         // "2025"
     public string Direction { get; set; } = "";     // Direction de l'utilisateur
     public string DataJson { get; set; } = "{}";   // Données du tableau en JSON

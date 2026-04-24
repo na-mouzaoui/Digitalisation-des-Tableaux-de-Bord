@@ -21,7 +21,7 @@ const getCurrenttableauPeriod = (now: Date = new Date()) => ({
   mois: String(now.getMonth() + 1).padStart(2, "0"),
   annee: String(now.getFullYear()),
 })
-const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
+const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `P?riode ${mois}/${annee}.`
 const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
 const synctableauPolicy = async (_direction?: string | null) => null
 const isAdmintableauRole = (_role?: string | null) => false
@@ -74,8 +74,8 @@ const num = (v: string) => {
 
 
 // _______________________________________
-// 4. COMPOSANT GéNéRIQUE : AmountInput
-//    Input réutilisable pour la saisie de montants.
+// 4. COMPOSANT G?N?RIQUE : AmountInput
+//    Input r?utilisable pour la saisie de montants.
 // _______________________________________
 type AmountInputProps = Omit<React.ComponentProps<typeof Input>, "type" | "value" | "onChange"> & {
   value: string
@@ -105,15 +105,15 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 
 
 // _____________________________________________________________________________
-// 5. TYPES ET TABLEAUX DE L'ONGLET Â« ENCAISSEMENT Â»
+// 5. TYPES ET TABLEAUX DE L'ONGLET é ENCAISSEMENT é
 //
 //     GUIDE : AJOUTER UN NOUVEAU TABLEAU _________________
 //    |  Pour chaque nouveau tableau dans un onglet :                         |
-//    |  a) Déclarez son interface de données ici (ex: interface MonTableau)  |
-//    |  b) Créez son composant Tab* ci-dessous (section 6)                   |
-//    |  c) Ajoutez son état dans le state de la page (section 9)             |
-//    |  d) Incluez ses données dans handleSave (section 10)                  |
-//    |  e) Rendez-le dans le TabsContent concerné (section 11)               |
+//    |  a) D?clarez son interface de donn?es ici (ex: interface MonTableau)  |
+//    |  b) Cr?ez son composant Tab* ci-dessous (section 6)                   |
+//    |  c) Ajoutez son ?tat dans le state de la page (section 9)             |
+//    |  d) Incluez ses donn?es dans handleSave (section 10)                  |
+//    |  e) Rendez-le dans le TabsContent concern? (section 11)               |
 //    ____________________________________
 // _____________________________________________________________________________
 
@@ -126,7 +126,7 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 // interface MonNouveauTableauRow {
 //   col1: string
 //   col2: string
-//   // ... autant de colonnes que nécessaire
+//   // ... autant de colonnes que n?cessaire
 // }
 
 interface TotalEncaissementRow {
@@ -134,21 +134,21 @@ interface TotalEncaissementRow {
   mB2b: string   // Colonne M-1 / B2B
   m1Gp: string   // Colonne M   / GP
   m1B2b: string  // Colonne M   / B2B
-  evol: string   // Colonne évolution
+  evol: string   // Colonne ?volution
 }
 
 interface ParcAbonneRow {
-  label: string    // Parc Abonnés B2B
+  label: string    // Parc Abonn?s B2B
   m1: string   // Colonne M-1 
   m: string   // Colonne M
-  evol: string   // Colonne évolution
+  evol: string   // Colonne ?volution
 }
 
 
 // _______________________________________
 // 6. COMPOSANTS DE TABLEAUX
 //    Chaque tableau est un composant autonome.
-//    Vous pouvez en empiler plusieurs dans un mÃªme TabsContent (section 11).
+//    Vous pouvez en empiler plusieurs dans un méme TabsContent (section 11).
 // _______________________________________
 
 // _ 6a. TABLEAU : Encaissement ________________________
@@ -189,7 +189,7 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
   const update = (field: keyof TotalEncaissementRow, value: string) =>
     setRow((prev) => ({ ...prev, [field]: value }))
 
-  // Ligne de total (ici identique a la ligne de saisie â€” adaptez si besoin)
+  // Ligne de total (ici identique a la ligne de saisie ??" adaptez si besoin)
   const totals = useMemo(() => ({
     mGp:  row.mGp  || "0",
     mB2b: row.mB2b || "0",
@@ -251,8 +251,8 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
 }
 
 
-//Tab : Parc Abonnés B2B
-// _ 6b. TABLEAU : Parc Abonnés B2B ______________________
+//Tab : Parc Abonn?s B2B
+// _ 6b. TABLEAU : Parc Abonn?s B2B ______________________
 interface TabParcAbonneProps {
   rows: ParcAbonneRow[]
   setRows: React.Dispatch<React.SetStateAction<ParcAbonneRow[]>>
@@ -283,7 +283,7 @@ function TabParcAbonne({ rows, setRows, onSave, isSubmitting }: TabParcAbonnePro
         <thead>
           <tr className="bg-gray-50">
             <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b border-r">
-              Parc Abonnés B2B
+              Parc Abonn?s B2B
             </th>
             <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
             <th className="px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
@@ -291,10 +291,10 @@ function TabParcAbonne({ rows, setRows, onSave, isSubmitting }: TabParcAbonnePro
           </tr>
         </thead>
         <tbody>
-          {/* _ Lignes éditables (toutes sauf TOTAL) _ */}
+          {/* _ Lignes ?ditables (toutes sauf TOTAL) _ */}
           {rows.slice(0, -1).map((row, i) => (
             <tr key={row.label} className="bg-white hover:bg-gray-50 transition-colors">
-              {/* Libellé non éditable */}
+              {/* Libell? non ?ditable */}
               <td className="px-3 py-1 border-b border-r text-xs font-medium text-gray-700 whitespace-nowrap">
                 {row.label}
               </td>
@@ -325,7 +325,7 @@ function TabParcAbonne({ rows, setRows, onSave, isSubmitting }: TabParcAbonnePro
             </tr>
           ))}
 
-          {/* _ Ligne TOTAL (calculée automatiquement, fond vert) _ */}
+          {/* _ Ligne TOTAL (calcul?e automatiquement, fond vert) _ */}
           <tr className="bg-green-100 font-semibold">
             <td className="px-3 py-2 text-xs font-bold text-gray-800 border-t border-r">TOTAL</td>
             <td className="px-3 py-2 text-xs text-right border-t border-r">{fmt(totalM)}</td>
@@ -348,11 +348,11 @@ function TabParcAbonne({ rows, setRows, onSave, isSubmitting }: TabParcAbonnePro
 
 // _______________________________________
 // 7. CONFIGURATION DES ONGLETS
-//    Ajoutez une entrée ici pour chaque nouvel onglet (ex: "recouvrement").
-//    key   â†’ identifiant technique (doit correspondre a TabsContent value=)
-//    label â†’ texte affiché dans le TabsTrigger
-//    color â†’ couleur d'accentuation (optionnel)
-//    title â†’ titre imprimé sur le PDF
+//    Ajoutez une entr?e ici pour chaque nouvel onglet (ex: "recouvrement").
+//    key   ??' identifiant technique (doit correspondre a TabsContent value=)
+//    label ??' texte affich? dans le TabsTrigger
+//    color ??' couleur d'accentuation (optionnel)
+//    title ??' titre imprim? sur le PDF
 // _______________________________________
 const TABS = [
   { key: "encaissement", label: "Encaissement", color: "#2db34b", title: "ENCAISSEMENT" },
@@ -360,7 +360,7 @@ const TABS = [
   // { key: "recouvrement", label: "Recouvrement", color: "#e67e22", title: "RECOUVREMENT" },
 ]
 
-type tableauTabKey = "encaissement"| "parc" // â† ajoutez vos nouvelles clés ici avec | "recouvrement"
+type tableauTabKey = "encaissement"| "parc" // ??? ajoutez vos nouvelles cl?s ici avec | "recouvrement"
 
 const MONTHS = [
   { value: "01", label: "Janvier" },   { value: "02", label: "Fevrier" },
@@ -380,7 +380,7 @@ const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
 // 8. TYPES & HELPERS D'API / STOCKAGE
 // _______________________________________
 
-// _ 8a. Type du tableau sauvegardé en localStorage _________
+// _ 8a. Type du tableau sauvegard? en localStorage _________
 //    Ajoutez un champ *Data pour chaque nouveau tableau :
 //    ex: recouvrementData?: MonNouveauTableauRow
 interface Savedtableau {
@@ -392,10 +392,10 @@ interface Savedtableau {
   encaissementData?: TotalEncaissementRow
   parcAbonneData?: ParcAbonneRow[] 
 
-  // recouvrementData?: MonNouveauTableauRow  // â† décommenter pour un nouveau tableau
+  // recouvrementData?: MonNouveauTableauRow  // ??? d?commenter pour un nouveau tableau
 }
 
-// _ 8b. Type retourné par l'API _______________________
+// _ 8b. Type retourn? par l'API _______________________
 type Apitableautableau = {
   id: number
   tabKey: string
@@ -437,12 +437,12 @@ const normalizeEncaissementData = (data?: TotalEncaissementRow): TotalEncaisseme
 const DEFAULT_PARC_ABONNE_ROWS: ParcAbonneRow[] = [
   { label: "Postpaid B2B", m: "", m1: "", evol: "" },
   { label: "Prepaid B2B",  m: "", m1: "", evol: "" },
-  { label: "TOTAL",        m: "", m1: "", evol: "" }, // ligne calculée, non utilisée au chargement
+  { label: "TOTAL",        m: "", m1: "", evol: "" }, // ligne calcul?e, non utilis?e au chargement
 ]
 
 const normalizeParcAbonneRows = (data?: ParcAbonneRow[]): ParcAbonneRow[] => {
   if (Array.isArray(data) && data.length >= 2) {
-    // On recharge uniquement les 2 lignes éditables, le TOTAL est recalculé
+    // On recharge uniquement les 2 lignes ?ditables, le TOTAL est recalcul?
     return [
       { label: "Postpaid B2B", m: safeString(data[0]?.m), m1: safeString(data[0]?.m1), evol: safeString(data[0]?.evol) },
       { label: "Prepaid B2B",  m: safeString(data[1]?.m), m1: safeString(data[1]?.m1), evol: safeString(data[1]?.evol) },
@@ -476,7 +476,7 @@ export default function NouvelletableauPage() {
   const router = useRouter()
   const [editQuery, setEditQuery] = useState<{ editId: string; tab: string }>({ editId: "", tab: "" })
 
-  // _ 10a. Chargement des régions ______________________
+  // _ 10a. Chargement des r?gions ______________________
   const [regions, setRegions] = useState<{ id: number; name: string }[]>([])
   useEffect(() => {
     const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
@@ -515,8 +515,8 @@ export default function NouvelletableauPage() {
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
 
-  // _ 10d. STATE DES DONNéES DE TABLEAUX __________________
-  //    Ajoutez un useState par tableau supplémentaire ici.
+  // _ 10d. STATE DES DONN?ES DE TABLEAUX __________________
+  //    Ajoutez un useState par tableau suppl?mentaire ici.
     // const [recouvrementRows, setRecouvrementRows] = useState<MonNouveauTableauRow[]>([])
   const [encaissementRow, setEncaissementRow] = useState<TotalEncaissementRow>({
     mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "",
@@ -527,9 +527,9 @@ export default function NouvelletableauPage() {
 
 
   // _ 10e. STATE API ____________________________
-  const [tableautableaus, settableau] = useState<Apitableautableau[]>([])
+  const [tableautableaux, settableau] = useState<Apitableautableau[]>([])
 
-  // _ 10f. Logique de rÃ´les et d'onglets __________________
+  // _ 10f. Logique de réles et d'onglets __________________
   const userRole = user?.role ?? ""
   const isAdminRole    = isAdmintableauRole(userRole)
   const isRegionalRole = isRegionaltableauRole(userRole)
@@ -548,7 +548,7 @@ export default function NouvelletableauPage() {
   const hastableauTabAccess  = tableauTabs.length > 0
   const isActiveTabDisabled = disabledTabKeys.has(activeTab)
 
-  // _ 10g. Résolution de la direction selon le rÃ´le _____________
+  // _ 10g. R?solution de la direction selon le réle _____________
   const resolveDirectionForRole = useCallback(
     (fallbackDirection = "") => {
       const normalized = safeString(fallbackDirection).trim()
@@ -563,7 +563,7 @@ export default function NouvelletableauPage() {
     safeString(direction).trim() || safeString(user?.direction).trim() || "Siege"
   )
 
-  // _ 10h. Synchronisation de la politique tableaue _____________
+  // _ 10h. Synchronisation de la politique tableau _____________
   useEffect(() => {
     if (!userRole) return
     let cancelled = false
@@ -575,7 +575,7 @@ export default function NouvelletableauPage() {
     return () => { cancelled = true }
   }, [adminSelectedDirection, isAdminRole, userRole])
 
-  // _ 10i. Correction automatique mois/année hors plage ___________
+  // _ 10i. Correction automatique mois/ann?e hors plage ___________
   useEffect(() => {
     if (!selectableYears.includes(annee)) {
       const fb = selectableYears[0]
@@ -587,7 +587,7 @@ export default function NouvelletableauPage() {
     }
   }, [annee, mois, selectableMonths, selectableYears])
 
-  // _ 10j. Auto-set direction selon le rÃ´le _________________
+  // _ 10j. Auto-set direction selon le réle _________________
   useEffect(() => {
     if (!user || isAdminRole) return
     setDirection((prev) => resolveDirectionForRole(prev))
@@ -606,7 +606,7 @@ export default function NouvelletableauPage() {
         })
         if (!res.ok) { if (!cancelled) settableau([]); return }
         const payload = await res.json().catch(() => null)
-        const tableaus = Array.isArray(payload)
+        const tableaux = Array.isArray(payload)
           ? payload.map((item) => ({
               id:        Number((item as any).id ?? 0),
               tabKey:    String((item as any).tabKey ?? "").trim().toLowerCase(),
@@ -616,7 +616,7 @@ export default function NouvelletableauPage() {
               dataJson:  String((item as any).dataJson ?? "{}"),
             }))
           : []
-        if (!cancelled) settableau(tableaus)
+        if (!cancelled) settableau(tableaux)
       } catch {
         if (!cancelled) settableau([])
       }
@@ -625,7 +625,7 @@ export default function NouvelletableauPage() {
     return () => { cancelled = true }
   }, [status, user])
 
-  // _ 10l. Chargement d'un tableau existant pour édition _______
+  // _ 10l. Chargement d'un tableau existant pour ?dition _______
   useEffect(() => {
     if (isLoading || status !== "authenticated" || !user) return
     if (!editQuery.editId) {
@@ -636,9 +636,9 @@ export default function NouvelletableauPage() {
       return
     }
     try {
-      const parsed = JSON.parse(localStorage.getItem("tableau_tableaus") ?? "[]")
-      const tableaus = Array.isArray(parsed) ? (parsed as Savedtableau[]) : []
-      const decl = tableaus.find((item) => safeString(item.id) === editQuery.editId)
+      const parsed = JSON.parse(localStorage.getItem("tableau_tableaux") ?? "[]")
+      const tableaux = Array.isArray(parsed) ? (parsed as Savedtableau[]) : []
+      const decl = tableaux.find((item) => safeString(item.id) === editQuery.editId)
       if (!decl) {
         toast({ title: "tableau introuvable", description: "La tableau demandee n'existe pas.", variant: "destructive" })
         return
@@ -654,8 +654,8 @@ export default function NouvelletableauPage() {
       setEditingSourceMois(loadedMois)
       setEditingSourceAnnee(loadedAnnee)
 
-      // Restauration des données par tableau
-      // setRecouvrementRows(normalizeMonNouveauTableauData(decl.recouvrementData)) // â† nouveau tableau
+      // Restauration des donn?es par tableau
+      // setRecouvrementRows(normalizeMonNouveauTableauData(decl.recouvrementData)) // ??? nouveau tableau
       setEncaissementRow(normalizeEncaissementData(decl.encaissementData))
       setParcAbonneRows(normalizeParcAbonneRows(decl.parcAbonneData))
     } catch {
@@ -673,13 +673,13 @@ export default function NouvelletableauPage() {
   }
 
   // _ 10n. SAUVEGARDE (handleSave) _____________________
-  //    Pour ajouter les données d'un nouveau tableau :
+  //    Pour ajouter les donn?es d'un nouveau tableau :
   //    1. Incluez-les dans `baseDecl` (champ *Data)
-  //    2. Incluez-les dans `tabData` envoyé a l'API
+  //    2. Incluez-les dans `tabData` envoy? a l'API
   const handleSave = async () => {
     const saveDirection = effectiveDirection
 
-    // Validations de période / onglet
+    // Validations de p?riode / onglet
     if (isActiveTabDisabled) {
       toast({ title: "Tableau desactive", description: "Le tableau selectionne est desactive.", variant: "destructive" }); return
     }
@@ -698,15 +698,15 @@ export default function NouvelletableauPage() {
       toast({ title: "Periode cloturee", description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification autorisee.`, variant: "destructive" }); return
     }
 
-    // Récupération du cache local
-    let existingtableaus: Savedtableau[] = []
+    // R?cup?ration du cache local
+    let existingtableaux: Savedtableau[] = []
     try {
-      const parsed = JSON.parse(localStorage.getItem("tableau_tableaus") ?? "[]")
-      existingtableaus = Array.isArray(parsed) ? (parsed as Savedtableau[]) : []
-    } catch { existingtableaus = [] }
+      const parsed = JSON.parse(localStorage.getItem("tableau_tableaux") ?? "[]")
+      existingtableaux = Array.isArray(parsed) ? (parsed as Savedtableau[]) : []
+    } catch { existingtableaux = [] }
 
     const originaltableau = editingtableauId
-      ? existingtableaus.find((item) => safeString(item.id) === editingtableauId) ?? null
+      ? existingtableaux.find((item) => safeString(item.id) === editingtableauId) ?? null
       : null
 
     setIsSubmitting(true)
@@ -715,8 +715,8 @@ export default function NouvelletableauPage() {
     const tableauId        = editingtableauId ?? Date.now().toString()
     const tableauCreatedAt = editingCreatedAt || new Date().toISOString()
 
-    // _ Objet de tableau sauvegardé localement _
-    //    Ajoutez ici les données de chaque nouveau tableau (ex: recouvrementData)
+    // _ Objet de tableau sauvegard? localement _
+    //    Ajoutez ici les donn?es de chaque nouveau tableau (ex: recouvrementData)
     const baseDecl: Savedtableau = {
       id: tableauId,
       createdAt: tableauCreatedAt,
@@ -732,22 +732,22 @@ export default function NouvelletableauPage() {
     // Mise a jour du cache localStorage
     try {
       if (editingtableauId) {
-        const hasTarget = existingtableaus.some((item) => safeString(item.id) === editingtableauId)
+        const hasTarget = existingtableaux.some((item) => safeString(item.id) === editingtableauId)
         const updated = hasTarget
-          ? existingtableaus.map((item) => safeString(item.id) === editingtableauId ? baseDecl : item)
-          : [baseDecl, ...existingtableaus]
-        localStorage.setItem("tableau_tableaus", JSON.stringify(updated))
+          ? existingtableaux.map((item) => safeString(item.id) === editingtableauId ? baseDecl : item)
+          : [baseDecl, ...existingtableaux]
+        localStorage.setItem("tableau_tableaux", JSON.stringify(updated))
       } else {
-        localStorage.setItem("tableau_tableaus", JSON.stringify([baseDecl, ...existingtableaus]))
+        localStorage.setItem("tableau_tableaux", JSON.stringify([baseDecl, ...existingtableaux]))
       }
     } catch { /* quota ou SSR */ }
 
-    // _ Persistance en base de données _
+    // _ Persistance en base de donn?es _
     try {
       const apiBase = API_BASE
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
 
-      // Ajoutez ici les données de chaque nouveau tableau dans tabData
+      // Ajoutez ici les donn?es de chaque nouveau tableau dans tabData
       const tabData = {
         encaissementData: encaissementRow,
         parcAbonneData: parcAbonneRows.slice(0, 2),
@@ -771,14 +771,14 @@ export default function NouvelletableauPage() {
         if (!deleteRes.ok && deleteRes.status !== 404) {
           const errPayload = await deleteRes.json().catch(() => ({}))
           const errMsg = (errPayload as any)?.message ?? "Erreur lors de la suppression"
-          try { localStorage.setItem("tableau_tableaus", JSON.stringify(existingtableaus)) } catch {}
+          try { localStorage.setItem("tableau_tableaux", JSON.stringify(existingtableaux)) } catch {}
           setIsSubmitting(false)
           toast({ title: "Erreur de modification", description: String(errMsg), variant: "destructive" })
           return
         }
       }
 
-      // Création
+      // Cr?ation
       const createRes = await fetch(`${apiBase}/api/tableau`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -801,17 +801,17 @@ export default function NouvelletableauPage() {
           restoreOk = restoreRes.ok
         }
 
-        try { localStorage.setItem("tableau_tableaus", JSON.stringify(existingtableaus)) } catch {}
+        try { localStorage.setItem("tableau_tableaux", JSON.stringify(existingtableaux)) } catch {}
         setIsSubmitting(false)
         toast({
           title: "Erreur d'enregistrement",
-          description: restoreOk ? `${errMsg} L'ancien tableau a été restauré.` : String(errMsg),
+          description: restoreOk ? `${errMsg} L'ancien tableau a ?t? restaur?.` : String(errMsg),
           variant: "destructive",
         })
         return
       }
     } catch (error) {
-      try { localStorage.setItem("tableau_tableaus", JSON.stringify(existingtableaus)) } catch {}
+      try { localStorage.setItem("tableau_tableaux", JSON.stringify(existingtableaux)) } catch {}
       setIsSubmitting(false)
       toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de contacter le serveur", variant: "destructive" })
       return
@@ -825,7 +825,7 @@ export default function NouvelletableauPage() {
     router.push("/tableau_dashbord")
   }
 
-  // _ 10o. Message de verrouillage de période ________________
+  // _ 10o. Message de verrouillage de p?riode ________________
   const currentPeriodLockMessage = (() => {
     if (editingtableauId && editingSourceMois && editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole))
       return `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`
@@ -844,7 +844,7 @@ export default function NouvelletableauPage() {
         <AccessDeniedDialog
           title="Acces refuse"
           message={user.role === "direction"
-            ? "Votre role ne vous permet pas de creer des tableaus tableaues."
+            ? "Votre role ne vous permet pas de creer des tableaux tableaus."
             : "Votre role ne vous permet pas de gerer les tableaux tableauux."}
           redirectTo="/tableau_dashbord"
         />
@@ -860,7 +860,7 @@ export default function NouvelletableauPage() {
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="epayment">E-payment</TabsTrigger>
               <TabsTrigger value="encaissement">Encaissement</TabsTrigger>
-              <TabsTrigger value="reclamation">Réclamation</TabsTrigger>
+              <TabsTrigger value="reclamation">R?clamation</TabsTrigger>
               <TabsTrigger value="parc">Parc</TabsTrigger>
             </TabsList>
 
@@ -869,7 +869,7 @@ export default function NouvelletableauPage() {
               <Card>
                 <CardHeader><CardTitle>E-payment</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500">Contenu E-payment a implémenter...</p>
+                  <p className="text-sm text-gray-500">Contenu E-payment a impl?menter...</p>
                   {/* Ajoutez ici vos composants de tableaux pour E-payment */}
                 </CardContent>
               </Card>
@@ -878,7 +878,7 @@ export default function NouvelletableauPage() {
             {/* _ ONGLET : ENCAISSEMENT __________________ */}
             <TabsContent value="encaissement">
 
-              {/* Sélecteur de période (Mois / Année) */}
+              {/* S?lecteur de p?riode (Mois / Ann?e) */}
               <Card className="border border-gray-200 mb-4">
                 <CardContent className="pt-3 pb-3">
                   <div className="flex flex-wrap items-end gap-4">
@@ -906,9 +906,9 @@ export default function NouvelletableauPage() {
                   </div>
                 </CardContent>
               </Card>
-              {/* _ (MODELE) Tableau 2 â€” copiez ce bloc pour ajouter un tableau _
+              {/* _ (MODELE) Tableau 2 ??" copiez ce bloc pour ajouter un tableau _
               <Card className="mb-4">
-                <CardHeader><CardTitle>Mon DeuxiÃ¨me Tableau</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Mon Deuxiéme Tableau</CardTitle></CardHeader>
                 <CardContent>
                   <TabMonDeuxiemeTableau
                     rows={recouvrementRows}
@@ -918,8 +918,8 @@ export default function NouvelletableauPage() {
               </Card>
               _________________________________
               Note : un seul bouton "Enregistrer" pour tout l'onglet suffit.
-              Il est déja inclus dans TabTotalEncaissement (onSave={handleSave}).
-              Si vous voulez le déplacer en dehors des Card, déplacez-le ici.
+              Il est d?ja inclus dans TabTotalEncaissement (onSave={handleSave}).
+              Si vous voulez le d?placer en dehors des Card, d?placez-le ici.
               ________________________________ */}
               {/* _ Tableau 1 : Encaissement _______________ */}
               <Card className="mb-4">
@@ -933,10 +933,10 @@ export default function NouvelletableauPage() {
                   />
                 </CardContent>
               </Card>
-              {/* _ Tableau 2 : Parc Abonnés B2B ________________ */}
+              {/* _ Tableau 2 : Parc Abonn?s B2B ________________ */}
               <Card className="mb-4">
                 <CardHeader>
-                  <CardTitle>Parc Abonnés B2B</CardTitle>
+                  <CardTitle>Parc Abonn?s B2B</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <TabParcAbonne
@@ -951,13 +951,13 @@ export default function NouvelletableauPage() {
 
             </TabsContent>
 
-            {/* _ ONGLET : RéCLAMATION ___________________ */}
+            {/* _ ONGLET : R?CLAMATION ___________________ */}
             <TabsContent value="reclamation">
               <Card>
-                <CardHeader><CardTitle>Réclamation</CardTitle></CardHeader>
+                <CardHeader><CardTitle>R?clamation</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500">Contenu Réclamation a implémenter...</p>
-                  {/* Ajoutez ici vos composants de tableaux pour Réclamation */}
+                  <p className="text-sm text-gray-500">Contenu R?clamation a impl?menter...</p>
+                  {/* Ajoutez ici vos composants de tableaux pour R?clamation */}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -967,7 +967,7 @@ export default function NouvelletableauPage() {
               <Card>
                 <CardHeader><CardTitle>Parc</CardTitle></CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500">Contenu Parc a implémenter...</p>
+                  <p className="text-sm text-gray-500">Contenu Parc a impl?menter...</p>
                   {/* Ajoutez ici vos composants de tableaux pour Parc */}
                 </CardContent>
               </Card>

@@ -116,17 +116,17 @@ export function LayoutWrapper({ user, children }: LayoutWrapperProps) {
       <AlertDialog open={showWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>InactivitÃ© dÃ©tectÃ©e</AlertDialogTitle>
+            <AlertDialogTitle>Inactivité détectée</AlertDialogTitle>
             <AlertDialogDescription>
-              La plateforme va se dÃ©connecter automatiquement dans {countdown}s en raison de l'inactivitÃ©.
+              La plateforme va se déconnecter automatiquement dans {countdown}s en raison de l'inactivité.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-0">
               <Button onClick={handleLogout} className="bg-destructive text-white hover:bg-destructive/90">
-                DÃ©connecter maintenant
+                Déconnecter maintenant
               </Button>
               <Button variant="outline" onClick={handleStayConnected}>
-                Rester connectÃ©
+                Rester connecté
               </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

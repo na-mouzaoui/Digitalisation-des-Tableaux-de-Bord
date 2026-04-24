@@ -59,7 +59,7 @@ export function CheckPreview({
         headers 
       })
       if (!response.ok) {
-        console.error("Impossible de charger les banques pour la prÃ©visualisation", await response.text().catch(() => ""))
+        console.error("Impossible de charger les banques pour la prévisualisation", await response.text().catch(() => ""))
         setBankData(null)
         return
       }
@@ -124,7 +124,7 @@ export function CheckPreview({
 
     return (
       <Card className="p-6">
-        <h2 className="mb-4 text-lg font-semibold">AperÃ§u du chÃ¨que</h2>
+        <h2 className="mb-4 text-lg font-semibold">Aperéu du chéque</h2>
         <CheckCanvas
           pdfUrl={bankData?.pdfUrl && bankData.pdfUrl !== 'undefined' ? bankData.pdfUrl : undefined}
           pageWidth={pageWidth}
@@ -148,7 +148,7 @@ export function CheckPreview({
 
   return (
     <Card className="p-6">
-      <h2 className="mb-4 text-lg font-semibold">PrÃ©visualisation</h2>
+      <h2 className="mb-4 text-lg font-semibold">Prévisualisation</h2>
       <div className="relative flex h-[600px] items-center justify-center rounded border-2 border-dashed border-gray-300 bg-gray-100"></div>
     </Card>
   )

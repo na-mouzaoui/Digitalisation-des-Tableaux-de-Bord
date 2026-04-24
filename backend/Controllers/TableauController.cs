@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using CheckFillingAPI.Data;
-using CheckFillingAPI.Models;
-using CheckFillingAPI.RealTime;
-using CheckFillingAPI.Services;
+using DigitalisationDesTableauxDeBordAPI.Data;
+using DigitalisationDesTableauxDeBordAPI.Models;
+using DigitalisationDesTableauxDeBordAPI.RealTime;
+using DigitalisationDesTableauxDeBordAPI.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 
-namespace CheckFillingAPI.Controllers;
+namespace DigitalisationDesTableauxDeBordAPI.Controllers;
 
 [ApiController]
 [Route("api/tableau")]
@@ -96,7 +96,7 @@ public class TableauController : ControllerBase
         }
 
         if (normalizedRole is "comptabilite" or "finance")
-            return "Siège";
+            return "Siége";
 
         if (normalizedRole == "regionale")
         {
@@ -188,9 +188,9 @@ public class TableauController : ControllerBase
     private static bool IsHeadOfficeDirection(string? direction)
     {
         var normalizedDirection = (direction ?? "").Trim().ToLowerInvariant();
-        return normalizedDirection is "siege" or "siège"
+        return normalizedDirection is "siege" or "siége"
             || normalizedDirection.Contains("siege")
-            || normalizedDirection.Contains("siège");
+            || normalizedDirection.Contains("siége");
     }
 
     private static string[] GetManageableTabsForRole(string role)
@@ -209,8 +209,8 @@ public class TableauController : ControllerBase
     }
 
     /// <summary>
-    /// Vérifie si l'utilisateur courant peut accéder à un tableau pour la modifier/consulter/supprimer
-    /// basée sur sa direction et son rôle, indépendamment de qui l'a créée.
+    /// Vérifie si l'utilisateur courant peut accéder é un tableau pour la modifier/consulter/supprimer
+    /// basée sur sa direction et son réle, indépendamment de qui l'a créée.
     /// </summary>
     private async Task<bool> CanUserAccessTableauAsync(int userId, Tableau tableau)
     {
@@ -227,15 +227,15 @@ public class TableauController : ControllerBase
         var tableauOwnerRole = (tableau.User.Role ?? "").Trim().ToLowerInvariant();
         var tableauOwnerRegion = (tableau.User.Region ?? "").Trim().ToLowerInvariant();
 
-        // L'admin peut accéder à tout
+        // L'admin peut accéder é tout
         if (userRole == "admin")
             return true;
 
-        // L'auteur peut toujours accéder à son propre tableau
+        // L'auteur peut toujours accéder é son propre tableau
         if (userId == tableau.UserId)
             return true;
 
-        // Vérification par rôle et direction
+        // Vérification par réle et direction
         if (userRole == "regionale")
         {
             // Un utilisateur régional peut accéder aux tableaux de sa région
@@ -252,7 +252,7 @@ public class TableauController : ControllerBase
         }
         else if (userRole == "finance" || userRole == "comptabilite")
         {
-            // Finance peut accéder aux tableaux du siège
+            // Finance peut accéder aux tableaux du siége
             if (IsHeadOfficeDirection(tableauDirection)
                 || (string.IsNullOrWhiteSpace(tableauDirection)
                     && (tableauOwnerRole == "finance"
@@ -281,13 +281,13 @@ public class TableauController : ControllerBase
 
         return StatusCode(403, new
         {
-            message = $"Le profil {roleLabel} n'est pas autorisé à gérer le tableau '{NormalizeTabKey(tabKey)}'."
+            message = $"Le profil {roleLabel} n'est pas autorisé é gérer le tableau '{NormalizeTabKey(tabKey)}'."
         });
     }
 
     private async Task<(bool hasConflict, IActionResult? response)> ValidateTableauUniquenessAsync(TableauRequest request, int? excludedTableauId = null)
     {
-        // Vérifier qu'il n'existe pas déjà un tableau avec le même TabKey, Direction et Mois/Année
+        // Vérifier qu'il n'existe pas déjé un tableau avec le méme TabKey, Direction et Mois/Année
         var requestTabKeyLower = (request.TabKey ?? "").Trim().ToLowerInvariant();
         var requestDirLower = (request.Direction ?? "").Trim().ToLowerInvariant();
         var requestMonth = (request.Mois ?? "").Trim();
@@ -309,7 +309,7 @@ public class TableauController : ControllerBase
         {
             return (true, Conflict(new
             {
-                message = $"Un tableau existe déjà pour ce tableau ({request.TabKey}), cette direction et cette période ({request.Mois}/{request.Annee}). Veuillez utiliser le tableau existant ou en supprimer un.",
+                message = $"Un tableau existe déjé pour ce tableau ({request.TabKey}), cette direction et cette période ({request.Mois}/{request.Annee}). Veuillez utiliser le tableau existant ou en supprimer un.",
                 conflictingTableauId = existingTableau.Id,
                 isDoubloon = true
             }));
@@ -318,7 +318,7 @@ public class TableauController : ControllerBase
         return (false, null);
     }
 
-    // ─── GET api/tableau/policy ─────────────────────────────────────────────
+    // ??? GET api/tableau/policy ?????????????????????????????????????????????
     [HttpGet("policy")]
     public async Task<IActionResult> GetPolicy([FromQuery] string? direction)
     {
@@ -342,7 +342,7 @@ public class TableauController : ControllerBase
         });
     }
 
-    // ─── GET api/tableau ───────────────────────────────────────────────────────
+    // ??? GET api/tableau ???????????????????????????????????????????????????????
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? tabKey, [FromQuery] string? mois, [FromQuery] string? annee)
     {
@@ -377,7 +377,7 @@ public class TableauController : ControllerBase
         if (!string.IsNullOrEmpty(annee))
             query = query.Where(d => d.Annee == annee);
 
-        var tableaus = await query
+        var tableaux = await query
             .OrderByDescending(d => d.UpdatedAt)
             .Select(d => new
             {
@@ -390,10 +390,10 @@ public class TableauController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(tableaus);
+        return Ok(tableaux);
     }
 
-    // ─── GET api/tableau/{id} ─────────────────────────────────────────────────
+    // ??? GET api/tableau/{id} ?????????????????????????????????????????????????
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -405,7 +405,7 @@ public class TableauController : ControllerBase
         if (decl == null) return NotFound();
 
         if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez consulter que les tableaux de votre groupe." });
+            return StatusCode(403, new { message = "Accés refusé. Vous ne pouvez consulter que les tableaux de votre groupe." });
 
         return Ok(new
         {
@@ -418,7 +418,7 @@ public class TableauController : ControllerBase
         });
     }
 
-    // ─── POST api/tableau ─────────────────────────────────────────────────────
+    // ??? POST api/tableau ?????????????????????????????????????????????????????
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] TableauRequest request)
     {
@@ -471,7 +471,7 @@ public class TableauController : ControllerBase
             new { decl.Id, decl.TabKey, decl.Mois, decl.Annee, decl.CreatedAt });
     }
 
-    // ─── PUT api/tableau/{id} ─────────────────────────────────────────────────
+    // ??? PUT api/tableau/{id} ?????????????????????????????????????????????????
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] TableauRequest request)
     {
@@ -486,7 +486,7 @@ public class TableauController : ControllerBase
         if (decl == null) return NotFound();
 
         if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez modifier que les tableaux de votre groupe." });
+            return StatusCode(403, new { message = "Accés refusé. Vous ne pouvez modifier que les tableaux de votre groupe." });
 
         var targetDirection = ResolveDirectionForRole(currentUserRole, request.Direction, currentUserContext.Direction, currentUserContext.Region, decl.Direction);
 
@@ -499,7 +499,7 @@ public class TableauController : ControllerBase
             DataJson = request.DataJson,
         };
 
-        // La modification du même tableau est autorisée (on exclut son propre id)
+        // La modification du méme tableau est autorisée (on exclut son propre id)
         var doubloonCheck = await ValidateTableauUniquenessAsync(uniquenessRequest, id);
         if (doubloonCheck.hasConflict && doubloonCheck.response != null)
             return doubloonCheck.response;
@@ -524,7 +524,7 @@ public class TableauController : ControllerBase
         return NoContent();
     }
 
-    // ─── POST api/tableau/{id}/approve ───────────────────────────────────────
+    // ??? POST api/tableau/{id}/approve ???????????????????????????????????????
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> Approve(int id)
     {
@@ -541,7 +541,7 @@ public class TableauController : ControllerBase
 
         var approverRegion = (currentUserContext.Region ?? "").Trim().ToLowerInvariant();
         if (canApproveAsRegional && string.IsNullOrWhiteSpace(approverRegion))
-            return BadRequest(new { message = "Le compte approbateur doit être rattaché à une région." });
+            return BadRequest(new { message = "Le compte approbateur doit étre rattaché é une région." });
 
         var decl = await _context.Tableaus
             .Include(d => d.User)
@@ -555,9 +555,9 @@ public class TableauController : ControllerBase
         var tableauOwnerRole = (decl.User.Role ?? "").Trim().ToLowerInvariant();
         var tableauOwnerRegion = (decl.User.Region ?? "").Trim().ToLowerInvariant();
         var tableauDirection = (decl.Direction ?? "").Trim().ToLowerInvariant();
-        var isSiegeTableau = tableauDirection == "siège"
+        var isSiegeTableau = tableauDirection == "siége"
             || tableauDirection == "siege"
-            || tableauDirection.Contains("siège")
+            || tableauDirection.Contains("siége")
             || tableauDirection.Contains("siege")
             || (string.IsNullOrWhiteSpace(decl.Direction)
                 && (tableauOwnerRole == "finance"
@@ -577,7 +577,7 @@ public class TableauController : ControllerBase
         {
             return StatusCode(403, new
             {
-                message = "Vous ne pouvez approuver que les tableaux du niveau Siège."
+                message = "Vous ne pouvez approuver que les tableaux du niveau Siége."
             });
         }
 
@@ -585,7 +585,7 @@ public class TableauController : ControllerBase
         {
             return Ok(new
             {
-                message = "Tableau déjà approuvé.",
+                message = "Tableau déjé approuvé.",
                 decl.Id,
                 decl.IsApproved,
                 decl.ApprovedByUserId,
@@ -607,7 +607,7 @@ public class TableauController : ControllerBase
 
         return Ok(new
         {
-            message = "Tableau approuvé avec succès.",
+            message = "Tableau approuvé avec succés.",
             decl.Id,
             decl.IsApproved,
             decl.ApprovedByUserId,
@@ -615,7 +615,7 @@ public class TableauController : ControllerBase
         });
     }
 
-    // ─── DELETE api/tableau/{id} ──────────────────────────────────────────────
+    // ??? DELETE api/tableau/{id} ??????????????????????????????????????????????
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -630,7 +630,7 @@ public class TableauController : ControllerBase
         if (decl == null) return NotFound();
 
         if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez supprimer que les tableaux de votre groupe." });
+            return StatusCode(403, new { message = "Accés refusé. Vous ne pouvez supprimer que les tableaux de votre groupe." });
 
         var info = new { decl.TabKey, decl.Mois, decl.Annee, deletedByUserId = userId };
         _context.Tableaus.Remove(decl);
@@ -643,7 +643,7 @@ public class TableauController : ControllerBase
         return NoContent();
     }
 
-    // ─── POST api/tableau/{id}/print ──────────────────────────────────────────
+    // ??? POST api/tableau/{id}/print ??????????????????????????????????????????
     [HttpPost("{id}/print")]
     public async Task<IActionResult> LogPrint(int id)
     {
@@ -655,7 +655,7 @@ public class TableauController : ControllerBase
         if (decl == null) return NotFound();
 
         if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accès refusé. Vous ne pouvez imprimer que les tableaux de votre groupe." });
+            return StatusCode(403, new { message = "Accés refusé. Vous ne pouvez imprimer que les tableaux de votre groupe." });
 
         await _auditService.LogAction(userId, "tableau_PRINT", "Tableau", id,
             new { decl.TabKey, decl.Mois, decl.Annee });
@@ -664,7 +664,7 @@ public class TableauController : ControllerBase
     }
 }
 
-// ─── DTO ─────────────────────────────────────────────────────────────────────
+// ??? DTO ?????????????????????????????????????????????????????????????????????
 public class TableauRequest
 {
     public string TabKey    { get; set; } = "";
