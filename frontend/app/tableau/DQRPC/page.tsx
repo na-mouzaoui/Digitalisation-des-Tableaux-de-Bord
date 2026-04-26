@@ -132,7 +132,7 @@ function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting
   )
 }
 
-// ?? Composant générique : tableau Objectif / Réalisé / Taux (M + M+1) ?????????
+// ?? Composant générique : tableau Objectif / Réalisé / Taux (M-1 + M) ?????????
 interface OrtTableProps {
   colHeader: string
   rows: Array<Record<string, string>>
@@ -150,8 +150,8 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (
@@ -212,8 +212,8 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>

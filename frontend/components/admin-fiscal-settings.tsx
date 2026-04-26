@@ -18,6 +18,12 @@ export default function AdmintableauSettings() {
   const [tabs, setTabs] = useState<Array<{ key: string; label: string; isEnabled: boolean }>>([])
 
   const normalizeKey = (value: string) => value.trim().toLowerCase()
+  const capitalizeFirstLetter = (value: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) return ""
+    return `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}`
+  }
+  const stripLeadingNumber = (value: string) => value.replace(/^\s*\d+\s*[-.)]\s*/, "").trim()
 
   useEffect(() => {
     let cancelled = false
@@ -118,9 +124,10 @@ export default function AdmintableauSettings() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {tabs.map((tab) => {
+        {tabs.map((tab, index) => {
           const checkboxId = `table-toggle-${tab.key}`
           const isSaving = savingTabKey === tab.key
+          const displayLabel = capitalizeFirstLetter(stripLeadingNumber(tab.label || tab.key))
           return (
             <div key={tab.key} className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-3">
               <Checkbox
@@ -131,7 +138,7 @@ export default function AdmintableauSettings() {
               />
               <div className="space-y-1">
                 <Label htmlFor={checkboxId} className="text-sm font-medium">
-                  {tab.label}
+                  {index + 1}- {displayLabel}
                 </Label>
                 <p className="text-xs text-muted-foreground">
                   {tab.isEnabled ? "Actif" : "Desactive"}

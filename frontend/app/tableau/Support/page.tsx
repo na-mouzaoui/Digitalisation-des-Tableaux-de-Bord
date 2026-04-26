@@ -182,8 +182,8 @@ function SimplePartTable({ colHeader, rows, labelKey, update, onSave, isSubmitti
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{colHeader}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Part %</th>
             </tr>
           </thead>
@@ -204,7 +204,7 @@ function SimplePartTable({ colHeader, rows, labelKey, update, onSave, isSubmitti
   )
 }
 
-// ?? Composant générique : tableau Objectif / Réalisé / Taux (M + M+1) ?????????
+// ?? Composant générique : tableau Objectif / Réalisé / Taux (M-1 + M) ?????????
 //    Réutilisé par : Effectifs Formés, Formations
 interface OrtTableProps {
   colHeader: string
@@ -223,8 +223,8 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (
@@ -267,8 +267,8 @@ function TabFraisPersonnel({ rows, setRows, onSave, isSubmitting }: TabFraisPers
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Frais personnel (MDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
             </tr>
           </thead>
           <tbody>
@@ -316,8 +316,8 @@ function TabMouvementEffectifs({ rows, setRows, onSave, isSubmitting }: TabMouve
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Type d'operation</th>
-              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               {["Cadres Sup", "Cadres", "Maitrise", "Execution"].map((h, i) => (

@@ -121,6 +121,7 @@ public class TableauController : ControllerBase
         "e_payement_pop",
         "e_payement_prp",
         "total_encaissement",
+        "rechargement",
         "recouvrement",
         "realisation_technique_reseau",
         "situation_reseau",

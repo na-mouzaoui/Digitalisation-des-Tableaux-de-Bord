@@ -168,8 +168,8 @@ function TabRealisationTechniqueReseau({ rows, setRows, onSave, isSubmitting }: 
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Realisations techniques</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
             </tr>
           </thead>
           <tbody>
@@ -202,8 +202,8 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
             </tr>
           </thead>
           <tbody>
@@ -236,8 +236,8 @@ function TabTraficData({ rows, setRows, onSave, isSubmitting }: TabTraficDataPro
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Trafic Data (TB)</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
             </tr>
           </thead>
           <tbody>
@@ -279,8 +279,8 @@ function DynamicWilayaTable<T extends { wilaya: string; mObjectif: string; mReal
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"M-1/th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"M-1/th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
@@ -329,7 +329,7 @@ function TabCouvertureReseau({ rows, setRows, onSave, isSubmitting }: TabCouvert
   return <DynamicWilayaTable colHeader="Couverture Reseau/Wilaya" rows={rows} onAdd={() => setRows((p) => [...p, { ...EMPTY_COUVERTURE_RESEAU_ROW }])} onRemove={(i) => setRows((p) => p.filter((_, idx) => idx !== i))} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
-// ?? Composant générique : tableau Objectif / Réalisé / Taux (M + M+1) ?????????
+// ?? Composant générique : tableau Objectif / Réalisé / Taux (M + M) ?????????
 interface OrtTableProps {
   colHeader: string
   rows: Array<Record<string, string>>
@@ -347,8 +347,8 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"M-1/th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (
@@ -392,8 +392,8 @@ function TabActionNotableReseau({ rows, setRows, onSave, isSubmitting }: TabActi
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Action</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Objectif 2025</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"M-1/th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (

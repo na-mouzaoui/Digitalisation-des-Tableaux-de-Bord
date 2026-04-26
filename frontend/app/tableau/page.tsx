@@ -136,6 +136,12 @@ const EPAYEMENT_CHANNELS = ["Baridimob", "webportail", "GAB-Alg Poste", "WINPAY 
 const createDefaultEPayementRows = (): EPayementRow[] =>
   EPAYEMENT_CHANNELS.map((rechargement) => ({ rechargement, m: "", m1: "", evol: "" }))
 
+// ?? Rechargement
+type RechargementRow = { canal: string; m: string; m1: string; taux: string }
+const RECHARGEMENT_DR_LABELS = ["DR Alger", "DR Oran", "DR Constantine", "DR Setif", "DR Ouargla", "DR Bechar", "DR Annaba", "DR Chlef"] as const
+const createDefaultRechargementRows = (): RechargementRow[] =>
+  RECHARGEMENT_DR_LABELS.map((canal) => ({ canal, m: "", m1: "", taux: "" }))
+
 // ?? Total Encaissement ???????????????????????????????????????????????????????
 type TotalEncaissementRow = { mGp: string; mB2b: string; m1Gp: string; m1B2b: string; evol: string }
 const EMPTY_TOTAL_ENCAISSEMENT_ROW: TotalEncaissementRow = { mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "-" }
@@ -354,10 +360,10 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Reclamations</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Type</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1 GP</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1 B2B</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M GP</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M B2B</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M+1 GP</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M+1 B2B</th>
             </tr>
           </thead>
           <tbody>
@@ -473,8 +479,8 @@ function EPayementBlock({ title, rows, setRows }: EPayementBlockProps) {
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M+1</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -510,6 +516,61 @@ function TabEPayementSingle({ title, rows, setRows, onSave, isSubmitting }: TabE
   )
 }
 
+// ?? 6e. Rechargement
+interface TabRechargementBlockProps {
+  title: string
+  rows: RechargementRow[]
+  setRows: React.Dispatch<React.SetStateAction<RechargementRow[]>>
+}
+function RechargementBlock({ title, rows, setRows }: TabRechargementBlockProps) {
+  const update = (index: number, field: "m" | "m1" | "taux", value: string) =>
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement PRP (Million DA)/ DR</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${title}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{RECHARGEMENT_DR_LABELS[index] ?? row.canal}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.taux} onChange={(e) => update(index, "taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+interface TabRechargementSingleProps {
+  title: string
+  rows: RechargementRow[]
+  setRows: React.Dispatch<React.SetStateAction<RechargementRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+function TabRechargementSingle({ title, rows, setRows, onSave, isSubmitting }: TabRechargementSingleProps) {
+  return (
+    <div className="space-y-4">
+      <RechargementBlock title={title} rows={rows} setRows={setRows} />
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
 // ?? 6d. Total Encaissement ????????????????????????????????????????????????????
 interface TabTotalEncaissementProps {
   row: TotalEncaissementRow
@@ -528,8 +589,8 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={3} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Encaissement (MDA)</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
               <th rowSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
             <tr className="bg-gray-50">
@@ -632,8 +693,8 @@ function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvremen
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={3} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement (MDA)</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b border-r">Sous-colonnes</th>
@@ -677,8 +738,8 @@ function TabRealisationTechniqueReseau({ rows, setRows, onSave, isSubmitting }: 
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Realisations techniques</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
             </tr>
           </thead>
           <tbody>
@@ -711,8 +772,8 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
             </tr>
           </thead>
           <tbody>
@@ -745,8 +806,8 @@ function TabTraficData({ rows, setRows, onSave, isSubmitting }: TabTraficDataPro
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Trafic Data (TB)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
             </tr>
           </thead>
           <tbody>
@@ -789,8 +850,8 @@ function DynamicWilayaTable<T extends { wilaya: string; mObjectif: string; mReal
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
@@ -839,7 +900,7 @@ function TabCouvertureReseau({ rows, setRows, onSave, isSubmitting }: TabCouvert
   return <DynamicWilayaTable colHeader="Couverture Reseau/Wilaya" rows={rows} onAdd={() => setRows((p) => [...p, { ...EMPTY_COUVERTURE_RESEAU_ROW }])} onRemove={(i) => setRows((p) => p.filter((_, idx) => idx !== i))} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
-// ?? Composant générique : tableau Objectif / Réalisé / Taux (M + M+1) ?????????
+// ?? Composant générique : tableau Objectif / Réalisé / Taux (M-1 + M) ?????????
 //    Réutilisé par : Action Notable, Disponibilité, Chiffre d'Affaires, Effectifs Formés, Formations
 interface OrtTableProps {
   colHeader: string
@@ -858,8 +919,8 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (
@@ -903,8 +964,8 @@ function TabActionNotableReseau({ rows, setRows, onSave, isSubmitting }: TabActi
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Action</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Objectif 2025</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (
@@ -956,8 +1017,8 @@ function TabDesactivationResiliation({ rows, setRows, onSave, isSubmitting }: Ta
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Desactivation / Resiliation</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -995,8 +1056,8 @@ function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: Simp
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{colHeader}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -1080,8 +1141,8 @@ function TabFraisPersonnel({ rows, setRows, onSave, isSubmitting }: TabFraisPers
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Frais personnel (MDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
             </tr>
           </thead>
           <tbody>
@@ -1118,8 +1179,8 @@ function SimplePartTable({ colHeader, rows, labelKey, update, onSave, isSubmitti
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{colHeader}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Part %</th>
             </tr>
           </thead>
@@ -1169,8 +1230,8 @@ function TabMouvementEffectifs({ rows, setRows, onSave, isSubmitting }: TabMouve
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Type d'operation</th>
-              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               {["Cadres Sup", "Cadres", "Maitrise", "Execution"].map((h, i) => (
@@ -1217,8 +1278,8 @@ function TabMouvementEffectifsDomaine({ rows, setRows, onSave, isSubmitting }: T
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs par Domaine</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Domaine</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               {["CDI", "CDD", "CTA"].map((h, i) => (
@@ -1263,8 +1324,8 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteRes
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Designations</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M+1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
               {["Budget", "Realise", "Taux"].map((h, i) => (
@@ -1333,8 +1394,8 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M+1</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
@@ -1390,7 +1451,8 @@ const TABS = [
   { key: "reclamation_gp",                 label: "Reclamation GP",                        color: PRIMARY_COLOR, title: "TABLEAU RECLAMATION GP" },
   { key: "e_payement_pop",                 label: "E-PAYEMENT Pop",                        color: PRIMARY_COLOR, title: "E-PAYEMENT POP (MDA)" },
   { key: "e_payement_prp",                 label: "E-PAYEMENT Prp",                        color: PRIMARY_COLOR, title: "E-PAYEMENT PRP (MDA)" },
-  { key: "total_encaissement",             label: "Totale des encaissment",                color: PRIMARY_COLOR, title: "TOTALE DES ENCAISSMENT" },
+  { key: "total_encaissement",             label: "Totale des encaissements",                color: PRIMARY_COLOR, title: "TOTALE DES ENCAISSEMENTS" },
+  { key: "rechargement",                  label: "Rechargement",                       color: PRIMARY_COLOR, title: "RECHARGEMENT" },
   { key: "recouvrement",                   label: "Recouvrement",                          color: PRIMARY_COLOR, title: "RECOUVREMENT (MDA)" },
   { key: "realisation_technique_reseau",   label: "Realisation technique Reseau",          color: PRIMARY_COLOR, title: "REALISATION TECHNIQUE RESEAU" },
   { key: "situation_reseau",               label: "Situation Reseau",                      color: PRIMARY_COLOR, title: "SITUATION RESEAUX" },
@@ -1421,7 +1483,7 @@ const TABS = [
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
-  | "reclamation" | "reclamation_gp" | "e_payement_pop" | "e_payement_prp"
+  | "reclamation" | "reclamation_gp" | "e_payement_pop" | "e_payement_prp" | "rechargement"
   | "total_encaissement" | "recouvrement" | "realisation_technique_reseau"
   | "situation_reseau" | "trafic_data" | "amelioration_qualite" | "couverture_reseau"
   | "action_notable_reseau" | "disponibilite_reseau" | "desactivation_resiliation"
@@ -1432,7 +1494,7 @@ type tableauTabKey =
   | "activation" | "chiffre_affaires_mda"
 
 type tableauCategoryKey =
-  | "all" | "reclamation" | "e_payment" | "encaissement" | "recouvrement"
+  | "all" | "reclamation" | "e_payment" | "rechargement" | "encaissement" | "recouvrement"
   | "reseau_technique" | "qualite_reseau" | "creances_contentieuses" | "rh"
   | "formation" | "cr" | "parc_abonnes" | "activation_desactivation_sim" | "chiffre_affaires"
 
@@ -1440,6 +1502,7 @@ const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; 
   { key: "all",           label: "Toutes les categories",          tabKeys: [] },
   { key: "reclamation",   label: "Reclamation",                    tabKeys: ["reclamation", "reclamation_gp"] },
   { key: "e_payment",     label: "E-payment",                      tabKeys: ["e_payement_pop", "e_payement_prp"] },
+  { key: "rechargement", label: "Rechargement",                 tabKeys: ["rechargement"] },
   { key: "encaissement",  label: "Encaissement",                   tabKeys: ["total_encaissement"] },
   { key: "recouvrement",  label: "Recouvrement",                   tabKeys: ["recouvrement"] },
   { key: "reseau_technique", label: "Reseau technique",            tabKeys: ["realisation_technique_reseau", "situation_reseau", "trafic_data", "amelioration_qualite", "couverture_reseau", "action_notable_reseau"] },
@@ -1488,6 +1551,7 @@ interface Savedtableau {
   reclamationGpRows?: ReclamationGpRow[]
   ePayementPopRows?: EPayementRow[]
   ePayementPrpRows?: EPayementRow[]
+  rechargementRows?: RechargementRow[]
   totalEncaissementRows?: TotalEncaissementRow[]
   recouvrementRows?: RecouvrementRow[]
   realisationTechniqueReseauRows?: RealisationTechniqueReseauRow[]
@@ -1564,6 +1628,11 @@ const normalizeReclamationGpRows = (rows?: ReclamationGpRow[]): ReclamationGpRow
 const normalizeEPayementRows = (rows?: EPayementRow[]): EPayementRow[] => {
   const src = Array.isArray(rows) ? rows : []
   return EPAYEMENT_CHANNELS.map((rechargement, i) => ({ rechargement, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
+}
+
+const normalizeRechargementRows = (rows?: RechargementRow[]): RechargementRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return RECHARGEMENT_DR_LABELS.map((canal, i) => ({ canal, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), taux: safeString(src[i]?.taux) }))
 }
 
 const normalizeTotalEncaissementRow = (row?: TotalEncaissementRow): TotalEncaissementRow => ({
@@ -1814,6 +1883,7 @@ export default function NouvelleDeclarationPage() {
   const [reclamationGpRows, setReclamationGpRows] = useState<ReclamationGpRow[]>(DEFAULT_RECLAMATION_GP_ROWS.map((row) => ({ ...row })))
   const [ePayementPopRows, setEPayementPopRows] = useState<EPayementRow[]>(createDefaultEPayementRows())
   const [ePayementPrpRows, setEPayementPrpRows] = useState<EPayementRow[]>(createDefaultEPayementRows())
+  const [rechargementRows, setRechargementRows] = useState<RechargementRow[]>(createDefaultRechargementRows())
   const [totalEncaissementRows, setTotalEncaissementRows] = useState<TotalEncaissementRow[]>([{ ...EMPTY_TOTAL_ENCAISSEMENT_ROW }])
   const [recouvrementRows, setRecouvrementRows] = useState<RecouvrementRow[]>(DEFAULT_RECOUVREMENT_ROWS.map((row) => ({ ...row })))
   const [realisationTechniqueReseauRows, setRealisationTechniqueReseauRows] = useState<RealisationTechniqueReseauRow[]>(DEFAULT_REALISATION_TECHNIQUE_RESEAU_ROWS.map((row) => ({ ...row })))
@@ -2057,6 +2127,7 @@ export default function NouvelleDeclarationPage() {
       setReclamationGpRows(normalizeReclamationGpRows(declaration.reclamationGpRows))
       setEPayementPopRows(normalizeEPayementRows(declaration.ePayementPopRows))
       setEPayementPrpRows(normalizeEPayementRows(declaration.ePayementPrpRows))
+      setRechargementRows(normalizeRechargementRows(declaration.rechargementRows))
       setTotalEncaissementRows(normalizeTotalEncaissementRows(declaration.totalEncaissementRows))
       setRecouvrementRows(normalizeRecouvrementRows(declaration.recouvrementRows))
       setRealisationTechniqueReseauRows(normalizeRealisationTechniqueReseauRows(declaration.realisationTechniqueReseauRows))
@@ -2186,9 +2257,15 @@ export default function NouvelleDeclarationPage() {
           validationError = true
         }
         break
+      case "rechargement":
+        if (rechargementRows.some((row) => !row.m || !row.m1 || !row.taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Rechargement.", variant: "destructive" })
+          validationError = true
+        }
+        break
       case "total_encaissement":
         if (totalEncaissementRows.some((row) => !row.mGp || !row.mB2b || !row.m1Gp || !row.m1B2b || !row.evol)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les valeurs du tableau Totale des encaissment.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les valeurs du tableau Totale des encaissements.", variant: "destructive" })
           validationError = true
         }
         break
@@ -2369,6 +2446,7 @@ export default function NouvelleDeclarationPage() {
       reclamationGpRows: [],
       ePayementPopRows: [],
       ePayementPrpRows: [],
+      rechargementRows: [],
       totalEncaissementRows: [],
       recouvrementRows: [],
       realisationTechniqueReseauRows: [],
@@ -2409,6 +2487,9 @@ export default function NouvelleDeclarationPage() {
         break
       case "e_payement_prp":
         baseDecl.ePayementPrpRows = ePayementPrpRows
+        break
+      case "rechargement":
+        baseDecl.rechargementRows = rechargementRows
         break
       case "total_encaissement":
         baseDecl.totalEncaissementRows = totalEncaissementRows
@@ -2511,6 +2592,7 @@ export default function NouvelleDeclarationPage() {
         case "reclamation_gp": tabData = { reclamationGpRows }; break
         case "e_payement_pop": tabData = { ePayementPopRows }; break
         case "e_payement_prp": tabData = { ePayementPrpRows }; break
+        case "rechargement": tabData = { rechargementRows }; break
         case "total_encaissement": tabData = { totalEncaissementRows }; break
         case "recouvrement": tabData = { recouvrementRows }; break
         case "realisation_technique_reseau": tabData = { realisationTechniqueReseauRows }; break
@@ -2756,10 +2838,26 @@ export default function NouvelleDeclarationPage() {
                   </CardContent>
                 </Card>
               )}
+              {activeTab === "rechargement" && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Rechargement</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TabRechargementSingle
+                      title="Rechargement"
+                      rows={rechargementRows}
+                      setRows={setRechargementRows}
+                      onSave={handleSave}
+                      isSubmitting={isSubmitting}
+                    />
+                  </CardContent>
+                </Card>
+              )}
               {activeTab === "total_encaissement" && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Totale des encaissment</CardTitle>
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Totale des encaissements</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <TabTotalEncaissement
