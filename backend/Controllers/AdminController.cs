@@ -26,42 +26,70 @@ public class AdminController : ControllerBase
 
     private static readonly string[] ManagedTableauKeys =
     {
-        "encaissement",
-        "tva_immo",
-        "tva_biens",
-        "droits_timbre",
-        "ca_tap",
-        "etat_tap",
-        "ca_siege",
-        "irg",
-        "taxe2",
-        "taxe_masters",
-        "taxe_vehicule",
-        "taxe_formation",
-        "acompte",
-        "ibs",
-        "taxe_domicil",
-        "tva_autoliq",
+        "reclamation",
+        "reclamation_gp",
+        "e_payement_pop",
+        "e_payement_prp",
+        "total_encaissement",
+        "recouvrement",
+        "realisation_technique_reseau",
+        "situation_reseau",
+        "trafic_data",
+        "amelioration_qualite",
+        "couverture_reseau",
+        "action_notable_reseau",
+        "disponibilite_reseau",
+        "desactivation_resiliation",
+        "parc_abonnes_b2b",
+        "mttr",
+        "creances_contentieuses",
+        "frais_personnel",
+        "effectif_gsp",
+        "absenteisme",
+        "mouvement_effectifs",
+        "mouvement_effectifs_domaine",
+        "compte_resultat",
+        "effectifs_formes_gsp",
+        "formations_domaines",
+        "parc_abonnes_gp",
+        "total_parc_abonnes",
+        "total_parc_abonnes_technologie",
+        "activation",
+        "chiffre_affaires_mda",
     };
 
     private static readonly Dictionary<string, string> ManagedTableauLabels = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["encaissement"] = "1 - Encaissement",
-        ["tva_immo"] = "2 - TVA / IMMO",
-        ["tva_biens"] = "3 - TVA / Biens & Services",
-        ["droits_timbre"] = "4 - Droits de Timbre",
-        ["ca_tap"] = "5 - CA 7% & CA Global 1%",
-        ["etat_tap"] = "6 - ETAT TAP",
-        ["ca_siege"] = "7a - CA Siege",
-        ["irg"] = "8a - Situation IRG",
-        ["taxe2"] = "9a - Taxe 2%",
-        ["taxe_masters"] = "10a - Taxe Masters 1,5%",
-        ["taxe_vehicule"] = "11a - Taxe Vehicule",
-        ["taxe_formation"] = "12a - Taxe Formation",
-        ["acompte"] = "13a - Acompte Provisionnel",
-        ["ibs"] = "14a - IBS Fournisseurs Etrangers",
-        ["taxe_domicil"] = "15a - Taxe Domiciliation",
-        ["tva_autoliq"] = "16a - TVA Auto Liquidation",
+        ["reclamation"] = "1 - Reclamation",
+        ["reclamation_gp"] = "2 - Reclamation GP",
+        ["e_payement_pop"] = "3 - E-PAYEMENT Pop",
+        ["e_payement_prp"] = "4 - E-PAYEMENT Prp",
+        ["total_encaissement"] = "5 - Totale des encaissment",
+        ["recouvrement"] = "6 - Recouvrement",
+        ["realisation_technique_reseau"] = "7 - Realisation technique Reseau",
+        ["situation_reseau"] = "8 - Situation Reseau",
+        ["trafic_data"] = "9 - Trafic Data",
+        ["amelioration_qualite"] = "10 - Amelioration qualite",
+        ["couverture_reseau"] = "11 - Couverture Reseau",
+        ["action_notable_reseau"] = "12 - Action notable sur le reseau",
+        ["disponibilite_reseau"] = "13 - Disponibilite reseau",
+        ["desactivation_resiliation"] = "14 - Desactivation / Resiliation",
+        ["parc_abonnes_b2b"] = "15 - Parc Abonnes B2B",
+        ["mttr"] = "16 - MTTR",
+        ["creances_contentieuses"] = "17 - Creances Contentieuses",
+        ["frais_personnel"] = "18 - Frais personnel",
+        ["effectif_gsp"] = "19 - Effectif par GSP",
+        ["absenteisme"] = "20 - Absenteisme",
+        ["mouvement_effectifs"] = "21 - Mouvement des effectifs",
+        ["mouvement_effectifs_domaine"] = "22 - Mouvement des effectifs par domaine",
+        ["compte_resultat"] = "23 - Compte de resultat",
+        ["effectifs_formes_gsp"] = "24 - Effectifs formes par GSP",
+        ["formations_domaines"] = "25 - Formations realisees par domaines",
+        ["parc_abonnes_gp"] = "26 - Parc Abonnes GP",
+        ["total_parc_abonnes"] = "27 - Total Parc Abonnes",
+        ["total_parc_abonnes_technologie"] = "28 - Total Parc Abonnes par technologie",
+        ["activation"] = "29 - Activation",
+        ["chiffre_affaires_mda"] = "30 - Chiffre d'Affaires (MDA)",
     };
 
     private static readonly HashSet<string> ManagedTableauKeySet =
@@ -385,11 +413,22 @@ public class AdminController : ControllerBase
         var setting = await GetOrCreateAdminSettingAsync();
         var disabledTabKeys = ParseDisabledTabKeys(setting.DisabledTabKeysJson);
 
+        var existingTabKeys = await _context.Tableaus
+            .AsNoTracking()
+            .Select(t => t.TabKey)
+            .Distinct()
+            .OrderBy(t => t)
+            .ToListAsync();
+
+        var allKeys = existingTabKeys.Concat(ManagedTableauKeys)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         return Ok(new
         {
             disabledTabKeys,
             updatedAt = setting.UpdatedAt,
-            tabs = ManagedTableauKeys.Select(key => new
+            tabs = allKeys.Select(key => new
             {
                 key,
                 label = ManagedTableauLabels.TryGetValue(key, out var label) ? label : key,
@@ -405,7 +444,7 @@ public class AdminController : ControllerBase
             return Forbid();
 
         var normalizedTabKey = NormalizeTabKey(request.TabKey);
-        if (!ManagedTableauKeySet.Contains(normalizedTabKey))
+        if (string.IsNullOrWhiteSpace(normalizedTabKey))
             return BadRequest(new { message = "Tableau invalide." });
 
         var setting = await GetOrCreateAdminSettingAsync();
