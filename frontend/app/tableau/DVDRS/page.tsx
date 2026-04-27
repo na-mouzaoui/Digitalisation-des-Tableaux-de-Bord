@@ -819,7 +819,7 @@ export default function NouvelleDeclarationPage() {
           description: "Votre profil n'est pas autorise a modifier ce tableau fiscal.",
           variant: "destructive",
         })
-        router.push("/fisca_dashbord")
+        router.push("/dashbord")
         return
       }
       setEditingDeclarationId(safeString(declaration.id) || editQuery.editId)
@@ -1078,7 +1078,7 @@ export default function NouvelleDeclarationPage() {
       description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
     })
     setIsSubmitting(false)
-    router.push("/fisca_dashbord")
+    router.push("/dashbord")
   }
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
@@ -1101,7 +1101,7 @@ export default function NouvelleDeclarationPage() {
           message={user.role === "direction"
             ? "Votre role ne vous permet pas de creer des declarations fiscales."
             : "Votre role ne vous permet pas de gerer les tableaux fiscaux."}
-          redirectTo="/fisca_dashbord"
+          redirectTo="/dashbord"
         />
       ) : (
         <>

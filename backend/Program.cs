@@ -167,6 +167,7 @@ builder.Services.AddAuthentication(options =>
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<INormalizedTableauPersistenceService, NormalizedTableauPersistenceService>();
 
 var app = builder.Build();
 

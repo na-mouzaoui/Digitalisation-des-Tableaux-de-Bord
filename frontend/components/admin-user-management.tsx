@@ -100,11 +100,10 @@ function RoleSelector({
               <button
                 type="button"
                 onClick={() => onChange(opt.value)}
-                className={`flex-1 flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                  value === opt.value
+                className={`flex-1 flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${value === opt.value
                     ? "border-green-500 bg-green-50 text-green-700"
                     : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 {opt.label}
                 <Info className="h-3.5 w-3.5 opacity-50" />
@@ -133,10 +132,6 @@ interface User {
   direction: string;
   phoneNumber: string;
   role: string;
-  region: string | null;
-  isRegionalApprover?: boolean;
-  isFinanceApprover?: boolean;
-  accessModules: string;
   createdAt: string;
 }
 
@@ -166,9 +161,6 @@ export default function AdminUserManagement() {
     phoneNumber: "",
     role: "comptabilite",
     region: "",
-    isRegionalApprover: false,
-    isFinanceApprover: false,
-    accessModules: ["tableau"] as string[],
   });
 
   useEffect(() => {
@@ -237,7 +229,7 @@ export default function AdminUserManagement() {
     if (formData.role === "regionale" && !formData.region) {
       toast({
         title: "Erreur de validation",
-        description: "La région est obligatoire pour le réle régionale",
+        description: "La région est obligatoire pour le role régionale",
         variant: "destructive",
       });
       return;
@@ -247,17 +239,12 @@ export default function AdminUserManagement() {
       const token = localStorage.getItem("jwt");
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers.Authorization = `Bearer ${token}`;
-      
+
       const response = await fetch(`${API_BASE}/api/admin/users`, {
         method: "POST",
         headers,
         credentials: "include",
-        body: JSON.stringify({
-          ...formData,
-          isRegionalApprover: formData.role === "regionale" ? formData.isRegionalApprover : false,
-          isFinanceApprover: (formData.role === "finance" || formData.role === "comptabilite") ? formData.isFinanceApprover : false,
-          accessModules: formData.accessModules.join(","),
-        }),
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
@@ -289,17 +276,12 @@ export default function AdminUserManagement() {
       const token = localStorage.getItem("jwt");
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers.Authorization = `Bearer ${token}`;
-      
+
       const response = await fetch(`${API_BASE}/api/admin/users/${selectedUser.id}`, {
         method: "PUT",
         headers,
         credentials: "include",
-        body: JSON.stringify({
-          ...formData,
-          isRegionalApprover: formData.role === "regionale" ? formData.isRegionalApprover : false,
-          isFinanceApprover: (formData.role === "finance" || formData.role === "comptabilite") ? formData.isFinanceApprover : false,
-          accessModules: formData.accessModules.join(","),
-        }),
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
@@ -396,9 +378,6 @@ export default function AdminUserManagement() {
       phoneNumber: user.phoneNumber,
       role: user.role,
       region: user.region || "",
-      isRegionalApprover: !!user.isRegionalApprover,
-      isFinanceApprover: !!user.isFinanceApprover,
-      accessModules: ["tableau"],
     });
     setIsEditOpen(true);
   };
@@ -413,9 +392,6 @@ export default function AdminUserManagement() {
       phoneNumber: "",
       role: "comptabilite",
       region: "",
-      isRegionalApprover: false,
-      isFinanceApprover: false,
-      accessModules: ["tableau"],
     });
     setShowPassword(false);
   };
@@ -527,56 +503,28 @@ export default function AdminUserManagement() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Réle *</Label>
+                <Label>role *</Label>
                 <RoleSelector
                   value={formData.role}
                   onChange={(value) => setFormData({ ...formData, role: value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Accés aux modules *</Label>
-                <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                  tableauité
-                </div>
-              </div>
               {formData.role === "regionale" && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="region">Région *</Label>
-                    <Select value={formData.region} onValueChange={(value) => setFormData({ ...formData, region: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez une région" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {regions.map((region) => (
-                          <SelectItem key={region.id} value={region.name}>
-                            {region.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <label className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.isRegionalApprover}
-                      onChange={(e) => setFormData({ ...formData, isRegionalApprover: e.target.checked })}
-                    />
-                    Compte approbateur régional (peut approuver les tableaux de la méme région)
-                  </label>
+                <div className="space-y-2">
+                  <Label htmlFor="region">Région *</Label>
+                  <Select value={formData.region} onValueChange={(value) => setFormData({ ...formData, region: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez une région" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {regions.map((region) => (
+                        <SelectItem key={region.id} value={region.name}>
+                          {region.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-
-              {(formData.role === "finance" || formData.role === "comptabilite") && (
-                <label className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isFinanceApprover}
-                    onChange={(e) => setFormData({ ...formData, isFinanceApprover: e.target.checked })}
-                  />
-                  Compte approbateur finance (peut approuver les tableaux du niveau Siége)
-                </label>
               )}
             </div>
             <DialogFooter>
@@ -597,10 +545,7 @@ export default function AdminUserManagement() {
               <TableHead>Email</TableHead>
               <TableHead>Direction</TableHead>
               <TableHead>Téléphone</TableHead>
-              <TableHead>Réle</TableHead>
-              <TableHead>Région</TableHead>
-              <TableHead>Approbateur</TableHead>
-              <TableHead>Modules</TableHead>
+              <TableHead>Rôle</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -615,28 +560,6 @@ export default function AdminUserManagement() {
                 <TableCell>{user.phoneNumber}</TableCell>
                 <TableCell>
                   <Badge className="bg-green-100 text-green-800">{getRoleLabel(user.role)}</Badge>
-                </TableCell>
-                <TableCell>{user.region || "-"}</TableCell>
-                <TableCell>
-                  {user.role === "regionale" || user.role === "finance" || user.role === "comptabilite" ? (
-                    ((user.role === "regionale" && user.isRegionalApprover) ||
-                    ((user.role === "finance" || user.role === "comptabilite") && user.isFinanceApprover)) ? (
-                      <Badge className="bg-emerald-100 text-emerald-800">Oui</Badge>
-                    ) : (
-                      <Badge className="bg-slate-100 text-slate-700">Non</Badge>
-                    )
-                  ) : (
-                    <Badge className="bg-slate-100 text-slate-700">-</Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-1 flex-wrap">
-                    {(user.accessModules || "tableau").split(",").map((m) => (
-                      <Badge key={m} variant="outline" className="text-xs">
-                        {m.trim() === "tableau" ? "tableau" : m.trim()}
-                      </Badge>
-                    ))}
-                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -730,56 +653,34 @@ export default function AdminUserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Réle</Label>
+              <Label>role</Label>
               <RoleSelector
                 value={formData.role}
                 onChange={(value) => setFormData({ ...formData, role: value })}
               />
             </div>
             <div className="space-y-2">
-              <Label>Accés aux modules</Label>
+              <Label>Accès aux modules</Label>
               <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                tableauité
+                Tableau
               </div>
             </div>
             {formData.role === "regionale" && (
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-region">Région</Label>
-                  <Select value={formData.region} onValueChange={(value) => setFormData({ ...formData, region: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez une région" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {regions.map((region) => (
-                        <SelectItem key={region.id} value={region.name}>
-                          {region.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <label className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isRegionalApprover}
-                    onChange={(e) => setFormData({ ...formData, isRegionalApprover: e.target.checked })}
-                  />
-                  Compte approbateur régional
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="edit-region">Région</Label>
+                <Select value={formData.region} onValueChange={(value) => setFormData({ ...formData, region: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez une région" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regions.map((region) => (
+                      <SelectItem key={region.id} value={region.name}>
+                        {region.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-
-            {(formData.role === "finance" || formData.role === "comptabilite") && (
-              <label className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.isFinanceApprover}
-                  onChange={(e) => setFormData({ ...formData, isFinanceApprover: e.target.checked })}
-                />
-                Compte approbateur finance
-              </label>
             )}
           </div>
           <DialogFooter>

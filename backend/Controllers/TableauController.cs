@@ -13,18 +13,25 @@ namespace DigitalisationDesTableauxDeBordAPI.Controllers;
 
 [ApiController]
 [Route("api/tableau")]
+[Route("api/fiscal")]
 [Authorize]
 public class TableauController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IAuditService _auditService;
     private readonly IHubContext<CheckUpdatesHub> _hubContext;
+    private readonly INormalizedTableauPersistenceService _normalizedPersistenceService;
 
-    public TableauController(AppDbContext context, IAuditService auditService, IHubContext<CheckUpdatesHub> hubContext)
+    public TableauController(
+        AppDbContext context,
+        IAuditService auditService,
+        IHubContext<CheckUpdatesHub> hubContext,
+        INormalizedTableauPersistenceService normalizedPersistenceService)
     {
         _context = context;
         _auditService = auditService;
         _hubContext = hubContext;
+        _normalizedPersistenceService = normalizedPersistenceService;
     }
 
     private async Task NotifyTableauChangedAsync(string action, Tableau tableau, int changedByUserId)
@@ -463,6 +470,8 @@ public class TableauController : ControllerBase
         _context.Tableaus.Add(decl);
         await _context.SaveChangesAsync();
 
+        await _normalizedPersistenceService.PersistAsync(request, targetDirection);
+
         await _auditService.LogAction(userId, "tableau_SAVE", "Tableau", decl.Id,
             new { decl.TabKey, decl.Mois, decl.Annee, action = "create" });
 
@@ -516,6 +525,8 @@ public class TableauController : ControllerBase
         decl.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        await _normalizedPersistenceService.PersistAsync(request, targetDirection);
 
         await _auditService.LogAction(userId, "tableau_SAVE", "Tableau", decl.Id,
             new { decl.TabKey, decl.Mois, decl.Annee, action = "update", modifiedByUserId = userId });
