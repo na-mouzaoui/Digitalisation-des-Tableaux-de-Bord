@@ -1,12 +1,16 @@
 {
   "profiles": {
-    "TableauDeBordAPI": {
+    "CheckFillingAPI": {
       "commandName": "Project",
-      "launchBrowser": false,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
+      },
+      "applicationUrl": "http://localhost:5241"
+    }
+  },
+
     "TableauDeBordAPI:Local": {
       "commandName": "Project",
       "launchBrowser": false,
@@ -14,5 +18,5 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
+
   }
-}

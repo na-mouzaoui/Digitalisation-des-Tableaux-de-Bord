@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Save, X, Plus, Trash2 } from "lucide-react";
-import { VILLES } from "@/lib/villes";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +38,7 @@ interface Region {
 
 export default function AdminRegionConfig() {
   const [regions, setRegions] = useState<Region[]>([]);
+  const [wilayas, setWilayas] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingRegion, setEditingRegion] = useState<number | null>(null);
   const [selectedVilles, setSelectedVilles] = useState<string[]>([]);
@@ -50,8 +50,30 @@ export default function AdminRegionConfig() {
   const { toast } = useToast();
 
   useEffect(() => {
+    fetchWilayas();
     fetchRegions();
   }, []);
+
+  const fetchWilayas = async () => {
+    try {
+      const token = localStorage.getItem("jwt");
+      const response = await fetch(`${API_BASE}/api/regions/wilayas`, {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!response.ok) throw new Error("Erreur de chargement des wilayas");
+
+      const data = (await response.json()) as Array<{ id: number; code: string; name: string }>;
+      setWilayas(data.map((item) => item.name));
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les wilayas",
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchRegions = async () => {
     try {
@@ -64,7 +86,19 @@ export default function AdminRegionConfig() {
       if (!response.ok) throw new Error("Erreur de chargement");
 
       const data = await response.json();
-      setRegions(data);
+      const mapped = Array.isArray(data)
+        ? data.map((item: any) => ({
+            id: Number(item.id),
+            name: String(item.name ?? "").trim(),
+            villes: Array.isArray(item.wilayas)
+              ? item.wilayas
+              : Array.isArray(item.villes)
+                ? item.villes
+                : [],
+            createdAt: String(item.createdAt ?? new Date().toISOString()),
+          }))
+        : [];
+      setRegions(mapped);
     } catch (error) {
       toast({
         title: "Erreur",
@@ -105,7 +139,7 @@ export default function AdminRegionConfig() {
 
   const handleSave = async (regionId: number) => {
     try {
-      const body: { villes: string[]; name?: string } = { villes: selectedVilles };
+      const body: { wilayas: string[]; name?: string } = { wilayas: selectedVilles };
       
       // Ajouter le nom s'il a été modifié
       if (editedName.trim() && editedName !== regions.find(r => r.id === regionId)?.name) {
@@ -172,7 +206,7 @@ export default function AdminRegionConfig() {
         credentials: "include",
         body: JSON.stringify({
           name: newRegionName.trim(),
-          villes: newRegionVilles,
+          wilayas: newRegionVilles,
         }),
       });
 
@@ -315,30 +349,30 @@ export default function AdminRegionConfig() {
                 </div>
               )}
             </div>
-            <CardDescription>{editingRegion === region.id ? selectedVilles.length : region.villes.length} villes</CardDescription>
+            <CardDescription>{editingRegion === region.id ? selectedVilles.length : region.villes.length} wilayas</CardDescription>
           </CardHeader>
           <CardContent>
             {editingRegion === region.id ? (
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {VILLES.map((ville) => {
-                  const isAssigned = assignedVilles.has(ville.name);
-                  const isSelected = selectedVilles.includes(ville.name);
+                {wilayas.map((wilaya) => {
+                  const isAssigned = assignedVilles.has(wilaya);
+                  const isSelected = selectedVilles.includes(wilaya);
                   
                   return (
-                    <div key={ville.code} className="flex items-center space-x-2">
+                    <div key={`${region.id}-${wilaya}`} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`ville-${region.id}-${ville.code}`}
+                        id={`wilaya-${region.id}-${wilaya}`}
                         checked={isSelected}
                         disabled={isAssigned && !isSelected}
-                        onCheckedChange={() => handleVilleToggle(ville.name)}
+                        onCheckedChange={() => handleVilleToggle(wilaya)}
                       />
                       <Label
-                        htmlFor={`ville-${region.id}-${ville.code}`}
+                        htmlFor={`wilaya-${region.id}-${wilaya}`}
                         className={`text-sm font-normal cursor-pointer ${
                           isAssigned && !isSelected ? "text-muted-foreground" : ""
                         }`}
                       >
-                        {ville.name}
+                        {wilaya}
                         {isAssigned && !isSelected && " (assignée)"}
                       </Label>
                     </div>
@@ -365,7 +399,7 @@ export default function AdminRegionConfig() {
           <DialogHeader>
             <DialogTitle>Créer une nouvelle région</DialogTitle>
             <DialogDescription>
-              Entrez le nom de la région et sélectionnez les villes é assigner
+              Entrez le nom de la région et sélectionnez les wilayas é assigner
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -379,27 +413,27 @@ export default function AdminRegionConfig() {
               />
             </div>
             <div>
-              <Label>Villes ({newRegionVilles.length} sélectionnées)</Label>
+              <Label>Wilayas ({newRegionVilles.length} sélectionnées)</Label>
               <div className="mt-2 space-y-2 max-h-96 overflow-y-auto border rounded-md p-4">
-                {VILLES.map((ville) => {
-                  const isAssigned = assignedVilles.has(ville.name);
-                  const isSelected = newRegionVilles.includes(ville.name);
+                {wilayas.map((wilaya) => {
+                  const isAssigned = assignedVilles.has(wilaya);
+                  const isSelected = newRegionVilles.includes(wilaya);
                   
                   return (
-                    <div key={ville.code} className="flex items-center space-x-2">
+                    <div key={`new-${wilaya}`} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`new-ville-${ville.code}`}
+                        id={`new-wilaya-${wilaya}`}
                         checked={isSelected}
                         disabled={isAssigned}
-                        onCheckedChange={() => handleNewRegionVilleToggle(ville.name)}
+                        onCheckedChange={() => handleNewRegionVilleToggle(wilaya)}
                       />
                       <Label
-                        htmlFor={`new-ville-${ville.code}`}
+                        htmlFor={`new-wilaya-${wilaya}`}
                         className={`text-sm font-normal cursor-pointer ${
                           isAssigned ? "text-muted-foreground" : ""
                         }`}
                       >
-                        {ville.name}
+                        {wilaya}
                         {isAssigned && " (déjé assignée)"}
                       </Label>
                     </div>
@@ -428,7 +462,7 @@ export default function AdminRegionConfig() {
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
               ?Stes-vous sér de vouloir supprimer la région <strong>{regionToDelete?.name}</strong> ?
-              Cette action est irréversible. Les {regionToDelete?.villes.length} villes assignées seront libérées.
+              Cette action est irréversible. Les {regionToDelete?.villes.length} wilayas assignées seront libérées.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

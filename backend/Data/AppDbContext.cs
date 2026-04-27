@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<Region> Regions { get; set; }
+    public DbSet<Wilaya> Wilayas { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<Tableau> Tableaus { get; set; }
     public DbSet<AdminSetting> AdminSettings { get; set; }
@@ -31,9 +32,22 @@ public class AppDbContext : DbContext
         // Region configuration
         modelBuilder.Entity<Region>(entity =>
         {
+            entity.ToTable("DR");
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.Name).IsUnique();
-            entity.Property(e => e.Name).IsRequired();
+            entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(e => e.Name).HasColumnName("nom").HasMaxLength(150).IsRequired();
+            entity.Property(e => e.VillesJson).HasColumnName("wilayas").HasMaxLength(255).IsRequired();
+            entity.Ignore(e => e.CreatedAt);
+        });
+
+        // Wilaya configuration
+        modelBuilder.Entity<Wilaya>(entity =>
+        {
+            entity.ToTable("Wilaya");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(e => e.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Nom).HasColumnName("nom").HasMaxLength(150).IsRequired();
         });
 
         // AuditLog configuration
@@ -128,13 +142,6 @@ public class AppDbContext : DbContext
                 Role = "admin",
                 CreatedAt = seedCreatedAt
             }
-        );
-
-        modelBuilder.Entity<Region>().HasData(
-            new Region { Id = 1, Name = "nord", VillesJson = "[\"Alger\", \"Tipaza\", \"Boumerdes\", \"Blida\", \"Ain Defla\"]", CreatedAt = seedCreatedAt },
-            new Region { Id = 2, Name = "sud", VillesJson = "[\"Ouargla\", \"Ghardaia\", \"Tamanrasset\", \"Adrar\", \"Illizi\"]", CreatedAt = seedCreatedAt },
-            new Region { Id = 3, Name = "est", VillesJson = "[\"Constantine\", \"Annaba\", \"Sétif\", \"Batna\", \"Guelma\"]", CreatedAt = seedCreatedAt },
-            new Region { Id = 4, Name = "ouest", VillesJson = "[\"Oran\", \"Tlemcen\", \"Sidi Bel Abbés\", \"Mostaganem\", \"Mascara\"]", CreatedAt = seedCreatedAt }
         );
 
         modelBuilder.Entity<AdminSetting>().HasData(
