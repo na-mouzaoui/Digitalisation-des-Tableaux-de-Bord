@@ -195,6 +195,7 @@ function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting
 }
 
 // ?? 6a. Réclamation ???????????????????????????????????????????????????????????
+// 6a. Réclamation - VERSION FINALE OPTIMISÉE
 interface TabReclamationProps {
   rows: ReclamationRow[]
   setRows: React.Dispatch<React.SetStateAction<ReclamationRow[]>>
@@ -202,51 +203,182 @@ interface TabReclamationProps {
   isSubmitting: boolean
 }
 function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationProps) {
-  const update = (index: number, field: keyof Pick<ReclamationRow, "mGp" | "mB2b" | "m1Gp" | "m1B2b">, value: string) =>
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+  // Mise à jour pour M (mois actuel) et M-1 (mois précédent)
+  const updateM = (index: number, field: "mGp" | "mB2b", value: string) =>
+    setRows((prev) => prev.map((row, i) => {
+      if (i !== index) return row
+      return { ...row, [field]: value }
+    }))
 
-  const recuesRows   = rows.filter((r) => r.category === "recues")
+  const updateM1 = (index: number, field: "m1Gp" | "m1B2b", value: string) =>
+    setRows((prev) => prev.map((row, i) => {
+      if (i !== index) return row
+      return { ...row, [field]: value }
+    }))
+
+  const recuesRows = rows.filter((r) => r.category === "recues")
   const traiteesRows = rows.filter((r) => r.category === "traitees")
-  const recuesTotals   = { mGp: recuesRows.reduce((s, r) => s + num(r.mGp), 0),   mB2b: recuesRows.reduce((s, r) => s + num(r.mB2b), 0),   m1Gp: recuesRows.reduce((s, r) => s + num(r.m1Gp), 0),   m1B2b: recuesRows.reduce((s, r) => s + num(r.m1B2b), 0) }
-  const traiteesTotals = { mGp: traiteesRows.reduce((s, r) => s + num(r.mGp), 0), mB2b: traiteesRows.reduce((s, r) => s + num(r.mB2b), 0), m1Gp: traiteesRows.reduce((s, r) => s + num(r.m1Gp), 0), m1B2b: traiteesRows.reduce((s, r) => s + num(r.m1B2b), 0) }
+  
+  // Récupérer les valeurs pour chaque ligne
+  const recuesGP_M = recuesRows.find(r => r.type === "GP")?.mGp || ""
+  const recuesGP_M1 = recuesRows.find(r => r.type === "GP")?.m1Gp || ""
+  const recuesB2B_M = recuesRows.find(r => r.type === "B2B")?.mB2b || ""
+  const recuesB2B_M1 = recuesRows.find(r => r.type === "B2B")?.m1B2b || ""
+  const traiteesGP_M = traiteesRows.find(r => r.type === "GP")?.mGp || ""
+  const traiteesGP_M1 = traiteesRows.find(r => r.type === "GP")?.m1Gp || ""
+  const traiteesB2B_M = traiteesRows.find(r => r.type === "B2B")?.mB2b || ""
+  const traiteesB2B_M1 = traiteesRows.find(r => r.type === "B2B")?.m1B2b || ""
+  
+  // États pour les taux de traitement (inputs normaux)
+  const [tauxM, setTauxM] = useState("")
+  const [tauxM1, setTauxM1] = useState("")
+
+  const handleUpdateM = (type: string, category: string, value: string) => {
+    const index = rows.findIndex(r => r.type === type && r.category === category)
+    if (index === -1) return
+    if (type === "GP") {
+      updateM(index, "mGp", value)
+    } else {
+      updateM(index, "mB2b", value)
+    }
+  }
+
+  const handleUpdateM1 = (type: string, category: string, value: string) => {
+    const index = rows.findIndex(r => r.type === type && r.category === category)
+    if (index === -1) return
+    if (type === "GP") {
+      updateM1(index, "m1Gp", value)
+    } else {
+      updateM1(index, "m1B2b", value)
+    }
+  }
 
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-sm border-collapse">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Reclamations</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Type</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1 GP</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1 B2B</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M GP</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M B2B</th>
-             </tr>
+              <th colSpan={2} className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-40">
+                Réclamations
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">
+                M
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">
+                M-1
+              </th>
+            </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${row.category}-${row.type}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                {index % 2 === 0 && (
-                  <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">
-                    {row.category === "recues" ? "Recues" : "Traitees"}
-                   </td>
-                )}
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-700">{row.type}</td>
-                <td className="px-2 py-1 border-b"><AmountInput value={row.mGp}   onChange={(e) => update(index, "mGp",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-2 py-1 border-b"><AmountInput value={row.mB2b}  onChange={(e) => update(index, "mB2b",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-2 py-1 border-b"><AmountInput value={row.m1Gp}  onChange={(e) => update(index, "m1Gp",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-2 py-1 border-b"><AmountInput value={row.m1B2b} onChange={(e) => update(index, "m1B2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-              </tr>
-            ))}
+            {/* Ligne Réclamations reçues - GP */}
+            <tr className="bg-white">
+              <td rowSpan={2} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle w-28">
+                Réclamations reçues
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center w-12">GP</td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={recuesGP_M}
+                  onChange={(e) => handleUpdateM("GP", "recues", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={recuesGP_M1}
+                  onChange={(e) => handleUpdateM1("GP", "recues", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+            </tr>
+            {/* Ligne Réclamations reçues - B2B */}
+            <tr className="bg-white">
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={recuesB2B_M}
+                  onChange={(e) => handleUpdateM("B2B", "recues", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={recuesB2B_M1}
+                  onChange={(e) => handleUpdateM1("B2B", "recues", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+            </tr>
+            {/* Ligne Réclamations traitées - GP */}
+            <tr className="bg-gray-50">
+              <td rowSpan={2} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle">
+                Réclamations traitées
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">GP</td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={traiteesGP_M}
+                  onChange={(e) => handleUpdateM("GP", "traitees", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={traiteesGP_M1}
+                  onChange={(e) => handleUpdateM1("GP", "traitees", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+            </tr>
+            {/* Ligne Réclamations traitées - B2B */}
+            <tr className="bg-gray-50">
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={traiteesB2B_M}
+                  onChange={(e) => handleUpdateM("B2B", "traitees", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={traiteesB2B_M1}
+                  onChange={(e) => handleUpdateM1("B2B", "traitees", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+            </tr>
           </tbody>
           <tfoot>
-            <tr className="bg-green-100 font-semibold">
-              <td colSpan={2} className="px-3 py-2 text-xs text-right border-t">Taux de traitement (%)</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(traiteesTotals.mGp,   recuesTotals.mGp))}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(traiteesTotals.mB2b,  recuesTotals.mB2b))}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(traiteesTotals.m1Gp,  recuesTotals.m1Gp))}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(traiteesTotals.m1B2b, recuesTotals.m1B2b))}</td>
+            <tr className="bg-green-100">
+              <td colSpan={2} className="px-2 py-2 text-xs text-right border border-gray-200 font-semibold">
+                Taux de traitement (%)
+              </td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={tauxM}
+                  onChange={(e) => setTauxM(e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={tauxM1}
+                  onChange={(e) => setTauxM1(e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
             </tr>
           </tfoot>
         </table>
@@ -255,7 +387,6 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
     </div>
   )
 }
-
 // ?? 6b. Réclamation GP ????????????????????????????????????????????????????????
 interface TabReclamationGpProps {
   rows: ReclamationGpRow[]
@@ -278,8 +409,8 @@ function TabReclamationGp({ rows, setRows, onSave, isSubmitting }: TabReclamatio
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Type de Reclamation GP</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b" colSpan={2}>M</th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Taux (%)</th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Part (%)</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Taux de traitement</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Part des reclamations recus</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b"></th>
@@ -320,6 +451,7 @@ function TabReclamationGp({ rows, setRows, onSave, isSubmitting }: TabReclamatio
 }
 
 // ?? 6c. E-Payement (bloc réutilisable + wrapper) ??????????????????????????????
+// ?? 6c. E-Payement (bloc réutilisable + wrapper) avec ligne de total ??????????
 interface EPayementBlockProps {
   title: string
   rows: EPayementRow[]
@@ -328,6 +460,11 @@ interface EPayementBlockProps {
 function EPayementBlock({ title, rows, setRows }: EPayementBlockProps) {
   const update = (index: number, field: "m" | "m1" | "evol", value: string) =>
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+
+  // Calcul des totaux
+  const totalM = rows.reduce((sum, row) => sum + num(row.m), 0)
+  const totalM1 = rows.reduce((sum, row) => sum + num(row.m1), 0)
+  const totalEvol = rows.reduce((sum, row) => sum + num(row.evol), 0)
 
   return (
     <div className="space-y-2">
@@ -351,6 +488,13 @@ function EPayementBlock({ title, rows, setRows }: EPayementBlockProps) {
                 <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
               </tr>
             ))}
+            {/* Ligne de total */}
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-3 py-2 border-b text-xs font-semibold text-gray-800">TOTAL</td>
+              <td className="px-1 py-1 border-b text-xs text-right">{fmt(totalM)}</td>
+              <td className="px-1 py-1 border-b text-xs text-right">{fmt(totalM1)}</td>
+              <td className="px-1 py-1 border-b text-xs text-right">{fmt(totalEvol)}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -436,6 +580,7 @@ interface TabTotalEncaissementProps {
   onSave: () => void
   isSubmitting: boolean
 }
+
 function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEncaissementProps) {
   const update = (field: keyof TotalEncaissementRow, value: string) =>
     setRow((prev) => ({ ...prev, [field]: value }))
@@ -444,49 +589,74 @@ function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEnc
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50">
-              <th rowSpan={3} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Encaissement (MDA)</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th rowSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
-            </tr>
-            <tr className="bg-gray-50">
-              <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b border-r">Sous-colonnes</th>
-              <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b border-r">Sous-colonnes</th>
-            </tr>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</th>
-            </tr>
-          </thead>
+
           <tbody>
-            <tr className="bg-white">
-              <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">Encaissements</td>
-              <td className="px-1 py-1 border-b"><AmountInput value={row.mGp}   onChange={(e) => update("mGp",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-              <td className="px-1 py-1 border-b"><AmountInput value={row.mB2b}  onChange={(e) => update("mB2b",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-              <td className="px-1 py-1 border-b"><AmountInput value={row.m1Gp}  onChange={(e) => update("m1Gp",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-              <td className="px-1 py-1 border-b"><AmountInput value={row.m1B2b} onChange={(e) => update("m1B2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-              <td className="px-1 py-1 border-b"><Input value={row.evol} onChange={(e) => update("evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="-" /></td>
+            {/* HEADER 1 */}
+            <tr className="bg-gray-50">
+              <td
+                rowSpan={3}
+                className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r align-middle"
+              >
+                Encaissement (MDA)
+              </td>
+
+              <td colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">
+                M-1
+              </td>
+              <td colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">
+                M
+              </td>
+              <td className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">
+                Evol
+              </td>
             </tr>
+
+            {/* HEADER 2 */}
+            <tr className="bg-gray-50">
+              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</td>
+              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</td>
+              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</td>
+              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</td>
+              <td className="px-3 py-1 border-b"></td>
+            </tr>
+
+            {/* INPUTS */}
+            <tr className="bg-white">
+              <td className="px-1 py-1 border-b">
+                <AmountInput value={row.mGp} onChange={(e) => update("mGp", e.target.value)} className="h-7 px-2 text-xs w-full" />
+              </td>
+              <td className="px-1 py-1 border-b">
+                <AmountInput value={row.mB2b} onChange={(e) => update("mB2b", e.target.value)} className="h-7 px-2 text-xs w-full" />
+              </td>
+              <td className="px-1 py-1 border-b">
+                <AmountInput value={row.m1Gp} onChange={(e) => update("m1Gp", e.target.value)} className="h-7 px-2 text-xs w-full" />
+              </td>
+              <td className="px-1 py-1 border-b">
+                <AmountInput value={row.m1B2b} onChange={(e) => update("m1B2b", e.target.value)} className="h-7 px-2 text-xs w-full" />
+              </td>
+              <td className="px-1 py-1 border-b">
+                <AmountInput value={row.evol} onChange={(e) => update("evol", e.target.value)} className="h-7 px-2 text-xs w-full" />
+              </td>
+            </tr>
+
+            {/* TOTAL */}
             <tr className="bg-green-100 font-semibold">
-              <td className="px-3 py-2 border-b text-xs">Total</td>
-              <td className="px-3 py-2 border-b text-xs text-right [direction:rtl]">{fmt(row.mGp   || "0")}</td>
-              <td className="px-3 py-2 border-b text-xs text-right [direction:rtl]">{fmt(row.mB2b  || "0")}</td>
-              <td className="px-3 py-2 border-b text-xs text-right [direction:rtl]">{fmt(row.m1Gp  || "0")}</td>
-              <td className="px-3 py-2 border-b text-xs text-right [direction:rtl]">{fmt(row.m1B2b || "0")}</td>
-              <td className="px-3 py-2 border-b text-xs text-center">{row.evol || "-"}</td>
+              <td className="px-3 py-2 border-b text-xs">Totale</td>
+              <td className="px-3 py-2 border-b text-right">{fmt(row.mGp || "0")}</td>
+              <td className="px-3 py-2 border-b text-right">{fmt(row.mB2b || "0")}</td>
+              <td className="px-3 py-2 border-b text-right">{fmt(row.m1Gp || "0")}</td>
+              <td className="px-3 py-2 border-b text-right">{fmt(row.m1B2b || "0")}</td>
+              <td className="px-3 py-2 border-b text-center">{row.evol || "-"}</td>
             </tr>
           </tbody>
+
         </table>
       </div>
+
       <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
     </div>
   )
 }
-
 // ?? 6e. Recouvrement ?????????????????????????????????????????????????????????
 interface TabRecouvrementProps { rows: RecouvrementRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementRow[]>>; onSave: () => void; isSubmitting: boolean }
 function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvrementProps) {
@@ -503,10 +673,7 @@ function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvremen
               <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
-            <tr className="bg-gray-50">
-              <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b border-r">Sous-colonnes</th>
-              <th colSpan={2} className="px-3 py-1 text-center text-xs font-medium text-gray-600 border-b">Sous-colonnes</th>
-            </tr>
+           
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</th>
@@ -614,10 +781,30 @@ function TabDesactivationResiliation({ rows, setRows, onSave, isSubmitting }: Ta
 }
 
 // ?? 6l. Chiffre d'Affaires MDA ????????????????????????????????????????????????
-interface TabChiffreAffairesMdaProps { rows: ChiffreAffairesMdaRow[]; setRows: React.Dispatch<React.SetStateAction<ChiffreAffairesMdaRow[]>>; onSave: () => void; isSubmitting: boolean }
+interface TabChiffreAffairesMdaProps {
+  rows: ChiffreAffairesMdaRow[]
+  setRows: React.Dispatch<React.SetStateAction<ChiffreAffairesMdaRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
 function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiffreAffairesMdaProps) {
   const update = (index: number, field: keyof ChiffreAffairesMdaRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  // ✅ fonction pour convertir en nombre
+  const toNumber = (val?: string) => parseFloat(val || "0") || 0
+
+  // ✅ calcul des totaux
+  const totals = {
+    mObjectif: rows.reduce((sum, r) => sum + toNumber(r.mObjectif), 0),
+    mRealise: rows.reduce((sum, r) => sum + toNumber(r.mRealise), 0),
+    mTaux: rows.reduce((sum, r) => sum + toNumber(r.mTaux), 0),
+
+    m1Objectif: rows.reduce((sum, r) => sum + toNumber(r.m1Objectif), 0),
+    m1Realise: rows.reduce((sum, r) => sum + toNumber(r.m1Realise), 0),
+    m1Taux: rows.reduce((sum, r) => sum + toNumber(r.m1Taux), 0),
+  }
 
   return (
     <div className="space-y-3">
@@ -625,39 +812,81 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Chiffre d'Affaires (MDA)</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">
+                Chiffre d'Affaires (MDA)
+              </th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">
+                M-1
+              </th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">
+                M
+              </th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (
-                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>
+                  {h}
+                </th>
               ))}
               {["Objectif", "Realise", "Taux"].map((h, i) => (
-                <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+                <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
+
           <tbody>
             {rows.map((row, index) => (
               <tr key={row.designation} className="bg-white">
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise}  onChange={(e) => update(index, "mRealise",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux}     onChange={(e) => update(index, "mTaux",     e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise}  onChange={(e) => update(index, "m1Realise",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Taux}     onChange={(e) => update(index, "m1Taux",     e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">
+                  {row.designation}
+                </td>
+
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" />
+                </td>
+
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m1Taux} onChange={(e) => update(index, "m1Taux", e.target.value)} className="h-7 px-2 text-xs" />
+                </td>
               </tr>
             ))}
+
+            {/* ✅ Ligne Totale */}
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">
+                Totale
+              </td>
+
+              <td className="px-3 py-2 border-b text-xs text-right">{totals.mObjectif.toFixed(2)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{totals.mRealise.toFixed(2)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{totals.mTaux.toFixed(2)}</td>
+
+              <td className="px-3 py-2 border-b text-xs text-right">{totals.m1Objectif.toFixed(2)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{totals.m1Realise.toFixed(2)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{totals.m1Taux.toFixed(2)}</td>
+            </tr>
           </tbody>
         </table>
       </div>
+
       <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
     </div>
   )
 }
-
 
 // ?????????????????????????????????????????????????????????????????????????????
 // 7. CONFIGURATION DES ONGLETS (TABLEAUX CONSERVéS UNIQUEMENT)

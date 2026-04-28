@@ -170,7 +170,7 @@ function TabRealisationTechniqueReseau({ rows, setRows, onSave, isSubmitting }: 
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Realisations techniques</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
           </thead>
           <tbody>
@@ -204,7 +204,7 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
           </thead>
           <tbody>
@@ -238,7 +238,7 @@ function TabTraficData({ rows, setRows, onSave, isSubmitting }: TabTraficDataPro
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Trafic Data (TB)</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
           </thead>
           <tbody>

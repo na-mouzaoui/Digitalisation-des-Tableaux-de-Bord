@@ -56,6 +56,7 @@ const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Aoé
 
 interface Savedtableau {
   id: string
+  tabKey?: string
   userId?: number
   createdAt: string
   direction: string
@@ -64,6 +65,8 @@ interface Savedtableau {
   isApproved?: boolean
   approvedByUserId?: number | null
   approvedAt?: string | null
+  dataJson?: string
+  // Original Financial Tables
   encRows?: EncRow[]
   tvaImmoRows?: TvaRow[]
   tvaBiensRows?: TvaRow[]
@@ -81,6 +84,43 @@ interface Savedtableau {
   ibs14Rows?: Ibs14Row[]
   taxe15Rows?: Taxe15Row[]
   tva16Rows?: Tva16Row[]
+  
+  // DVDRS Tables (Réseau Technique)
+  realisationTechniqueReseauRows?: { label: string; m: string; m1: string }[]
+  situationReseauRows?: { situation: string; equipements: string; m: string; m1: string }[]
+  traficDataRows?: { label: string; m: string; m1: string }[]
+  ameliorationQualiteRows?: { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }[]
+  couvertureReseauRows?: { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }[]
+  actionNotableReseauRows?: { action: string; objectif2025: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }[]
+  
+  // DQRPC Tables (Qualité Réseau)
+  disponibiliteReseauRows?: { label: string; m: string; m1: string }[]
+  mttrRows?: { label: string; m: string; m1: string }[]
+  
+  // Support Tables (RH + Formation + Créances)
+  creancesContentieusesRows?: { designation: string; m: string; m1: string; evol: string }[]
+  fraisPersonnelRows?: { designation: string; m: string; m1: string }[]
+  effectifGspRows?: { gsp: string; m: string; m1: string; part: string }[]
+  absenteismeRows?: { motif: string; m: string; m1: string; part: string }[]
+  mouvementEffectifsRows?: { bloc: string; operation: string; [key: string]: string }[]
+  formationRows?: {
+    effectifsFormesGspRows?: { gsp: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }[]
+    formationsDomainesRows?: { domaine: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }[]
+    frequenceFormationRow?: { mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
+  }
+  
+  // Commercial Tables
+  reclamationRows?: { label: string; m: string; m1: string }[]
+  ePayementRows?: { label: string; m: string; m1: string }[]
+  rechargementRows?: { label: string; m: string; m1: string }[]
+  encaissementCRows?: { label: string; m: string; m1: string }[]
+  recouvrementRows?: { label: string; m: string; m1: string }[]
+  parcAbonnesRows?: { label: string; m: string; m1: string }[]
+  activationRows?: { label: string; m: string; m1: string }[]
+  chiffreAffairesCRows?: { label: string; m: string; m1: string }[]
+  
+  // Regionale Tables
+  regionaleRows?: { label: string; m: string; m1: string }[]
 }
 
 interface Apitableautableau {
@@ -158,6 +198,7 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
 
   const tableau: Savedtableau = {
     id: String(item.id),
+    tabKey: (item.tabKey ?? "").trim().toLowerCase(),
     userId: item.userId,
     createdAt: item.createdAt,
     direction: item.direction ?? "",
@@ -166,6 +207,7 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     isApproved: !!item.isApproved,
     approvedByUserId: item.approvedByUserId ?? null,
     approvedAt: item.approvedAt ?? null,
+    dataJson: item.dataJson,
     encRows: [],
     tvaImmoRows: [],
     tvaBiensRows: [],
@@ -183,6 +225,32 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     ibs14Rows: [],
     taxe15Rows: [],
     tva16Rows: [],
+    // DVDRS
+    realisationTechniqueReseauRows: [],
+    traficDataRows: [],
+    ameliorationQualiteRows: [],
+    couvertureReseauRows: [],
+    actionNotableReseauRows: [],
+    // DQRPC
+    disponibiliteReseauRows: [],
+    mttrRows: [],
+    // Support
+    creancesContentieusesRows: [],
+    fraisPersonnelRows: [],
+    effectifGspRows: [],
+    absenteismeRows: [],
+    mouvementEffectifsRows: [],
+    // Commercial
+    reclamationRows: [],
+    ePayementRows: [],
+    rechargementRows: [],
+    encaissementCRows: [],
+    recouvrementRows: [],
+    parcAbonnesRows: [],
+    activationRows: [],
+    chiffreAffairesCRows: [],
+    // Regionale
+    regionaleRows: [],
   }
 
   switch ((item.tabKey ?? "").trim().toLowerCase()) {
@@ -235,9 +303,89 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     case "tva_autoliq":
       tableau.tva16Rows = toArray<Tva16Row>(parsedData.tva16Rows)
       break
+    
+    // DVDRS Tables (Réseau Technique)
+    case "suivi_infrastructures_reseau":
+      tableau.realisationTechniqueReseauRows = toArray(parsedData.realisationTechniqueReseauRows)
+      break
+    case "evolution_trafic_data":
+      tableau.traficDataRows = toArray(parsedData.traficDataRows)
+      break
+    case "amelioration_qualite":
+      tableau.ameliorationQualiteRows = toArray(parsedData.ameliorationQualiteRows)
+      break
+    case "couverture_reseau":
+      tableau.couvertureReseauRows = toArray(parsedData.couvertureReseauRows)
+      break
+    case "action_notable_reseau":
+      tableau.actionNotableReseauRows = toArray(parsedData.actionNotableReseauRows)
+      break
+    
+    // DQRPC Tables (Qualité Réseau)
+    case "disponibilite_reseau":
+      tableau.disponibiliteReseauRows = toArray(parsedData.disponibiliteReseauRows)
+      break
+    case "mttr":
+      tableau.mttrRows = toArray(parsedData.mttrRows)
+      break
+    
+    // Support Tables (RH + Formation + Créances)
+    case "creance_contentieuses":
+      tableau.creancesContentieusesRows = toArray(parsedData.creancesContentieusesRows)
+      break
+    case "rh":
+      tableau.fraisPersonnelRows = toArray(parsedData.fraisPersonnelRows)
+      tableau.effectifGspRows = toArray(parsedData.effectifGspRows)
+      tableau.absenteismeRows = toArray(parsedData.absenteismeRows)
+      tableau.mouvementEffectifsRows = toArray(parsedData.mouvementEffectifsRows)
+      break
+    case "formation": {
+      const formationData = parsedData.formationRows as Record<string, unknown> | undefined
+      tableau.formationRows = {
+        effectifsFormesGspRows: toArray(formationData?.effectifsFormesGspRows),
+        formationsDomainesRows: toArray(formationData?.formationsDomainesRows),
+        frequenceFormationRow: formationData?.frequenceFormationRow as { mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string } | undefined,
+      }
+      break
+    }
+    
+    // Commercial Tables
+    case "reclamation":
+      tableau.reclamationRows = toArray(parsedData.reclamationRows)
+      break
+    case "e_payement":
+      tableau.ePayementRows = toArray(parsedData.ePayementRows)
+      break
+    case "rechargement":
+      tableau.rechargementRows = toArray(parsedData.rechargementRows)
+      break
+    case "encaissement_c":
+      tableau.encaissementCRows = toArray(parsedData.encaissementCRows)
+      break
+    case "recouvrement":
+      tableau.recouvrementRows = toArray(parsedData.recouvrementRows)
+      break
+    case "parc_abonnes":
+      tableau.parcAbonnesRows = toArray(parsedData.parcAbonnesRows)
+      break
+    case "activation":
+      tableau.activationRows = toArray(parsedData.activationRows)
+      break
+    case "chiffre_affaires_c":
+      tableau.chiffreAffairesCRows = toArray(parsedData.chiffreAffairesCRows)
+      break
+    
+    // Regionale Tables
+    case "regionale":
+      tableau.regionaleRows = toArray(parsedData.regionaleRows)
+      break
+    
     default:
       break
   }
+  
+  // Store raw dataJson for fallback rendering
+  tableau.dataJson = item.dataJson
 
   return tableau
 }
@@ -249,13 +397,14 @@ const MONTHS: Record<string, string> = {
 }
 
 const DASH_TABS = [
+  // Tableaux Financiers (Originaux)
   { key: "encaissement",  label: "1 - Encaissement",       color: "#2db34b", title: "ETAT DES ENCAISSEMENTS" },
   { key: "tva_immo",      label: "2 - TVA / IMMO",         color: "#1d6fb8", title: "ETAT TVA / IMMOBILISATIONS" },
   { key: "tva_biens",     label: "3 - TVA / Biens & Serv", color: "#7c3aed", title: "ETAT TVA / BIENS & SERVICES" },
   { key: "droits_timbre", label: "4 - Droits Timbre",      color: "#0891b2", title: "ETAT DROITS DE TIMBRE" },
   { key: "ca_tap",        label: "5 - CA 7% & CA Glob 1%", color: "#ea580c", title: "CA 7% & CA GLOBAL 1%" },
   { key: "etat_tap",      label: "6 - ETAT TAP",           color: "#be123c", title: "ETAT TAP" },
-  { key: "ca_siege",      label: "7 a CA Siége",           color: "#854d0e", title: "CHIFFRE D'AFFAIRE ENCAISSé SIéGE" },
+  { key: "ca_siege",      label: "7 a CA Siége",           color: "#854d0e", title: "CHIFFRE D'AFFAIRE ENCAISSÉ SIÉGE" },
   { key: "irg",           label: "8 a Situation IRG",      color: "#0f766e", title: "SITUATION IRG" },
   { key: "taxe2",         label: "9 a Taxe 2%",            color: "#6d28d9", title: "SITUATION DE LA TAXE 2%" },
   { key: "taxe_masters",  label: "10 a Taxe des Master 1,5%", color: "#0369a1", title: "ÉTAT DE LA TAXE 1,5% DES MASTERS" },
@@ -265,6 +414,39 @@ const DASH_TABS = [
   { key: "ibs",           label: "14 a IBS Fournisseurs Etrangers", color: "#7c2d12", title: "IBS SUR FOURNISSEURS ETRANGERS" },
   { key: "taxe_domicil",  label: "15 a Taxe Domiciliation", color: "#134e4a", title: "TAXE DOMICILIATION BANCAIRE" },
   { key: "tva_autoliq",   label: "16 a TVA Auto Liquidation", color: "#312e81", title: "TVA AUTO LIQUIDATION" },
+  
+  // Tableaux DVDRS (Réseau Technique)
+  { key: "suivi_infrastructures_reseau",  label: "17 - Suivi Infra Reseau 2G/3G/4G", color: "#2db34b", title: "SUIVI DES INFRASTRUCTURES RESEAU 2G/3G/4G" },
+  { key: "evolution_trafic_data",        label: "18 - Evolution Trafic Data",       color: "#1d6fb8", title: "EVOLUTION DU TRAFIC DATA" },
+  { key: "amelioration_qualite",        label: "19 - Amelioration qualité",          color: "#7c3aed", title: "AMELIORATION QUALITE" },
+  { key: "couverture_reseau",           label: "20 - Couverture Réseau",             color: "#0891b2", title: "COUVERTURE RESEAU" },
+  { key: "action_notable_reseau",       label: "21 - Action Notable Réseau",         color: "#ea580c", title: "ACTION NOTABLE SUR LE RESEAU" },
+  
+  // Tableaux DQRPC (Qualité Réseau)
+  { key: "disponibilite_reseau",  label: "22 - Disponibilité Réseau", color: "#2db34b", title: "DISPONIBILITE RESEAU" },
+  { key: "mttr",                label: "23 - MTTR",              color: "#1d6fb8", title: "MTTR / DR" },
+  
+  // Tableaux Support (RH + Formation + Créances)
+  { key: "creance_contentieuses",      label: "24 - Creance contentieuses",    color: "#2db34b", title: "CREANCE CONTENTIEUSES" },
+  { key: "rh",                      label: "25 - RH",                    color: "#1d6fb8", title: "RESSOURCES HUMAINES" },
+  { key: "formation",               label: "26 - Formation",             color: "#7c3aed", title: "FORMATION" },
+  
+  // Tableaux Commercial
+  { key: "reclamation",   label: "27 - Reclamation",                color: "#2db34b", title: "RECLAMATION" },
+  { key: "e_payement",   label: "28 - E-payment",                  color: "#1d6fb8", title: "E-PAYMENT" },
+  { key: "rechargement",label: "29 - Rechargement",               color: "#7c3aed", title: "RECHARGEMENT" },
+  { key: "encaissement_c",label: "30 - Encaissement",                 color: "#0891b2", title: "ENCAISSEMENT" },
+  { key: "recouvrement",label: "31 - Recouvrement",                color: "#ea580c", title: "RECOUVREMENT" },
+  { key: "parc_abonnes", label: "32 - Parc Abonnes",                color: "#be123c", title: "PARC ABONNES" },
+  { key: "activation",  label: "33 - Activation SIM",             color: "#854d0e", title: "ACTIVATION DESIM" },
+  { key: "chiffre_affaires_c", label: "34 - Chiffre d'affaires",      color: "#0f766e", title: "CHIFFRE D'AFFAIRES" },
+  
+  // Tableaux Régionale
+  { key: "regionale",     label: "35 - Regionale",          color: "#2db34b", title: "TABLEAU REGIONAL" },
+  
+  // Tableaux Autres
+  { key: "commercial_autres", label: "36 - Commercial Autres", color: "#1d6fb8", title: "AUTRES TABLEAUX COMMERCIAUX" },
+  { key: "finances_autres",   label: "37 - Finances Autres",   color: "#7c3aed", title: "AUTRES TABLEAUX FINANCES" },
 ]
 
 // aaa Shared styles & helpers aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -892,7 +1074,33 @@ function Tva16Table({ rows }: { rows: Tva16Row[] }) {
 }
 
 function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtableau; color: string }) {
+  //Helper to render any row array as a generic table
+  const renderGenericTable = <T extends Record<string, string>>(rows: T[], keyFields: string[]) => {
+    if (!rows || rows.length === 0) return <div className="text-xs text-muted-foreground">Aucune donnée</div>
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {keyFields.map((field) => <TableHead key={field}>{field}</TableHead>)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row, i) => (
+            <TableRow key={i}>
+              {keyFields.map((field) => (
+                <TableCell key={field} className={typeof row[field] === 'number' || !isNaN(Number(row[field])) ? "text-right" : ""}>
+                  {row[field]}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )
+  }
+  
   switch (tabKey) {
+    // Tableaux Financiers (Originaux)
     case "encaissement":  return <EncTable rows={decl.encRows ?? []} />
     case "tva_immo":      return <TvaTable rows={decl.tvaImmoRows ?? []} totalLabel="TOTAL TVA SUR IMMOBILISATION 445620" />
     case "tva_biens":     return <TvaTable rows={decl.tvaBiensRows ?? []} totalLabel="TOTAL TVA SUR BIENS ET SERVICES" />
@@ -909,7 +1117,85 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     case "ibs":           return <Ibs14Table rows={decl.ibs14Rows ?? []} />
     case "taxe_domicil":  return <Taxe15Table rows={decl.taxe15Rows ?? []} />
     case "tva_autoliq":   return <Tva16Table rows={decl.tva16Rows ?? []} />
-    default:              return null
+    
+    // Tableaux DVDRS (Réseau Technique)
+    case "suivi_infrastructures_reseau":
+      return renderGenericTable(decl.realisationTechniqueReseauRows ?? [], ["label", "m", "m1"])
+    case "evolution_trafic_data":
+      return renderGenericTable(decl.traficDataRows ?? [], ["label", "m", "m1"])
+    case "amelioration_qualite":
+      return renderGenericTable(decl.ameliorationQualiteRows ?? [], ["wilaya", "mObjectif", "mRealise", "m1Objectif", "m1Realise", "ecart"])
+    case "couverture_reseau":
+      return renderGenericTable(decl.couvertureReseauRows ?? [], ["wilaya", "mObjectif", "mRealise", "m1Objectif", "m1Realise", "ecart"])
+    case "action_notable_reseau":
+      return renderGenericTable(decl.actionNotableReseauRows ?? [], ["action", "objectif2025", "mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"])
+    
+    // Tableaux DQRPC (Qualité Réseau)
+    case "disponibilite_reseau":
+      return renderGenericTable(decl.disponibiliteReseauRows ?? [], ["label", "m", "m1"])
+    case "mttr":
+      return renderGenericTable(decl.mttrRows ?? [], ["label", "m", "m1"])
+    
+    // Tableaux Support (RH + Formation + Créances)
+    case "creance_contentieuses":
+      return renderGenericTable(decl.creancesContentieusesRows ?? [], ["designation", "m", "m1", "evol"])
+    case "rh":
+      return renderGenericTable(decl.fraisPersonnelRows ?? [], ["designation", "m", "m1"])
+    case "formation":
+      if (decl.formationRows?.effectifsFormesGspRows) {
+        return renderGenericTable(decl.formationRows.effectifsFormesGspRows, ["gsp", "mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"])
+      }
+      if (decl.formationRows?.formationsDomainesRows) {
+        return renderGenericTable(decl.formationRows.formationsDomainesRows, ["domaine", "mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"])
+      }
+      if (decl.formationRows?.frequenceFormationRow) {
+        const f = decl.formationRows.frequenceFormationRow
+        return renderGenericTable([f], ["mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"])
+      }
+      return <div className="text-xs text-muted-foreground">Aucune donnée</div>
+    
+    // Tableaux Commercial
+    case "reclamation":
+      return renderGenericTable(decl.reclamationRows ?? [], ["label", "m", "m1"])
+    case "e_payement":
+      return renderGenericTable(decl.ePayementRows ?? [], ["label", "m", "m1"])
+    case "rechargement":
+      return renderGenericTable(decl.rechargementRows ?? [], ["label", "m", "m1"])
+    case "encaissement_c":
+      return renderGenericTable(decl.encaissementCRows ?? [], ["label", "m", "m1"])
+    case "recouvrement":
+      return renderGenericTable(decl.recouvrementRows ?? [], ["label", "m", "m1"])
+    case "parc_abonnes":
+      return renderGenericTable(decl.parcAbonnesRows ?? [], ["label", "m", "m1"])
+    case "activation":
+      return renderGenericTable(decl.activationRows ?? [], ["label", "m", "m1"])
+    case "chiffre_affaires_c":
+      return renderGenericTable(decl.chiffreAffairesCRows ?? [], ["label", "m", "m1"])
+    
+    // Tableaux Régionale
+    case "regionale":
+      return renderGenericTable(decl.regionaleRows ?? [], ["label", "m", "m1"])
+    
+    // Fallback pour les tableaux inconnus - afficher dataJson si disponible
+    default:
+      // Try to parse and display generic data
+      if (decl.dataJson) {
+        try {
+          const parsed = JSON.parse(decl.dataJson)
+          const keys = Object.keys(parsed)
+          if (keys.length > 0) {
+            // Check if it's an array of objects
+            const firstValue = parsed[keys[0]]
+            if (Array.isArray(firstValue) && firstValue.length > 0) {
+              const fields = Object.keys(firstValue[0])
+              return renderGenericTable(firstValue, fields)
+            }
+          }
+        } catch {
+          // Ignore parsing errors
+        }
+      }
+      return <div className="text-xs text-muted-foreground">Tableau non reconnu: {tabKey}</div>
   }
 }
 
@@ -1787,6 +2073,13 @@ export default function tableauDashboardPage() {
   }
 
   const gettableauType = (decl: Savedtableau) => {
+    const declaredKey = (decl.tabKey ?? "").trim().toLowerCase()
+    if (declaredKey) {
+      const resolved = DASH_TABS.find((tab) => tab.key === declaredKey)
+      return resolved
+        ? { key: resolved.key, label: resolved.label.replace(/^\d+\s-\s/, ""), color: resolved.color }
+        : { key: declaredKey, label: declaredKey, color: "#6b7280" }
+    }
     if ((decl.encRows?.length ?? 0) > 0) return { key: "encaissement", label: "Encaissement", color: "#2db34b" }
     if ((decl.tvaImmoRows?.length ?? 0) > 0) return { key: "tva_immo", label: "TVA / IMMO", color: "#1d6fb8" }
     if ((decl.tvaBiensRows?.length ?? 0) > 0) return { key: "tva_biens", label: "TVA / Biens & Serv", color: "#7c3aed" }
@@ -2042,7 +2335,7 @@ export default function tableauDashboardPage() {
 
   const viewTab = DASH_TABS.find((t) => t.key === viewTabKey)
   const viewTabColor = viewTab?.color ?? "#000"
-  const viewTabTitle = viewTab?.title ?? ""
+  const viewTabTitle = viewTab?.title ?? viewTabKey
 
   return (
     <LayoutWrapper user={user}>
