@@ -39,6 +39,9 @@ public class NormalizedTableauPersistenceService : INormalizedTableauPersistence
             case "total_encaissement":
                 await SaveEncaissementAsync(periodId, root, cancellationToken);
                 break;
+            case "rechargement":
+                await SaveRechargementAsync(periodId, root, cancellationToken);
+                break;
             case "recouvrement":
                 await SaveRecouvrementAsync(periodId, root, cancellationToken);
                 break;
@@ -87,6 +90,9 @@ public class NormalizedTableauPersistenceService : INormalizedTableauPersistence
             case "mttr":
                 await SaveMttrAsync(periodId, root, cancellationToken);
                 break;
+            case "creances_contentieuses":
+                await SaveCreancesContentieusesAsync(periodId, root, cancellationToken);
+                break;
             case "frais_personnel":
                 await SaveFraisPersonnelAsync(periodId, root, cancellationToken);
                 break;
@@ -99,11 +105,17 @@ public class NormalizedTableauPersistenceService : INormalizedTableauPersistence
             case "mouvement_effectifs":
                 await SaveMouvEffectifsAsync(periodId, root, cancellationToken);
                 break;
+            case "mouvement_effectifs_domaine":
+                await SaveMouvEffectifsDomaineAsync(periodId, root, cancellationToken);
+                break;
             case "effectifs_formes_gsp":
                 await SaveFormationGspAsync(periodId, root, cancellationToken);
                 break;
             case "formations_domaines":
                 await SaveFormationDomAsync(periodId, root, cancellationToken);
+                break;
+            case "frequence_formation":
+                await SaveFreqFormationAsync(periodId, root, cancellationToken);
                 break;
             default:
                 break;
@@ -172,6 +184,7 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
             "EffectifGSP_Lignes" => $"IF NOT EXISTS (SELECT 1 FROM [dbo].[EffectifGSP_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}') INSERT INTO [dbo].[EffectifGSP_Lignes]([Designation]) VALUES (N'{safeDesignation.Replace("'", "''")}');",
             "Absenteisme_Lignes" => $"IF NOT EXISTS (SELECT 1 FROM [dbo].[Absenteisme_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}') INSERT INTO [dbo].[Absenteisme_Lignes]([Designation]) VALUES (N'{safeDesignation.Replace("'", "''")}');",
             "MouvEffectifs_Lignes" => $"IF NOT EXISTS (SELECT 1 FROM [dbo].[MouvEffectifs_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}') INSERT INTO [dbo].[MouvEffectifs_Lignes]([Designation]) VALUES (N'{safeDesignation.Replace("'", "''")}');",
+            "MouvEffectifsDom_Lignes" => $"IF NOT EXISTS (SELECT 1 FROM [dbo].[MouvEffectifsDom_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}') INSERT INTO [dbo].[MouvEffectifsDom_Lignes]([Designation]) VALUES (N'{safeDesignation.Replace("'", "''")}');",
             "FormationGSP_Lignes" => $"IF NOT EXISTS (SELECT 1 FROM [dbo].[FormationGSP_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}') INSERT INTO [dbo].[FormationGSP_Lignes]([Designation]) VALUES (N'{safeDesignation.Replace("'", "''")}');",
             "FormationDom_Lignes" => $"IF NOT EXISTS (SELECT 1 FROM [dbo].[FormationDom_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}') INSERT INTO [dbo].[FormationDom_Lignes]([Designation]) VALUES (N'{safeDesignation.Replace("'", "''")}');",
             "CompteResultat_Lignes" => $"IF NOT EXISTS (SELECT 1 FROM [dbo].[CompteResultat_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}') INSERT INTO [dbo].[CompteResultat_Lignes]([Designation]) VALUES (N'{safeDesignation.Replace("'", "''")}');",
@@ -201,6 +214,7 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
             "EffectifGSP_Lignes" => $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[EffectifGSP_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}'",
             "Absenteisme_Lignes" => $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[Absenteisme_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}'",
             "MouvEffectifs_Lignes" => $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[MouvEffectifs_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}'",
+            "MouvEffectifsDom_Lignes" => $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[MouvEffectifsDom_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}'",
             "FormationGSP_Lignes" => $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[FormationGSP_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}'",
             "FormationDom_Lignes" => $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[FormationDom_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}'",
             "CompteResultat_Lignes" => $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[CompteResultat_Lignes] WHERE [Designation]=N'{safeDesignation.Replace("'", "''")}'",
@@ -276,6 +290,19 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
         {
             var lineId = await EnsureLineAsync("Encaissement_Lignes", "Total encaissement", ct);
             await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[Encaissement]([Id_Designation_Encaissement],[Id_Periode],[M_1_GP],[M_1_B2B],[M_GP],[M_B2B],[Evol]) VALUES ({lineId},{periodId},{ParseDecimal(GetString(row, "m1Gp"))},{ParseDecimal(GetString(row, "m1B2b"))},{ParseDecimal(GetString(row, "mGp"))},{ParseDecimal(GetString(row, "mB2b"))},{ParseDecimal(GetString(row, "evol"))})", ct);
+        }
+    }
+
+    private async Task SaveRechargementAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[Rechargement] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "rechargementRows"))
+        {
+            var drName = GetString(row, "canal");
+            var drId = await TryGetDrIdAsync(drName, ct);
+            if (!drId.HasValue || drId.Value <= 0) continue;
+
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[Rechargement]([Id_DR],[Id_Periode],[M_1],[M],[Taux]) VALUES ({drId.Value},{periodId},{ParseDecimal(GetString(row, "m1"))},{ParseDecimal(GetString(row, "m"))},{ParseDecimal(GetString(row, "taux"))})", ct);
         }
     }
 
@@ -420,6 +447,16 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
         }
     }
 
+    private async Task SaveCreancesContentieusesAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[Creances] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "creancesContentieusesRows"))
+        {
+            var lineId = await EnsureLineAsync("Creances_Lignes", GetString(row, "designation"), ct);
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[Creances]([Id_Designation_Creances],[Id_Periode],[M_1],[M],[Total]) VALUES ({lineId},{periodId},{ParseDecimal(GetString(row, "m1"))},{ParseDecimal(GetString(row, "m"))},{ParseDecimal(GetString(row, "evol"))})", ct);
+        }
+    }
+
     private async Task SaveFraisPersonnelAsync(int periodId, JsonElement root, CancellationToken ct)
     {
         await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[FraisPersonnel] WHERE [Id_Periode] = {periodId}", ct);
@@ -460,6 +497,17 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
         }
     }
 
+    private async Task SaveMouvEffectifsDomaineAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[MouvEffectifsDom] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "mouvementEffectifsDomaineRows"))
+        {
+            var designation = $"{GetString(row, "bloc")}-{GetString(row, "domaine")}";
+            var lineId = await EnsureLineAsync("MouvEffectifsDom_Lignes", designation, ct);
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[MouvEffectifsDom]([Id_Designation_MouvEffectifsDom],[Id_Periode],[M_1_CDI],[M_1_CDD],[M_1_CTA],[M_CDI],[M_CDD],[M_CTA]) VALUES ({lineId},{periodId},{ParseDecimal(GetString(row, "m1Cdi"))},{ParseDecimal(GetString(row, "m1Cdd"))},{ParseDecimal(GetString(row, "m1Cta"))},{ParseDecimal(GetString(row, "mCdi"))},{ParseDecimal(GetString(row, "mCdd"))},{ParseDecimal(GetString(row, "mCta"))})", ct);
+        }
+    }
+
     private async Task SaveFormationGspAsync(int periodId, JsonElement root, CancellationToken ct)
     {
         await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[FormationGSP] WHERE [Id_Periode] = {periodId}", ct);
@@ -478,5 +526,23 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
             var lineId = await EnsureLineAsync("FormationDom_Lignes", GetString(row, "domaine"), ct);
             await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[FormationDom]([Id_Designation_FormationDom],[Id_Periode],[M_1_Objectif],[M_1_Realise],[M_1_Taux],[M_Objectif],[M_Realise],[M_Taux]) VALUES ({lineId},{periodId},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Taux"))},{ParseDecimal(GetString(row, "mObjectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
         }
+    }
+
+    private async Task SaveFreqFormationAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        JsonElement row;
+        if (root.TryGetProperty("frequenceFormationRow", out var obj) && obj.ValueKind == JsonValueKind.Object)
+        {
+            row = obj;
+        }
+        else
+        {
+            var rows = GetRows(root, "frequenceFormationRows");
+            if (rows.Length == 0) return;
+            row = rows[0];
+        }
+
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[FreqFormation] WHERE [Id_Periode] = {periodId}", ct);
+        await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[FreqFormation]([Id_Periode],[M_1_Objectif],[M_1_Realise],[M_1_Taux],[M_Objectif],[M_Realise],[M_Taux]) VALUES ({periodId},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Taux"))},{ParseDecimal(GetString(row, "mObjectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
     }
 }

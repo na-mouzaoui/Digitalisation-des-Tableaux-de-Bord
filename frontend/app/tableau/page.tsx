@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -2709,6 +2710,16 @@ export default function NouvelleDeclarationPage() {
               </div>
             </div>
 
+<Tabs value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)} className="w-full">
+              <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:bg-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-400 rounded">
+                {declarationCategoryOptions.map((category) => (
+                  <TabsTrigger key={category.key} value={category.key} className="text-xs px-3 py-2 whitespace-nowrap">
+                    {category.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
             <Card className="border border-gray-200">
               <CardContent className="pt-4 pb-3">
                 <div className="flex flex-wrap items-end gap-6">
@@ -2736,19 +2747,6 @@ export default function NouvelleDeclarationPage() {
                       placeholder="Ex: 2026"
                       className="h-10 w-[120px] rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                     />
-                  </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
-                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner une categorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {declarationCategoryOptions.map((category) => (
-                          <SelectItem key={category.key} value={category.key}>{category.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                   <div className="space-y-1 flex-1 min-w-[220px]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>

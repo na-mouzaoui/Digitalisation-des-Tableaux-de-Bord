@@ -149,6 +149,7 @@ public class TableauController : ControllerBase
         "compte_resultat",
         "effectifs_formes_gsp",
         "formations_domaines",
+        "frequence_formation",
         "parc_abonnes_gp",
         "total_parc_abonnes",
         "total_parc_abonnes_technologie",

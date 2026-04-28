@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -138,6 +139,33 @@ const DEFAULT_MOUVEMENT_EFFECTIFS_ROWS: MouvementEffectifsRow[] = MOUVEMENT_EFFE
   m1CadresSup: "", m1Cadres: "", m1Maitrise: "", m1Execution: "",
 }))
 
+// ?? Mouvement Effectifs par Domaine ???????????????????????????????????????????
+type MouvementEffectifsDomaineRow = {
+  bloc: "recrutement" | "sortant"; domaine: string
+  mCdi: string; mCdd: string; mCta: string
+  m1Cdi: string; m1Cdd: string; m1Cta: string
+}
+const MOUVEMENT_EFFECTIFS_DOMAINE_TEMPLATE: Array<{ bloc: MouvementEffectifsDomaineRow["bloc"]; domaine: string }> = [
+  { bloc: "recrutement", domaine: "COMMERCIAL" }, { bloc: "recrutement", domaine: "MANAGEMENT" },
+  { bloc: "recrutement", domaine: "SUPPORT" }, { bloc: "recrutement", domaine: "TECHNIQUE" },
+  { bloc: "recrutement", domaine: "TOTAL" },
+  { bloc: "sortant", domaine: "COMMERCIAL" }, { bloc: "sortant", domaine: "MANAGEMENT" },
+  { bloc: "sortant", domaine: "SUPPORT" }, { bloc: "sortant", domaine: "TECHNIQUE" },
+  { bloc: "sortant", domaine: "TOTAL" },
+]
+const DEFAULT_MOUVEMENT_EFFECTIFS_DOMAINE_ROWS: MouvementEffectifsDomaineRow[] = MOUVEMENT_EFFECTIFS_DOMAINE_TEMPLATE.map((item) => ({
+  ...item, mCdi: "", mCdd: "", mCta: "", m1Cdi: "", m1Cdd: "", m1Cta: "",
+}))
+
+// ?? Creances Contentieuses ????????????????????????????????????????????????????
+type CreancesContentieusesRow = { designation: string; m: string; m1: string; evol: string }
+const CREANCES_CONTENTIEUSES_LABELS = ["Objectif", "Montant recouvre", "Taux de recouvrement"] as const
+const DEFAULT_CREANCES_CONTENTIEUSES_ROWS: CreancesContentieusesRow[] = CREANCES_CONTENTIEUSES_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
+
+// ?? Frequence des Sessions de Formation ??????????????????????????????????????
+type FrequenceFormationRow = { mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
+const EMPTY_FREQUENCE_FORMATION_ROW: FrequenceFormationRow = { mObjectif: "", mRealise: "", mTaux: "", m1Objectif: "", m1Realise: "", m1Taux: "" }
+
 // ?? Effectifs Formés GSP ??????????????????????????????????????????????????????
 type EffectifsFormesGspRow = { gsp: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
 const EFFECTIFS_FORMES_GSP_LABELS = ["Cadres & cadres Superieures", "Execution", "Maitrise", "Total Personnes Formees"] as const
@@ -194,6 +222,45 @@ function SimplePartTable({ colHeader, rows, labelKey, update, onSave, isSubmitti
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.part} onChange={(e) => update(index, "part", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+// ?? Composant générique : tableau (designation | m | m1 | evol) ???????????????
+//    Réutilisé par : Creances Contentieuses
+interface SimpleEvolTableProps {
+  colHeader: string
+  rows: Array<{ designation: string; m: string; m1: string; evol: string }>
+  update: (index: number, field: "m" | "m1" | "evol", value: string) => void
+  onSave: () => void
+  isSubmitting: boolean
+}
+function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: SimpleEvolTableProps) {
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{colHeader}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
               </tr>
             ))}
           </tbody>
@@ -349,6 +416,61 @@ function TabMouvementEffectifs({ rows, setRows, onSave, isSubmitting }: TabMouve
   )
 }
 
+// ?? 6e. Mouvement Effectifs par Domaine ???????????????????????????????????????
+interface TabMouvementEffectifsDomaineProps { rows: MouvementEffectifsDomaineRow[]; setRows: React.Dispatch<React.SetStateAction<MouvementEffectifsDomaineRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabMouvementEffectifsDomaine({ rows, setRows, onSave, isSubmitting }: TabMouvementEffectifsDomaineProps) {
+  type EditableField = keyof Pick<MouvementEffectifsDomaineRow, "mCdi" | "mCdd" | "mCta" | "m1Cdi" | "m1Cdd" | "m1Cta">
+  const update = (index: number, field: EditableField, value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs par Domaine</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Domaine</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {[["CDI", 0], ["CDD", 1], ["CTA", 2]].map(([h, i]) => (
+                <th key={i as number} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {[["CDI", 3], ["CDD", 4], ["CTA", 5]].map(([h, i]) => (
+                <th key={i as number} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.bloc}-${row.domaine}-${index}`} className={row.domaine === "TOTAL" ? "bg-green-100 font-semibold" : "bg-white"}>
+                {index === 0 && <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Recrutement</td>}
+                {index === 5 && <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Sortant</td>}
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.domaine}</td>
+                {(["mCdi", "mCdd", "mCta", "m1Cdi", "m1Cdd", "m1Cta"] as EditableField[]).map((field) => (
+                  <td key={field} className="px-1 py-1 border-b">
+                    <AmountInput value={row[field]} onChange={(e) => update(index, field, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+// ?? 6f. Creances Contentieuses ???????????????????????????????????????????????
+interface TabCreancesContentieusesProps { rows: CreancesContentieusesRow[]; setRows: React.Dispatch<React.SetStateAction<CreancesContentieusesRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabCreancesContentieuses({ rows, setRows, onSave, isSubmitting }: TabCreancesContentieusesProps) {
+  const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
+  return <SimpleEvolTable colHeader="Creances Contentieuses" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+}
+
 // ?? 6e. Effectifs Formés GSP ?????????????????????????????????????????????????
 interface TabEffectifsFormesGspProps { rows: EffectifsFormesGspRow[]; setRows: React.Dispatch<React.SetStateAction<EffectifsFormesGspRow[]>>; onSave: () => void; isSubmitting: boolean }
 function TabEffectifsFormesGsp({ rows, setRows, onSave, isSubmitting }: TabEffectifsFormesGspProps) {
@@ -365,35 +487,68 @@ function TabFormationsDomaines({ rows, setRows, onSave, isSubmitting }: TabForma
   return <OrtTable colHeader="Domaines" rows={rows as any} labelKey="domaine" update={(i, f, v) => update(i, f as keyof FormationsDomainesRow, v)} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
+// ?? 6g. Frequence des Sessions de Formation ?????????????????????????????????
+interface TabFrequenceFormationProps { row: FrequenceFormationRow; setRow: React.Dispatch<React.SetStateAction<FrequenceFormationRow>>; onSave: () => void; isSubmitting: boolean }
+function TabFrequenceFormation({ row, setRow, onSave, isSubmitting }: TabFrequenceFormationProps) {
+  const update = (field: keyof FrequenceFormationRow, value: string) =>
+    setRow((prev) => ({ ...prev, [field]: value }))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {[["Objectif", 0], ["Realise", 1], ["Taux", 2]].map(([h, i]) => (
+                <th key={i as number} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {[["Objectif", 3], ["Realise", 4], ["Taux", 5]].map(([h, i]) => (
+                <th key={i as number} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-white">
+              {(["m1Objectif", "m1Realise", "m1Taux", "mObjectif", "mRealise", "mTaux"] as const).map((field) => (
+                <td key={field} className="px-1 py-1 border-b">
+                  <AmountInput value={row[field]} onChange={(e) => update(field, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
 
 // ?????????????????????????????????????????????????????????????????????????????
 // 7. CONFIGURATION DES ONGLETS (6 tableaux conservés)
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "frais_personnel",        label: "Frais Personnel (mda)",              color: PRIMARY_COLOR, title: "FRAIS PERSONNEL (MDA)" },
-  { key: "effectif_gsp",           label: "GSP",                                color: PRIMARY_COLOR, title: "EFFECTIF PAR GSP" },
-  { key: "absenteisme",            label: "Absentéisme",                        color: PRIMARY_COLOR, title: "ABSENTEISME (JOURS)" },
-  { key: "mouvement_effectifs",    label: "Mouvement des Effectifs",            color: PRIMARY_COLOR, title: "MOUVEMENT DES EFFECTIFS" },
-  { key: "effectifs_formes_gsp",   label: "Effectifs formés par gsp",           color: PRIMARY_COLOR, title: "EFFECTIFS FORMES PAR GSP" },
-  { key: "formations_domaines",    label: "Formation realise par domaines",     color: PRIMARY_COLOR, title: "FORMATIONS REALISEES PAR DOMAINES" },
+  { key: "creance_contentieuses", label: "Creance contentieuses",    color: PRIMARY_COLOR, title: "CREANCE CONTENTIEUSES" },
+  { key: "rh",                 label: "RH",                    color: PRIMARY_COLOR, title: "RH" },
+  { key: "formation",           label: "Formation",              color: PRIMARY_COLOR, title: "FORMATION" },
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
-  | "frais_personnel" | "effectif_gsp" | "absenteisme"
-  | "mouvement_effectifs" | "effectifs_formes_gsp" | "formations_domaines"
+  | "creance_contentieuses" | "rh" | "formation"
 
-type tableauCategoryKey = "all" | "rh" | "formation"
+type tableauCategoryKey = "all"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all",        label: "Toutes les categories", tabKeys: [] },
-  { key: "rh",         label: "RH",                   tabKeys: ["frais_personnel", "effectif_gsp", "absenteisme", "mouvement_effectifs"] },
-  { key: "formation",  label: "Formation",            tabKeys: ["effectifs_formes_gsp", "formations_domaines"] },
+  { key: "all", label: "All", tabKeys: ["creance_contentieuses", "rh", "formation"] },
 ]
 
-const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
-  tableau_CATEGORY_OPTIONS.find((c) => c.key !== "all" && c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "all"
+const findtableauCategoryKeyForTab = (_tabKey: string): tableauCategoryKey => "all"
 
 const istableauTabKey = (value: string): value is tableauTabKey =>
   TABS.some((tab) => tab.key === value)
@@ -422,12 +577,13 @@ interface Savedtableau {
   direction: string
   mois: string
   annee: string
+  creancesContentieusesRows?: CreancesContentieusesRow[]
   fraisPersonnelRows?: FraisPersonnelRow[]
   effectifGspRows?: EffectifGspRow[]
   absenteismeRows?: AbsenteismeRow[]
   mouvementEffectifsRows?: MouvementEffectifsRow[]
-  effectifsFormesGspRows?: EffectifsFormesGspRow[]
-  formationsDomainesRows?: FormationsDomainesRow[]
+  formationRows?: { effectifsFormesGspRows?: EffectifsFormesGspRow[]; formationsDomainesRows?: FormationsDomainesRow[]; frequenceFormationRow?: FrequenceFormationRow }
+  mouvementEffectifsDomaineRows?: MouvementEffectifsDomaineRow[]
 }
 
 // ?? 8b. Type retourné par l'API (générique, ne change pas) ???????????????????
@@ -475,6 +631,16 @@ const normalizeMouvementEffectifsRows = (rows?: MouvementEffectifsRow[]): Mouvem
   return MOUVEMENT_EFFECTIFS_TEMPLATE.map((item, i) => ({ ...item, mCadresSup: safeString(src[i]?.mCadresSup), mCadres: safeString(src[i]?.mCadres), mMaitrise: safeString(src[i]?.mMaitrise), mExecution: safeString(src[i]?.mExecution), m1CadresSup: safeString(src[i]?.m1CadresSup), m1Cadres: safeString(src[i]?.m1Cadres), m1Maitrise: safeString(src[i]?.m1Maitrise), m1Execution: safeString(src[i]?.m1Execution) }))
 }
 
+const normalizeMouvementEffectifsDomaineRows = (rows?: MouvementEffectifsDomaineRow[]): MouvementEffectifsDomaineRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return MOUVEMENT_EFFECTIFS_DOMAINE_TEMPLATE.map((item, i) => ({ ...item, mCdi: safeString(src[i]?.mCdi), mCdd: safeString(src[i]?.mCdd), mCta: safeString(src[i]?.mCta), m1Cdi: safeString(src[i]?.m1Cdi), m1Cdd: safeString(src[i]?.m1Cdd), m1Cta: safeString(src[i]?.m1Cta) }))
+}
+
+const normalizeCreancesContentieusesRows = (rows?: CreancesContentieusesRow[]): CreancesContentieusesRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return CREANCES_CONTENTIEUSES_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
+}
+
 const normalizeEffectifsFormesGspRows = (rows?: EffectifsFormesGspRow[]): EffectifsFormesGspRow[] => {
   const src = Array.isArray(rows) ? rows : []
   return EFFECTIFS_FORMES_GSP_LABELS.map((gsp, i) => ({ gsp, mObjectif: safeString(src[i]?.mObjectif), mRealise: safeString(src[i]?.mRealise), mTaux: safeString(src[i]?.mTaux), m1Objectif: safeString(src[i]?.m1Objectif), m1Realise: safeString(src[i]?.m1Realise), m1Taux: safeString(src[i]?.m1Taux) }))
@@ -485,14 +651,23 @@ const normalizeFormationsDomainesRows = (rows?: FormationsDomainesRow[]): Format
   return FORMATIONS_DOMAINES_LABELS.map((domaine, i) => ({ domaine, mObjectif: safeString(src[i]?.mObjectif), mRealise: safeString(src[i]?.mRealise), mTaux: safeString(src[i]?.mTaux), m1Objectif: safeString(src[i]?.m1Objectif), m1Realise: safeString(src[i]?.m1Realise), m1Taux: safeString(src[i]?.m1Taux) }))
 }
 
+const normalizeFrequenceFormationRow = (row?: FrequenceFormationRow): FrequenceFormationRow => ({
+  mObjectif: safeString(row?.mObjectif),
+  mRealise: safeString(row?.mRealise),
+  mTaux: safeString(row?.mTaux),
+  m1Objectif: safeString(row?.m1Objectif),
+  m1Realise: safeString(row?.m1Realise),
+  m1Taux: safeString(row?.m1Taux),
+})
+
 const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
-  if ((decl.fraisPersonnelRows?.length ?? 0) > 0) return "frais_personnel"
-  if ((decl.effectifGspRows?.length ?? 0) > 0) return "effectif_gsp"
-  if ((decl.absenteismeRows?.length ?? 0) > 0) return "absenteisme"
-  if ((decl.mouvementEffectifsRows?.length ?? 0) > 0) return "mouvement_effectifs"
-  if ((decl.effectifsFormesGspRows?.length ?? 0) > 0) return "effectifs_formes_gsp"
-  if ((decl.formationsDomainesRows?.length ?? 0) > 0) return "formations_domaines"
-  return "frais_personnel"
+  if ((decl.fraisPersonnelRows?.length ?? 0) > 0) return "rh"
+  if ((decl.effectifGspRows?.length ?? 0) > 0) return "rh"
+  if ((decl.absenteismeRows?.length ?? 0) > 0) return "rh"
+  if ((decl.mouvementEffectifsRows?.length ?? 0) > 0) return "rh"
+  if ((decl.creancesContentieusesRows?.length ?? 0) > 0) return "creance_contentieuses"
+  if (decl.formationRows) return "formation"
+  return "rh"
 }
 
 
@@ -540,7 +715,6 @@ export default function NouvelleDeclarationPage() {
 
   // Global meta
   const [activeTab, setActiveTab] = useState("frais_personnel")
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("all")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)
@@ -551,13 +725,22 @@ export default function NouvelleDeclarationPage() {
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
 
+  // Sub-tab for Formation
+  const [activeFormationTab, setActiveFormationTab] = useState<"effectifs_formes_gsp" | "formations_domaines" | "frequence_formation">("effectifs_formes_gsp")
+  
+  // Sub-tab for RH
+  const [activeRhTab, setActiveRhTab] = useState<"frais_personnel" | "effectif_gsp" | "absenteisme" | "mouvement_effectifs" | "mouvement_effectifs_domaine">("frais_personnel")
+
   // Tab data (6 tableaux conservés)
   const [fraisPersonnelRows, setFraisPersonnelRows] = useState<FraisPersonnelRow[]>(DEFAULT_FRAIS_PERSONNEL_ROWS.map((row) => ({ ...row })))
   const [effectifGspRows, setEffectifGspRows] = useState<EffectifGspRow[]>(DEFAULT_EFFECTIF_GSP_ROWS.map((row) => ({ ...row })))
   const [absenteismeRows, setAbsenteismeRows] = useState<AbsenteismeRow[]>(DEFAULT_ABSENTEISME_ROWS.map((row) => ({ ...row })))
   const [mouvementEffectifsRows, setMouvementEffectifsRows] = useState<MouvementEffectifsRow[]>(DEFAULT_MOUVEMENT_EFFECTIFS_ROWS.map((row) => ({ ...row })))
+  const [mouvementEffectifsDomaineRows, setMouvementEffectifsDomaineRows] = useState<MouvementEffectifsDomaineRow[]>(DEFAULT_MOUVEMENT_EFFECTIFS_DOMAINE_ROWS.map((row) => ({ ...row })))
+  const [creancesContentieusesRows, setCreancesContentieusesRows] = useState<CreancesContentieusesRow[]>(DEFAULT_CREANCES_CONTENTIEUSES_ROWS.map((row) => ({ ...row })))
   const [effectifsFormesGspRows, setEffectifsFormesGspRows] = useState<EffectifsFormesGspRow[]>(DEFAULT_EFFECTIFS_FORMES_GSP_ROWS.map((row) => ({ ...row })))
   const [formationsDomainesRows, setFormationsDomainesRows] = useState<FormationsDomainesRow[]>(DEFAULT_FORMATIONS_DOMAINES_ROWS.map((row) => ({ ...row })))
+  const [frequenceFormationRow, setFrequenceFormationRow] = useState<FrequenceFormationRow>({ ...EMPTY_FREQUENCE_FORMATION_ROW })
   const [tableauDeclarations, settableauDeclarations] = useState<Apitableautableau[]>([])
 
   const userRole = user?.role ?? ""
@@ -590,21 +773,6 @@ export default function NouvelleDeclarationPage() {
     () => selectableTabs.filter((tab) => CUSTOM_tableau_TAB_KEYS.has(tab.key)),
     [selectableTabs],
   )
-  
-  const declarationCategoryOptions = useMemo(() => {
-    const availableKeys = new Set(declarationTabs.map((tab) => tab.key))
-    return tableau_CATEGORY_OPTIONS.filter(
-      (category) => category.key === "all" || category.tabKeys.some((tabKey) => availableKeys.has(tabKey)),
-    )
-  }, [declarationTabs])
-  
-  const filteredDeclarationTabs = useMemo(() => {
-    if (selectedCategoryKey === "all") return declarationTabs
-    const selectedCategory = declarationCategoryOptions.find((category) => category.key === selectedCategoryKey)
-    if (!selectedCategory) return declarationTabs
-    const categoryTabKeys = new Set(selectedCategory.tabKeys)
-    return declarationTabs.filter((tab) => categoryTabKeys.has(tab.key as tableauTabKey))
-  }, [declarationCategoryOptions, declarationTabs, selectedCategoryKey])
   
   const selectableYears = useMemo(
     () => YEARS.filter((year) => MONTHS.some((month) => !istableauPeriodLocked(month.value, year, userRole))),
@@ -659,18 +827,12 @@ export default function NouvelleDeclarationPage() {
   )
 
   useEffect(() => {
-    if (filteredDeclarationTabs.length === 0) return
-    const firstEnabledTab = filteredDeclarationTabs.find((tab) => !tab.isDisabled)?.key ?? filteredDeclarationTabs[0].key
-    if (!filteredDeclarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
+    if (declarationTabs.length === 0) return
+    const firstEnabledTab = declarationTabs.find((tab) => !tab.isDisabled)?.key ?? declarationTabs[0].key
+    if (!declarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
       setActiveTab(firstEnabledTab)
     }
-  }, [activeTab, disabledTabKeys, filteredDeclarationTabs])
-
-  useEffect(() => {
-    if (selectedCategoryKey === "all") return
-    if (declarationCategoryOptions.some((category) => category.key === selectedCategoryKey)) return
-    setSelectedCategoryKey("all")
-  }, [declarationCategoryOptions, selectedCategoryKey])
+  }, [activeTab, disabledTabKeys, declarationTabs])
 
   useEffect(() => {
     if (!selectableYears.includes(annee)) {
@@ -775,8 +937,11 @@ export default function NouvelleDeclarationPage() {
       setEffectifGspRows(normalizeEffectifGspRows(declaration.effectifGspRows))
       setAbsenteismeRows(normalizeAbsenteismeRows(declaration.absenteismeRows))
       setMouvementEffectifsRows(normalizeMouvementEffectifsRows(declaration.mouvementEffectifsRows))
-      setEffectifsFormesGspRows(normalizeEffectifsFormesGspRows(declaration.effectifsFormesGspRows))
-      setFormationsDomainesRows(normalizeFormationsDomainesRows(declaration.formationsDomainesRows))
+      setMouvementEffectifsDomaineRows(normalizeMouvementEffectifsDomaineRows(declaration.mouvementEffectifsDomaineRows))
+      setCreancesContentieusesRows(normalizeCreancesContentieusesRows(declaration.creancesContentieusesRows))
+      setEffectifsFormesGspRows(normalizeEffectifsFormesGspRows(declaration.formationRows?.effectifsFormesGspRows))
+      setFormationsDomainesRows(normalizeFormationsDomainesRows(declaration.formationRows?.formationsDomainesRows))
+      setFrequenceFormationRow(normalizeFrequenceFormationRow(declaration.formationRows?.frequenceFormationRow))
     } catch {
       toast({
         title: "Erreur de chargement",
@@ -855,39 +1020,39 @@ export default function NouvelleDeclarationPage() {
 
     let validationError = false
     switch (activeTab) {
-      case "frais_personnel":
-        if (fraisPersonnelRows.some((row) => !row.m || !row.m1)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Frais personnel.", variant: "destructive" })
+      case "rh":
+        if (activeRhTab === "frais_personnel" && fraisPersonnelRows.some((row) => !row.m || !row.m1)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Frais Personnel.", variant: "destructive" })
           validationError = true
         }
-        break
-      case "effectif_gsp":
-        if (effectifGspRows.some((row) => !row.m || !row.m1 || !row.part)) {
+        if (activeRhTab === "effectif_gsp" && effectifGspRows.some((row) => !row.m || !row.m1 || !row.part)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Effectif par GSP.", variant: "destructive" })
           validationError = true
         }
-        break
-      case "absenteisme":
-        if (absenteismeRows.some((row) => !row.m || !row.m1 || !row.part)) {
+        if (activeRhTab === "absenteisme" && absenteismeRows.some((row) => !row.m || !row.m1 || !row.part)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Absenteisme.", variant: "destructive" })
           validationError = true
         }
-        break
-      case "mouvement_effectifs":
-        if (mouvementEffectifsRows.some((row) => !row.mCadresSup || !row.mCadres || !row.mMaitrise || !row.mExecution || !row.m1CadresSup || !row.m1Cadres || !row.m1Maitrise || !row.m1Execution)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Mouvement des effectifs.", variant: "destructive" })
+        if (activeRhTab === "mouvement_effectifs" && mouvementEffectifsRows.some((row) => !row.mCadresSup || !row.mCadres || !row.mMaitrise || !row.mExecution || !row.m1CadresSup || !row.m1Cadres || !row.m1Maitrise || !row.m1Execution)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Mouvement des Effectifs.", variant: "destructive" })
+          validationError = true
+        }
+        if (activeRhTab === "mouvement_effectifs_domaine" && mouvementEffectifsDomaineRows.some((row) => !row.mCdi || !row.mCdd || !row.mCta || !row.m1Cdi || !row.m1Cdd || !row.m1Cta)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Mouvement des Effectifs par Domaine.", variant: "destructive" })
           validationError = true
         }
         break
-      case "effectifs_formes_gsp":
-        if (effectifsFormesGspRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+      case "formation":
+        if (activeFormationTab === "effectifs_formes_gsp" && effectifsFormesGspRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Effectifs formes par GSP.", variant: "destructive" })
           validationError = true
         }
-        break
-      case "formations_domaines":
-        if (formationsDomainesRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Formations realisees par domaines.", variant: "destructive" })
+        if (activeFormationTab === "formations_domaines" && formationsDomainesRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseignerr toutes les lignes du tableau Formations realisees par domaines.", variant: "destructive" })
+          validationError = true
+        }
+        if (activeFormationTab === "frequence_formation" && (!frequenceFormationRow.mObjectif || !frequenceFormationRow.mRealise || !frequenceFormationRow.mTaux || !frequenceFormationRow.m1Objectif || !frequenceFormationRow.m1Realise || !frequenceFormationRow.m1Taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez raisonnerr toutes les valeurs du tableau Frequence de formation.", variant: "destructive" })
           validationError = true
         }
         break
@@ -918,8 +1083,9 @@ export default function NouvelleDeclarationPage() {
       effectifGspRows: [],
       absenteismeRows: [],
       mouvementEffectifsRows: [],
-      effectifsFormesGspRows: [],
-      formationsDomainesRows: [],
+creancesContentieusesRows: [],
+      formationRows: { effectifsFormesGspRows: [], formationsDomainesRows: [], frequenceFormationRow: { ...EMPTY_FREQUENCE_FORMATION_ROW } },
+      mouvementEffectifsDomaineRows: [],
     }
     
     switch (activeTab) {
@@ -935,11 +1101,28 @@ export default function NouvelleDeclarationPage() {
       case "mouvement_effectifs":
         baseDecl.mouvementEffectifsRows = mouvementEffectifsRows
         break
-      case "effectifs_formes_gsp":
-        baseDecl.effectifsFormesGspRows = effectifsFormesGspRows
+      case "creance_contentieuses":
+        baseDecl.creancesContentieusesRows = creancesContentieusesRows
         break
-      case "formations_domaines":
-        baseDecl.formationsDomainesRows = formationsDomainesRows
+      case "formation":
+        baseDecl.formationRows = {
+          effectifsFormesGspRows: effectifsFormesGspRows,
+          formationsDomainesRows: formationsDomainesRows,
+          frequenceFormationRow: frequenceFormationRow,
+        }
+        break
+    }
+    
+    switch (activeTab) {
+      case "rh":
+        if (activeRhTab === "frais_personnel") baseDecl.fraisPersonnelRows = fraisPersonnelRows
+        if (activeRhTab === "effectif_gsp") baseDecl.effectifGspRows = effectifGspRows
+        if (activeRhTab === "absenteisme") baseDecl.absenteismeRows = absenteismeRows
+        if (activeRhTab === "mouvement_effectifs") baseDecl.mouvementEffectifsRows = mouvementEffectifsRows
+        if (activeRhTab === "mouvement_effectifs_domaine") baseDecl.mouvementEffectifsDomaineRows = mouvementEffectifsDomaineRows
+        break
+      case "creance_contentieuses":
+        baseDecl.creancesContentieusesRows = creancesContentieusesRows
         break
     }
     
@@ -960,12 +1143,15 @@ export default function NouvelleDeclarationPage() {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       let tabData: unknown = {}
       switch (activeTab) {
-        case "frais_personnel": tabData = { fraisPersonnelRows }; break
-        case "effectif_gsp": tabData = { effectifGspRows }; break
-        case "absenteisme": tabData = { absenteismeRows }; break
-        case "mouvement_effectifs": tabData = { mouvementEffectifsRows }; break
-        case "effectifs_formes_gsp": tabData = { effectifsFormesGspRows }; break
-        case "formations_domaines": tabData = { formationsDomainesRows }; break
+        case "rh":
+          if (activeRhTab === "frais_personnel") tabData = { fraisPersonnelRows }
+          if (activeRhTab === "effectif_gsp") tabData = { effectifGspRows }
+          if (activeRhTab === "absenteisme") tabData = { absenteismeRows }
+          if (activeRhTab === "mouvement_effectifs") tabData = { mouvementEffectifsRows }
+          if (activeRhTab === "mouvement_effectifs_domaine") tabData = { mouvementEffectifsDomaineRows: mouvementEffectifsDomaineRows }
+          break
+        case "creance_contentieuses": tabData = { creancesContentieusesRows }; break
+        case "formation": tabData = { formationRows: { effectifsFormesGspRows, formationsDomainesRows, frequenceFormationRow } }; break
       }
       const requestPayload = {
         tabKey: activeTab,
@@ -1054,6 +1240,18 @@ export default function NouvelleDeclarationPage() {
               </div>
             </div>
 
+            <Tabs value={activeTab} onValueChange={(value) => {
+                      setActiveTab(value)
+                    }} className="w-full">
+              <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:bg-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-400 rounded">
+                {TABS.map((tab) => (
+                  <TabsTrigger key={tab.key} value={tab.key} className="text-xs px-3 py-2 whitespace-nowrap">
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
             <Card className="border border-gray-200">
               <CardContent className="pt-4 pb-3">
                 <div className="flex flex-wrap items-end gap-6">
@@ -1083,38 +1281,65 @@ export default function NouvelleDeclarationPage() {
                     />
                   </div>
                   <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
-                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner une categorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {declarationCategoryOptions.map((category) => (
-                          <SelectItem key={category.key} value={category.key}>{category.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
-                    <Select value={activeTab} onValueChange={(value) => {
-                      if (disabledTabKeys.has(value)) return
-                      setActiveTab(value)
-                      setSelectedCategoryKey(findtableauCategoryKeyForTab(value))
-                    }}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner un tableau" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredDeclarationTabs.length === 0
-                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible pour cette categorie</SelectItem>
-                          : filteredDeclarationTabs.map((t) => (
-                              <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
-                                {t.label}{t.isDisabled ? " (desactive)" : ""}
-                              </SelectItem>
-                            ))}
-                      </SelectContent>
-                    </Select>
+                    {activeTab === "creance_contentieuses" ? (
+                      <Select value="creance_contentieuses" onValueChange={() => {}} disabled>
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="Selectionner un tableau" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="creance_contentieuses">Creance contentieuses</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (activeTab === "formation" || activeTab === "rh") ? (
+                      <Select value={activeTab === "formation" ? activeFormationTab : activeRhTab} onValueChange={(value) => {
+                        if (activeTab === "formation") {
+                          setActiveFormationTab(value as typeof activeFormationTab)
+                        } else {
+                          setActiveRhTab(value as typeof activeRhTab)
+                        }
+                      }}>
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="Selectionner un tableau" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activeTab === "formation" && (
+                            <>
+                              <SelectItem value="effectifs_formes_gsp">Effectifs formes par GSP</SelectItem>
+                              <SelectItem value="formations_domaines">Formations realisees par domaines</SelectItem>
+                              <SelectItem value="frequence_formation">Frequence de formation</SelectItem>
+                            </>
+                          )}
+                          {activeTab === "rh" && (
+                            <>
+                              <SelectItem value="frais_personnel">Frais Personnel</SelectItem>
+                              <SelectItem value="effectif_gsp">Effectif par GSP</SelectItem>
+                              <SelectItem value="absenteisme">Absentéisme</SelectItem>
+                              <SelectItem value="mouvement_effectifs">Mouvement des Effectifs</SelectItem>
+                              <SelectItem value="mouvement_effectifs_domaine">Mouvement des Effectifs par Domaine</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Select value={activeTab} onValueChange={(value) => {
+                        if (disabledTabKeys.has(value)) return
+                        setActiveTab(value)
+                      }}>
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="Selectionner un tableau" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {declarationTabs.length === 0
+                            ? <SelectItem value="no-tables" disabled>Aucun tableau disponible</SelectItem>
+                            : declarationTabs.map((t) => (
+                                <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
+                                  {t.label}{t.isDisabled ? " (desactive)" : ""}
+                                </SelectItem>
+                              ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
                 {isActiveTabDisabled && (
@@ -1130,64 +1355,70 @@ export default function NouvelleDeclarationPage() {
               </CardContent>
             </Card>
 
-            <div>
-              {activeTab === "frais_personnel" && (
+<div>
+              {activeTab === "rh" && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Frais Personnel (MDA)</CardTitle>
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>
+                      {activeRhTab === "frais_personnel" && "Frais Personnel (MDA)"}
+                      {activeRhTab === "effectif_gsp" && "Effectif par GSP"}
+                      {activeRhTab === "absenteisme" && "Absentéisme"}
+                      {activeRhTab === "mouvement_effectifs" && "Mouvement des Effectifs"}
+                      {activeRhTab === "mouvement_effectifs_domaine" && "Mouvement des Effectifs par Domaine"}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <TabFraisPersonnel rows={fraisPersonnelRows} setRows={setFraisPersonnelRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                    <div className="space-y-4">
+                      {activeRhTab === "frais_personnel" && (
+                        <TabFraisPersonnel rows={fraisPersonnelRows} setRows={setFraisPersonnelRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                      )}
+                      {activeRhTab === "effectif_gsp" && (
+                        <TabEffectifGsp rows={effectifGspRows} setRows={setEffectifGspRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                      )}
+                      {activeRhTab === "absenteisme" && (
+                        <TabAbsenteisme rows={absenteismeRows} setRows={setAbsenteismeRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                      )}
+                      {activeRhTab === "mouvement_effectifs" && (
+                        <TabMouvementEffectifs rows={mouvementEffectifsRows} setRows={setMouvementEffectifsRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                      )}
+                      {activeRhTab === "mouvement_effectifs_domaine" && (
+                        <TabMouvementEffectifsDomaine rows={mouvementEffectifsDomaineRows} setRows={setMouvementEffectifsDomaineRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}
-              {activeTab === "effectif_gsp" && (
+              {activeTab === "creance_contentieuses" && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Effectif par GSP</CardTitle>
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Creance contentieuses</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <TabEffectifGsp rows={effectifGspRows} setRows={setEffectifGspRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                    <TabCreancesContentieuses rows={creancesContentieusesRows} setRows={setCreancesContentieusesRows} onSave={handleSave} isSubmitting={isSubmitting} />
                   </CardContent>
                 </Card>
               )}
-              {activeTab === "absenteisme" && (
+              {activeTab === "formation" && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Absenteisme</CardTitle>
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>
+                      {activeFormationTab === "effectifs_formes_gsp" && "Effectifs formes par GSP"}
+                      {activeFormationTab === "formations_domaines" && "Formations realisees par domaines"}
+                      {activeFormationTab === "frequence_formation" && "Frequence des Sessions de Formation"}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <TabAbsenteisme rows={absenteismeRows} setRows={setAbsenteismeRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "mouvement_effectifs" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Mouvement des effectifs</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabMouvementEffectifs rows={mouvementEffectifsRows} setRows={setMouvementEffectifsRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "effectifs_formes_gsp" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Effectifs formes par GSP</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabEffectifsFormesGsp rows={effectifsFormesGspRows} setRows={setEffectifsFormesGspRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "formations_domaines" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Formations realisees par domaines</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabFormationsDomaines rows={formationsDomainesRows} setRows={setFormationsDomainesRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                    <div className="space-y-4">
+                      {activeFormationTab === "effectifs_formes_gsp" && (
+                        <TabEffectifsFormesGsp rows={effectifsFormesGspRows} setRows={setEffectifsFormesGspRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                      )}
+                      {activeFormationTab === "formations_domaines" && (
+                        <TabFormationsDomaines rows={formationsDomainesRows} setRows={setFormationsDomainesRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                      )}
+                      {activeFormationTab === "frequence_formation" && (
+                        <TabFrequenceFormation row={frequenceFormationRow} setRow={setFrequenceFormationRow} onSave={handleSave} isSubmitting={isSubmitting} />
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}

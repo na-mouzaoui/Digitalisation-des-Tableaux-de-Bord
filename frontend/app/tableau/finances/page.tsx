@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -210,15 +211,14 @@ const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey = "compte_resultat"
 
-type tableauCategoryKey = "all" | "cr"
+type tableauCategoryKey = "cr"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all", label: "Toutes les categories", tabKeys: [] },
   { key: "cr", label: "CR", tabKeys: ["compte_resultat"] },
 ]
 
 const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
-  tableau_CATEGORY_OPTIONS.find((c) => c.key !== "all" && c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "all"
+  tableau_CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "cr"
 
 const istableauTabKey = (value: string): value is tableauTabKey =>
   TABS.some((tab) => tab.key === value)
@@ -329,7 +329,7 @@ export default function NouvelleDeclarationPage() {
   }, [])
 
   const [activeTab, setActiveTab] = useState("compte_resultat")
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("all")
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("cr")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)
@@ -382,7 +382,6 @@ export default function NouvelleDeclarationPage() {
   }, [declarationTabs])
 
   const filteredDeclarationTabs = useMemo(() => {
-    if (selectedCategoryKey === "all") return declarationTabs
     const selectedCategory = declarationCategoryOptions.find((category) => category.key === selectedCategoryKey)
     if (!selectedCategory) return declarationTabs
     const categoryTabKeys = new Set(selectedCategory.tabKeys)
@@ -450,9 +449,8 @@ export default function NouvelleDeclarationPage() {
   }, [activeTab, disabledTabKeys, filteredDeclarationTabs])
 
   useEffect(() => {
-    if (selectedCategoryKey === "all") return
     if (declarationCategoryOptions.some((category) => category.key === selectedCategoryKey)) return
-    setSelectedCategoryKey("all")
+    setSelectedCategoryKey(declarationCategoryOptions[0]?.key ?? "cr")
   }, [declarationCategoryOptions, selectedCategoryKey])
 
   useEffect(() => {
@@ -792,19 +790,7 @@ export default function NouvelleDeclarationPage() {
                       className="h-10 w-[120px] rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                     />
                   </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
-                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner une categorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {declarationCategoryOptions.map((category) => (
-                          <SelectItem key={category.key} value={category.key}>{category.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  
                   <div className="space-y-1 flex-1 min-w-[220px]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
                     <Select value={activeTab} onValueChange={(value) => {

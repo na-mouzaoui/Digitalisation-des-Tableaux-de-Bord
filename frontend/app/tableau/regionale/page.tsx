@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -322,15 +323,14 @@ type TabKey =
   | "amelioration_qualite"
   | "mttr"
 
-type CategoryKey = "all" | "reseau"
+type CategoryKey = "reseau"
 
 const CATEGORY_OPTIONS: Array<{ key: CategoryKey; label: string; tabKeys: TabKey[] }> = [
-  { key: "all",    label: "Toutes les categories", tabKeys: [] },
   { key: "reseau", label: "Reseau",                 tabKeys: ["realisation_technique_reseau", "amelioration_qualite", "mttr"] },
 ]
 
 const findCategoryKeyForTab = (tabKey: string): CategoryKey =>
-  CATEGORY_OPTIONS.find((c) => c.key !== "all" && c.tabKeys.includes(tabKey as TabKey))?.key ?? "all"
+  CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(tabKey as TabKey))?.key ?? "reseau"
 
 const isTabKey = (value: string): value is TabKey =>
   TABS.some((tab) => tab.key === value)
@@ -451,7 +451,7 @@ export default function NouvelleDeclarationPage() {
 
   // Global meta
   const [activeTab, setActiveTab] = useState("realisation_technique_reseau")
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<CategoryKey>("all")
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<CategoryKey>("reseau")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_PERIOD.annee)
@@ -507,7 +507,6 @@ export default function NouvelleDeclarationPage() {
   }, [declarationTabs])
   
   const filteredTabs = useMemo(() => {
-    if (selectedCategoryKey === "all") return declarationTabs
     const selectedCategory = categoryOptions.find((category) => category.key === selectedCategoryKey)
     if (!selectedCategory) return declarationTabs
     const categoryTabKeys = new Set(selectedCategory.tabKeys)
@@ -575,9 +574,8 @@ export default function NouvelleDeclarationPage() {
   }, [activeTab, disabledTabKeys, filteredTabs])
 
   useEffect(() => {
-    if (selectedCategoryKey === "all") return
     if (categoryOptions.some((category) => category.key === selectedCategoryKey)) return
-    setSelectedCategoryKey("all")
+    setSelectedCategoryKey(categoryOptions[0]?.key ?? "reseau")
   }, [categoryOptions, selectedCategoryKey])
 
   useEffect(() => {
@@ -950,19 +948,7 @@ export default function NouvelleDeclarationPage() {
                       className="h-10 w-[120px] rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                     />
                   </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
-                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as CategoryKey)}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner une categorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categoryOptions.map((category) => (
-                          <SelectItem key={category.key} value={category.key}>{category.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  
                   <div className="space-y-1 flex-1 min-w-[220px]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
                     <Select value={activeTab} onValueChange={(value) => {

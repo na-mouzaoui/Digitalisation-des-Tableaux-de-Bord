@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -125,6 +126,12 @@ type EPayementRow = { rechargement: string; m: string; m1: string; evol: string 
 const EPAYEMENT_CHANNELS = ["Baridimob", "webportail", "GAB-Alg Poste", "WINPAY (BNA)"] as const
 const createDefaultEPayementRows = (): EPayementRow[] =>
   EPAYEMENT_CHANNELS.map((rechargement) => ({ rechargement, m: "", m1: "", evol: "" }))
+
+// ?? Rechargement
+type RechargementRow = { canal: string; m: string; m1: string; taux: string }
+const RECHARGEMENT_DR_LABELS = ["DR Alger", "DR Oran", "DR Constantine", "DR Setif", "DR Ouargla", "DR Bechar", "DR Annaba", "DR Chlef"] as const
+const createDefaultRechargementRows = (): RechargementRow[] =>
+  RECHARGEMENT_DR_LABELS.map((canal) => ({ canal, m: "", m1: "", taux: "" }))
 
 // ?? Total Encaissement ???????????????????????????????????????????????????????
 type TotalEncaissementRow = { mGp: string; mB2b: string; m1Gp: string; m1B2b: string; evol: string }
@@ -362,6 +369,61 @@ function TabEPayementSingle({ title, rows, setRows, onSave, isSubmitting }: TabE
   return (
     <div className="space-y-4">
       <EPayementBlock title={title} rows={rows} setRows={setRows} />
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+// ?? 6e. Rechargement
+interface TabRechargementBlockProps {
+  title: string
+  rows: RechargementRow[]
+  setRows: React.Dispatch<React.SetStateAction<RechargementRow[]>>
+}
+function RechargementBlock({ title, rows, setRows }: TabRechargementBlockProps) {
+  const update = (index: number, field: "m" | "m1" | "taux", value: string) =>
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement PRP (Million DA)/ DR</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${title}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{RECHARGEMENT_DR_LABELS[index] ?? row.canal}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.taux} onChange={(e) => update(index, "taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+interface TabRechargementSingleProps {
+  title: string
+  rows: RechargementRow[]
+  setRows: React.Dispatch<React.SetStateAction<RechargementRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+function TabRechargementSingle({ title, rows, setRows, onSave, isSubmitting }: TabRechargementSingleProps) {
+  return (
+    <div className="space-y-4">
+      <RechargementBlock title={title} rows={rows} setRows={setRows} />
       <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
     </div>
   )
@@ -606,6 +668,7 @@ const TABS = [
   { key: "e_payement_pop",                 label: "E-PAYEMENT Pop",                        color: PRIMARY_COLOR, title: "E-PAYEMENT POP (MDA)" },
   { key: "e_payement_prp",                 label: "E-PAYEMENT Prp",                        color: PRIMARY_COLOR, title: "E-PAYEMENT PRP (MDA)" },
   { key: "total_encaissement",             label: "Totale des encaissements",                color: PRIMARY_COLOR, title: "TOTALE DES ENCAISSEMENTS" },
+  { key: "rechargement",                   label: "Rechargement",                          color: PRIMARY_COLOR, title: "RECHARGEMENT" },
   { key: "recouvrement",                   label: "Recouvrement",                          color: PRIMARY_COLOR, title: "RECOUVREMENT (MDA)" },
   { key: "desactivation_resiliation",      label: "Desactivation / Resiliation",           color: PRIMARY_COLOR, title: "DESACTIVATION / RESILIATION" },
   { key: "parc_abonnes_b2b",               label: "Parc Abonnes B2B",                      color: PRIMARY_COLOR, title: "PARC ABONNES B2B" },
@@ -620,28 +683,28 @@ const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
   | "reclamation" | "reclamation_gp" | "e_payement_pop" | "e_payement_prp"
-  | "total_encaissement" | "recouvrement"
+  | "total_encaissement" | "rechargement" | "recouvrement"
   | "desactivation_resiliation"
   | "parc_abonnes_b2b" | "parc_abonnes_gp" | "total_parc_abonnes" | "total_parc_abonnes_technologie"
   | "activation" | "chiffre_affaires_mda"
 
 type tableauCategoryKey =
-  | "all" | "reclamation" | "e_payment" | "encaissement" | "recouvrement"
+  | "reclamation" | "e_payment" | "rechargement" | "encaissement" | "recouvrement"
   | "parc_abonnes" | "activation_desactivation_sim" | "chiffre_affaires"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all",           label: "Toutes les categories",          tabKeys: [] },
-  { key: "reclamation",   label: "Reclamation",                    tabKeys: ["reclamation", "reclamation_gp"] },
-  { key: "e_payment",     label: "E-payment",                      tabKeys: ["e_payement_pop", "e_payement_prp"] },
-  { key: "encaissement",  label: "Encaissement",                   tabKeys: ["total_encaissement"] },
-  { key: "recouvrement",  label: "Recouvrement",                   tabKeys: ["recouvrement"] },
-  { key: "parc_abonnes",  label: "Parc abonne",                    tabKeys: ["parc_abonnes_b2b", "parc_abonnes_gp", "total_parc_abonnes", "total_parc_abonnes_technologie"] },
+  { key: "reclamation",    label: "Reclamation",                  tabKeys: ["reclamation", "reclamation_gp"] },
+  { key: "e_payment",      label: "E-payment",                    tabKeys: ["e_payement_pop", "e_payement_prp"] },
+  { key: "rechargement",   label: "Rechargement",                 tabKeys: ["rechargement"] },
+  { key: "encaissement",   label: "Encaissement",                 tabKeys: ["total_encaissement"] },
+  { key: "recouvrement",   label: "Recouvrement",                 tabKeys: ["recouvrement"] },
+  { key: "parc_abonnes",   label: "Parc abonne",                  tabKeys: ["parc_abonnes_b2b", "parc_abonnes_gp", "total_parc_abonnes", "total_parc_abonnes_technologie"] },
   { key: "activation_desactivation_sim", label: "Activation / Desactivation SIM", tabKeys: ["desactivation_resiliation", "activation"] },
   { key: "chiffre_affaires", label: "Chiffre d'affaires",          tabKeys: ["chiffre_affaires_mda"] },
 ]
 
 const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
-  tableau_CATEGORY_OPTIONS.find((c) => c.key !== "all" && c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "all"
+  tableau_CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "reclamation"
 
 const istableauTabKey = (value: string): value is tableauTabKey =>
   TABS.some((tab) => tab.key === value)
@@ -676,6 +739,7 @@ interface Savedtableau {
   ePayementPopRows?: EPayementRow[]
   ePayementPrpRows?: EPayementRow[]
   totalEncaissementRows?: TotalEncaissementRow[]
+  rechargementRows?: RechargementRow[]
   recouvrementRows?: RecouvrementRow[]
   desactivationResiliationRows?: DesactivationResiliationRow[]
   parcAbonnesB2bRows?: ParcAbonnesB2BRow[]
@@ -731,6 +795,11 @@ const normalizeReclamationGpRows = (rows?: ReclamationGpRow[]): ReclamationGpRow
 const normalizeEPayementRows = (rows?: EPayementRow[]): EPayementRow[] => {
   const src = Array.isArray(rows) ? rows : []
   return EPAYEMENT_CHANNELS.map((rechargement, i) => ({ rechargement, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
+}
+
+const normalizeRechargementRows = (rows?: RechargementRow[]): RechargementRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return RECHARGEMENT_DR_LABELS.map((canal, i) => ({ canal, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), taux: safeString(src[i]?.taux) }))
 }
 
 const normalizeTotalEncaissementRow = (row?: TotalEncaissementRow): TotalEncaissementRow => ({
@@ -790,6 +859,7 @@ const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
   if ((decl.ePayementPopRows?.length ?? 0) > 0) return "e_payement_pop"
   if ((decl.ePayementPrpRows?.length ?? 0) > 0) return "e_payement_prp"
   if ((decl.totalEncaissementRows?.length ?? 0) > 0) return "total_encaissement"
+  if ((decl.rechargementRows?.length ?? 0) > 0) return "rechargement"
   if ((decl.recouvrementRows?.length ?? 0) > 0) return "recouvrement"
   if ((decl.desactivationResiliationRows?.length ?? 0) > 0) return "desactivation_resiliation"
   if ((decl.parcAbonnesB2bRows?.length ?? 0) > 0) return "parc_abonnes_b2b"
@@ -845,7 +915,7 @@ export default function NouvelleDeclarationPage() {
 
   // Global meta
   const [activeTab, setActiveTab] = useState("reclamation")
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("all")
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("reclamation")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)
@@ -862,6 +932,7 @@ export default function NouvelleDeclarationPage() {
   const [ePayementPopRows, setEPayementPopRows] = useState<EPayementRow[]>(createDefaultEPayementRows())
   const [ePayementPrpRows, setEPayementPrpRows] = useState<EPayementRow[]>(createDefaultEPayementRows())
   const [totalEncaissementRows, setTotalEncaissementRows] = useState<TotalEncaissementRow[]>([{ ...EMPTY_TOTAL_ENCAISSEMENT_ROW }])
+  const [rechargementRows, setRechargementRows] = useState<RechargementRow[]>(createDefaultRechargementRows())
   const [recouvrementRows, setRecouvrementRows] = useState<RecouvrementRow[]>(DEFAULT_RECOUVREMENT_ROWS.map((row) => ({ ...row })))
   const [desactivationResiliationRows, setDesactivationResiliationRows] = useState<DesactivationResiliationRow[]>(DEFAULT_DESACTIVATION_RESILIATION_ROWS.map((row) => ({ ...row })))
   const [parcAbonnesB2bRows, setParcAbonnesB2bRows] = useState<ParcAbonnesB2BRow[]>(DEFAULT_PARC_ABONNES_B2B_ROWS.map((row) => ({ ...row })))
@@ -906,12 +977,11 @@ export default function NouvelleDeclarationPage() {
   const declarationCategoryOptions = useMemo(() => {
     const availableKeys = new Set(declarationTabs.map((tab) => tab.key))
     return tableau_CATEGORY_OPTIONS.filter(
-      (category) => category.key === "all" || category.tabKeys.some((tabKey) => availableKeys.has(tabKey)),
+      (category) => category.tabKeys.some((tabKey) => availableKeys.has(tabKey)),
     )
   }, [declarationTabs])
   
   const filteredDeclarationTabs = useMemo(() => {
-    if (selectedCategoryKey === "all") return declarationTabs
     const selectedCategory = declarationCategoryOptions.find((category) => category.key === selectedCategoryKey)
     if (!selectedCategory) return declarationTabs
     const categoryTabKeys = new Set(selectedCategory.tabKeys)
@@ -979,9 +1049,8 @@ export default function NouvelleDeclarationPage() {
   }, [activeTab, disabledTabKeys, filteredDeclarationTabs])
 
   useEffect(() => {
-    if (selectedCategoryKey === "all") return
     if (declarationCategoryOptions.some((category) => category.key === selectedCategoryKey)) return
-    setSelectedCategoryKey("all")
+    setSelectedCategoryKey(declarationCategoryOptions[0]?.key ?? "reclamation")
   }, [declarationCategoryOptions, selectedCategoryKey])
 
   useEffect(() => {
@@ -1088,6 +1157,7 @@ export default function NouvelleDeclarationPage() {
       setEPayementPopRows(normalizeEPayementRows(declaration.ePayementPopRows))
       setEPayementPrpRows(normalizeEPayementRows(declaration.ePayementPrpRows))
       setTotalEncaissementRows(normalizeTotalEncaissementRows(declaration.totalEncaissementRows))
+      setRechargementRows(normalizeRechargementRows(declaration.rechargementRows))
       setRecouvrementRows(normalizeRecouvrementRows(declaration.recouvrementRows))
       setDesactivationResiliationRows(normalizeDesactivationResiliationRows(declaration.desactivationResiliationRows))
       setParcAbonnesB2bRows(normalizeParcAbonnesB2BRows(declaration.parcAbonnesB2bRows))
@@ -1205,6 +1275,12 @@ export default function NouvelleDeclarationPage() {
           validationError = true
         }
         break
+      case "rechargement":
+        if (rechargementRows.some((row) => !row.m || !row.m1 || !row.taux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Rechargement.", variant: "destructive" })
+          validationError = true
+        }
+        break
       case "recouvrement":
         if (recouvrementRows.some((row) => !row.mGp || !row.mB2b || !row.m1Gp || !row.m1B2b)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Recouvrement.", variant: "destructive" })
@@ -1281,6 +1357,7 @@ export default function NouvelleDeclarationPage() {
       ePayementPopRows: [],
       ePayementPrpRows: [],
       totalEncaissementRows: [],
+      rechargementRows: [],
       recouvrementRows: [],
       desactivationResiliationRows: [],
       parcAbonnesB2bRows: [],
@@ -1306,6 +1383,9 @@ export default function NouvelleDeclarationPage() {
         break
       case "total_encaissement":
         baseDecl.totalEncaissementRows = totalEncaissementRows
+        break
+      case "rechargement":
+        baseDecl.rechargementRows = rechargementRows
         break
       case "recouvrement":
         baseDecl.recouvrementRows = recouvrementRows
@@ -1355,6 +1435,7 @@ export default function NouvelleDeclarationPage() {
         case "e_payement_pop": tabData = { ePayementPopRows }; break
         case "e_payement_prp": tabData = { ePayementPrpRows }; break
         case "total_encaissement": tabData = { totalEncaissementRows }; break
+        case "rechargement": tabData = { rechargementRows }; break
         case "recouvrement": tabData = { recouvrementRows }; break
         case "desactivation_resiliation": tabData = { desactivationResiliationRows }; break
         case "parc_abonnes_b2b": tabData = { parcAbonnesB2bRows }; break
@@ -1451,6 +1532,16 @@ export default function NouvelleDeclarationPage() {
               </div>
             </div>
 
+            <Tabs value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)} className="w-full">
+              <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:bg-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-400 rounded">
+                {declarationCategoryOptions.map((category) => (
+                  <TabsTrigger key={category.key} value={category.key} className="text-xs px-3 py-2 whitespace-nowrap">
+                    {category.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
             <Card className="border border-gray-200">
               <CardContent className="pt-4 pb-3">
                 <div className="flex flex-wrap items-end gap-6">
@@ -1478,19 +1569,6 @@ export default function NouvelleDeclarationPage() {
                       placeholder="Ex: 2026"
                       className="h-10 w-[120px] rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                     />
-                  </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
-                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner une categorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {declarationCategoryOptions.map((category) => (
-                          <SelectItem key={category.key} value={category.key}>{category.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                   <div className="space-y-1 flex-1 min-w-[220px]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
@@ -1600,6 +1678,16 @@ export default function NouvelleDeclarationPage() {
                       onSave={handleSave}
                       isSubmitting={isSubmitting}
                     />
+                  </CardContent>
+                </Card>
+              )}
+              {activeTab === "rechargement" && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Rechargement</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TabRechargementSingle title="Rechargement" rows={rechargementRows} setRows={setRechargementRows} onSave={handleSave} isSubmitting={isSubmitting} />
                   </CardContent>
                 </Card>
               )}

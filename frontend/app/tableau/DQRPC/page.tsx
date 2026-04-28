@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -272,15 +273,13 @@ const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey = "disponibilite_reseau" | "mttr"
 
-type tableauCategoryKey = "all" | "qualite_reseau"
+type tableauCategoryKey = "all"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all",           label: "Toutes les categories",          tabKeys: [] },
-  { key: "qualite_reseau",   label: "Qualite reseau",              tabKeys: ["disponibilite_reseau", "mttr"] },
+  { key: "all", label: "Toutes les categories", tabKeys: ["disponibilite_reseau", "mttr"] },
 ]
 
-const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
-  tableau_CATEGORY_OPTIONS.find((c) => c.key !== "all" && c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "all"
+const findtableauCategoryKeyForTab = (_tabKey: string): tableauCategoryKey => "all"
 
 const istableauTabKey = (value: string): value is tableauTabKey =>
   TABS.some((tab) => tab.key === value)
@@ -521,18 +520,12 @@ export default function NouvelleDeclarationPage() {
   )
 
   useEffect(() => {
-    if (filteredDeclarationTabs.length === 0) return
-    const firstEnabledTab = filteredDeclarationTabs.find((tab) => !tab.isDisabled)?.key ?? filteredDeclarationTabs[0].key
-    if (!filteredDeclarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
+    if (declarationTabs.length === 0) return
+    const firstEnabledTab = declarationTabs.find((tab) => !tab.isDisabled)?.key ?? declarationTabs[0].key
+    if (!declarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
       setActiveTab(firstEnabledTab)
     }
-  }, [activeTab, disabledTabKeys, filteredDeclarationTabs])
-
-  useEffect(() => {
-    if (selectedCategoryKey === "all") return
-    if (declarationCategoryOptions.some((category) => category.key === selectedCategoryKey)) return
-    setSelectedCategoryKey("all")
-  }, [declarationCategoryOptions, selectedCategoryKey])
+  }, [activeTab, disabledTabKeys, declarationTabs])
 
   useEffect(() => {
     if (!selectableYears.includes(annee)) {
@@ -868,6 +861,18 @@ export default function NouvelleDeclarationPage() {
               </div>
             </div>
 
+            <Tabs value={activeTab} onValueChange={(value) => {
+                      setActiveTab(value)
+                    }} className="w-full">
+              <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:bg-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-400 rounded">
+                {declarationTabs.map((tab) => (
+                  <TabsTrigger key={tab.key} value={tab.key} className="text-xs px-3 py-2 whitespace-nowrap">
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
             <Card className="border border-gray-200">
               <CardContent className="pt-4 pb-3">
                 <div className="flex flex-wrap items-end gap-6">
@@ -897,32 +902,18 @@ export default function NouvelleDeclarationPage() {
                     />
                   </div>
                   <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
-                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner une categorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {declarationCategoryOptions.map((category) => (
-                          <SelectItem key={category.key} value={category.key}>{category.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
                     <Select value={activeTab} onValueChange={(value) => {
                       if (disabledTabKeys.has(value)) return
                       setActiveTab(value)
-                      setSelectedCategoryKey(findtableauCategoryKeyForTab(value))
                     }}>
                       <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder="Selectionner un tableau" />
                       </SelectTrigger>
                       <SelectContent>
-                        {filteredDeclarationTabs.length === 0
-                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible pour cette categorie</SelectItem>
-                          : filteredDeclarationTabs.map((t) => (
+                        {declarationTabs.length === 0
+                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible</SelectItem>
+                          : declarationTabs.map((t) => (
                               <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
                                 {t.label}{t.isDisabled ? " (desactive)" : ""}
                               </SelectItem>

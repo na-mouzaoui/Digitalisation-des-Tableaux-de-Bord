@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -168,8 +169,8 @@ function TabRealisationTechniqueReseau({ rows, setRows, onSave, isSubmitting }: 
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Realisations techniques</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
             </tr>
           </thead>
           <tbody>
@@ -202,8 +203,8 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
             </tr>
           </thead>
           <tbody>
@@ -236,8 +237,8 @@ function TabTraficData({ rows, setRows, onSave, isSubmitting }: TabTraficDataPro
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Trafic Data (TB)</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
             </tr>
           </thead>
           <tbody>
@@ -279,8 +280,8 @@ function DynamicWilayaTable<T extends { wilaya: string; mObjectif: string; mReal
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"M-1/th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"M-1/th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
@@ -347,8 +348,8 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"M-1/th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (
@@ -392,8 +393,8 @@ function TabActionNotableReseau({ rows, setRows, onSave, isSubmitting }: TabActi
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Action</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Objectif 2025</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"M-1/th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b"M-1/th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
             </tr>
             <tr className="bg-gray-50">
               {["Objectif", "Realise", "Taux"].map((h, i) => (
@@ -429,31 +430,27 @@ function TabActionNotableReseau({ rows, setRows, onSave, isSubmitting }: TabActi
 // 7. CONFIGURATION DES ONGLETS (TABLEAUX CONSERVéS UNIQUEMENT)
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "realisation_technique_reseau",   label: "Realisation technique Reseau",          color: PRIMARY_COLOR, title: "REALISATION TECHNIQUE RESEAU" },
-  { key: "situation_reseau",               label: "Situation Reseau",                      color: PRIMARY_COLOR, title: "SITUATION RESEAUX" },
-  { key: "trafic_data",                    label: "Trafic Data",                           color: PRIMARY_COLOR, title: "TRAFIC DATA (TB)" },
-  { key: "amelioration_qualite",           label: "Amelioration qualite",                  color: PRIMARY_COLOR, title: "AMELIORATION QUALITE" },
-  { key: "couverture_reseau",              label: "Couverture Reseau",                     color: PRIMARY_COLOR, title: "COUVERTURE RESEAU" },
-  { key: "action_notable_reseau",          label: "Action notable sur le reseau",          color: PRIMARY_COLOR, title: "ACTION NOTABLE SUR LE RESEAU" },
+  { key: "suivi_infrastructures_reseau",  label: "Suivi des infrastructures Reseau 2G/3G/4G", color: PRIMARY_COLOR, title: "SUIVI DES INFRASTRUCTURES RESEAU 2G/3G/4G" },
+  { key: "evolution_trafic_data",          label: "Evolution du Trafic Data",            color: PRIMARY_COLOR, title: "EVOLUTION DU TRAFIC DATA" },
+  { key: "amelioration_qualite",          label: "Amelioration qualité",              color: PRIMARY_COLOR, title: "AMELIORATION QUALITE" },
+  { key: "couverture_reseau",             label: "Couverture Réseau",                  color: PRIMARY_COLOR, title: "COUVERTURE RESEAU" },
+  { key: "action_notable_reseau",         label: "Action notable sur le Réseau",       color: PRIMARY_COLOR, title: "ACTION NOTABLE SUR LE RESEAU" },
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
-  | "realisation_technique_reseau" | "situation_reseau" | "trafic_data"
+  | "suivi_infrastructures_reseau" | "evolution_trafic_data"
   | "amelioration_qualite" | "couverture_reseau" | "action_notable_reseau"
 
 type tableauCategoryKey =
-  | "all" | "reseau_technique" | "qualite_reseau"
+  | "all"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all", label: "Toutes les categories", tabKeys: [] },
-  { key: "reseau_technique", label: "Reseau technique", tabKeys: ["realisation_technique_reseau", "situation_reseau", "trafic_data", "amelioration_qualite", "couverture_reseau", "action_notable_reseau"] },
-  { key: "qualite_reseau",   label: "Qualite reseau", tabKeys: [] },
+  { key: "all", label: "Toutes les categories", tabKeys: ["suivi_infrastructures_reseau", "evolution_trafic_data", "amelioration_qualite", "couverture_reseau", "action_notable_reseau"] },
 ]
 
-const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
-  tableau_CATEGORY_OPTIONS.find((c) => c.key !== "all" && c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "all"
+const findtableauCategoryKeyForTab = (_tabKey: string): tableauCategoryKey => "all"
 
 const istableauTabKey = (value: string): value is tableauTabKey =>
   TABS.some((tab) => tab.key === value)
@@ -548,13 +545,12 @@ const normalizeActionNotableReseauRows = (rows?: ActionNotableReseauRow[]): Acti
 }
 
 const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
-  if ((decl.realisationTechniqueReseauRows?.length ?? 0) > 0) return "realisation_technique_reseau"
-  if ((decl.situationReseauRows?.length ?? 0) > 0) return "situation_reseau"
-  if ((decl.traficDataRows?.length ?? 0) > 0) return "trafic_data"
+  if ((decl.realisationTechniqueReseauRows?.length ?? 0) > 0) return "suivi_infrastructures_reseau"
+  if ((decl.traficDataRows?.length ?? 0) > 0) return "evolution_trafic_data"
   if ((decl.ameliorationQualiteRows?.length ?? 0) > 0) return "amelioration_qualite"
   if ((decl.couvertureReseauRows?.length ?? 0) > 0) return "couverture_reseau"
   if ((decl.actionNotableReseauRows?.length ?? 0) > 0) return "action_notable_reseau"
-  return "realisation_technique_reseau"
+  return "suivi_infrastructures_reseau"
 }
 
 
@@ -601,7 +597,7 @@ export default function NouvelleDeclarationPage() {
   }, [])
 
   // Global meta
-  const [activeTab, setActiveTab] = useState("realisation_technique_reseau")
+  const [activeTab, setActiveTab] = useState("suivi_infrastructures_reseau")
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("all")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
@@ -721,18 +717,12 @@ export default function NouvelleDeclarationPage() {
   )
 
   useEffect(() => {
-    if (filteredDeclarationTabs.length === 0) return
-    const firstEnabledTab = filteredDeclarationTabs.find((tab) => !tab.isDisabled)?.key ?? filteredDeclarationTabs[0].key
-    if (!filteredDeclarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
+    if (declarationTabs.length === 0) return
+    const firstEnabledTab = declarationTabs.find((tab) => !tab.isDisabled)?.key ?? declarationTabs[0].key
+    if (!declarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
       setActiveTab(firstEnabledTab)
     }
-  }, [activeTab, disabledTabKeys, filteredDeclarationTabs])
-
-  useEffect(() => {
-    if (selectedCategoryKey === "all") return
-    if (declarationCategoryOptions.some((category) => category.key === selectedCategoryKey)) return
-    setSelectedCategoryKey("all")
-  }, [declarationCategoryOptions, selectedCategoryKey])
+  }, [activeTab, disabledTabKeys, declarationTabs])
 
   useEffect(() => {
     if (!selectableYears.includes(annee)) {
@@ -918,21 +908,15 @@ export default function NouvelleDeclarationPage() {
     // Validation des champs
     let validationError = false
     switch (activeTab) {
-      case "realisation_technique_reseau":
+      case "suivi_infrastructures_reseau":
         if (realisationTechniqueReseauRows.some((row) => !row.m || !row.m1)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Realisation technique Reseau.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Suivi des infrastructures Reseau.", variant: "destructive" })
           validationError = true
         }
         break
-      case "situation_reseau":
-        if (situationReseauRows.some((row) => !row.m || !row.m1)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Situation Reseau.", variant: "destructive" })
-          validationError = true
-        }
-        break
-      case "trafic_data":
+      case "evolution_trafic_data":
         if (traficDataRows.some((row) => !row.m || !row.m1)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Trafic Data.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Evolution du Trafic Data.", variant: "destructive" })
           validationError = true
         }
         break
@@ -944,7 +928,7 @@ export default function NouvelleDeclarationPage() {
         break
       case "couverture_reseau":
         if (couvertureReseauRows.some((row) => !row.wilaya || !row.mObjectif || !row.mRealise || !row.m1Objectif || !row.m1Realise || !row.ecart)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Couverture Reseau.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseign toutes les lignes du tableau Couverture Reseau.", variant: "destructive" })
           validationError = true
         }
         break
@@ -986,13 +970,10 @@ export default function NouvelleDeclarationPage() {
     }
     
     switch (activeTab) {
-      case "realisation_technique_reseau":
+      case "suivi_infrastructures_reseau":
         baseDecl.realisationTechniqueReseauRows = realisationTechniqueReseauRows
         break
-      case "situation_reseau":
-        baseDecl.situationReseauRows = situationReseauRows
-        break
-      case "trafic_data":
+      case "evolution_trafic_data":
         baseDecl.traficDataRows = traficDataRows
         break
       case "amelioration_qualite":
@@ -1023,9 +1004,8 @@ export default function NouvelleDeclarationPage() {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       let tabData: unknown = {}
       switch (activeTab) {
-        case "realisation_technique_reseau": tabData = { realisationTechniqueReseauRows }; break
-        case "situation_reseau": tabData = { situationReseauRows }; break
-        case "trafic_data": tabData = { traficDataRows }; break
+        case "suivi_infrastructures_reseau": tabData = { realisationTechniqueReseauRows }; break
+        case "evolution_trafic_data": tabData = { traficDataRows }; break
         case "amelioration_qualite": tabData = { ameliorationQualiteRows }; break
         case "couverture_reseau": tabData = { couvertureReseauRows }; break
         case "action_notable_reseau": tabData = { actionNotableReseauRows }; break
@@ -1117,6 +1097,18 @@ export default function NouvelleDeclarationPage() {
               </div>
             </div>
 
+            <Tabs value={activeTab} onValueChange={(value) => {
+                      setActiveTab(value)
+                    }} className="w-full">
+              <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:bg-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-400 rounded">
+                {declarationTabs.map((tab) => (
+                  <TabsTrigger key={tab.key} value={tab.key} className="text-xs px-3 py-2 whitespace-nowrap">
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+
             <Card className="border border-gray-200">
               <CardContent className="pt-4 pb-3">
                 <div className="flex flex-wrap items-end gap-6">
@@ -1146,32 +1138,18 @@ export default function NouvelleDeclarationPage() {
                     />
                   </div>
                   <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Categorie</label>
-                    <Select value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner une categorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {declarationCategoryOptions.map((category) => (
-                          <SelectItem key={category.key} value={category.key}>{category.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
                     <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
                     <Select value={activeTab} onValueChange={(value) => {
                       if (disabledTabKeys.has(value)) return
                       setActiveTab(value)
-                      setSelectedCategoryKey(findtableauCategoryKeyForTab(value))
                     }}>
                       <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder="Selectionner un tableau" />
                       </SelectTrigger>
                       <SelectContent>
-                        {filteredDeclarationTabs.length === 0
-                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible pour cette categorie</SelectItem>
-                          : filteredDeclarationTabs.map((t) => (
+                        {declarationTabs.length === 0
+                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible</SelectItem>
+                          : declarationTabs.map((t) => (
                               <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
                                 {t.label}{t.isDisabled ? " (desactive)" : ""}
                               </SelectItem>
@@ -1194,10 +1172,10 @@ export default function NouvelleDeclarationPage() {
             </Card>
 
             <div>
-              {activeTab === "realisation_technique_reseau" && (
+              {activeTab === "suivi_infrastructures_reseau" && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Realisation technique Reseau</CardTitle>
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Suivi des infrastructures Reseau 2G/3G/4G</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <TabRealisationTechniqueReseau
@@ -1209,20 +1187,10 @@ export default function NouvelleDeclarationPage() {
                   </CardContent>
                 </Card>
               )}
-              {activeTab === "situation_reseau" && (
+              {activeTab === "evolution_trafic_data" && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Situation Reseau</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabSituationReseau rows={situationReseauRows} setRows={setSituationReseauRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "trafic_data" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Trafic Data</CardTitle>
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Evolution du Trafic Data</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <TabTraficData rows={traficDataRows} setRows={setTraficDataRows} onSave={handleSave} isSubmitting={isSubmitting} />
