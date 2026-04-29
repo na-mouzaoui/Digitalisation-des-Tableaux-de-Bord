@@ -133,6 +133,14 @@ const RECHARGEMENT_DR_LABELS = ["DR Alger", "DR Oran", "DR Constantine", "DR Set
 const createDefaultRechargementRows = (): RechargementRow[] =>
   RECHARGEMENT_DR_LABELS.map((canal) => ({ canal, m: "", m1: "", taux: "" }))
 
+// ?? Situation Reseaux
+type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
+const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
+  { situation: "Reseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
+  { situation: "Reseau 3G", equipements: "NodeB", m: "", m1: "" },
+  { situation: "Reseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD+TDD)\neNodeB (Evolved NodeB) (FDD)", m: "", m1: "" },
+]
+
 // ?? Total Encaissement ???????????????????????????????????????????????????????
 type TotalEncaissementRow = { mGp: string; mB2b: string; m1Gp: string; m1B2b: string; evol: string }
 const EMPTY_TOTAL_ENCAISSEMENT_ROW: TotalEncaissementRow = { mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "-" }
@@ -573,6 +581,46 @@ function TabRechargementSingle({ title, rows, setRows, onSave, isSubmitting }: T
   )
 }
 
+// ?? 6e. Situation Reseaux
+interface TabSituationReseauProps {
+  rows: SituationReseauRow[]
+  setRows: React.Dispatch<React.SetStateAction<SituationReseauRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituationReseauProps) {
+  const update = (index: number, field: "m" | "m1", value: string) =>
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.situation} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.situation}</td>
+                <td className="px-3 py-2 border-b text-xs text-gray-700 whitespace-pre-line">{row.equipements}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
 // ?? 6d. Total Encaissement ????????????????????????????????????????????????????
 interface TabTotalEncaissementProps {
   row: TotalEncaissementRow
@@ -912,7 +960,7 @@ const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
   | "reclamation" | "reclamation_gp" | "e_payement_pop" | "e_payement_prp"
-  | "total_encaissement" | "rechargement" | "recouvrement"
+  | "total_encaissement" | "rechargement" | "situation_reseaux" | "recouvrement"
   | "desactivation_resiliation"
   | "parc_abonnes_b2b" | "parc_abonnes_gp" | "total_parc_abonnes" | "total_parc_abonnes_technologie"
   | "activation" | "chiffre_affaires_mda"

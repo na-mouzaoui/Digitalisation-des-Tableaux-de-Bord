@@ -86,38 +86,46 @@ interface Savedtableau {
   tva16Rows?: Tva16Row[]
   
   // DVDRS Tables (Réseau Technique)
-  realisationTechniqueReseauRows?: { label: string; m: string; m1: string }[]
-  situationReseauRows?: { situation: string; equipements: string; m: string; m1: string }[]
-  traficDataRows?: { label: string; m: string; m1: string }[]
-  ameliorationQualiteRows?: { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }[]
-  couvertureReseauRows?: { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }[]
-  actionNotableReseauRows?: { action: string; objectif2025: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }[]
+  realisationTechniqueReseauRows?: RealisationTechniqueReseauRow[]
+  situationReseauRows?: SituationReseauRow[]
+  traficDataRows?: TraficDataRow[]
+  ameliorationQualiteRows?: AmeliorationQualiteRow[]
+  couvertureReseauRows?: CouvertureReseauRow[]
+  actionNotableReseauRows?: ActionNotableReseauRow[]
   
   // DQRPC Tables (Qualité Réseau)
-  disponibiliteReseauRows?: { label: string; m: string; m1: string }[]
-  mttrRows?: { label: string; m: string; m1: string }[]
+  disponibiliteReseauRows?: DisponibiliteReseauRow[]
+  mttrRows?: MttrRegionRow[]
   
   // Support Tables (RH + Formation + Créances)
-  creancesContentieusesRows?: { designation: string; m: string; m1: string; evol: string }[]
+  creancesContentieusesRows?: CreancesContentieusesRow[]
   fraisPersonnelRows?: { designation: string; m: string; m1: string }[]
   effectifGspRows?: { gsp: string; m: string; m1: string; part: string }[]
   absenteismeRows?: { motif: string; m: string; m1: string; part: string }[]
-  mouvementEffectifsRows?: { bloc: string; operation: string; [key: string]: string }[]
+  mouvementEffectifsRows?: MouvementEffectifsRow[]
+  mouvementEffectifsDomaineRows?: MouvementEffectifsDomaineRow[]
   formationRows?: {
     effectifsFormesGspRows?: { gsp: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }[]
     formationsDomainesRows?: { domaine: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }[]
-    frequenceFormationRow?: { mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
+    frequenceFormationRow?: FrequenceFormationRow
   }
   
   // Commercial Tables
-  reclamationRows?: { label: string; m: string; m1: string }[]
-  ePayementRows?: { label: string; m: string; m1: string }[]
-  rechargementRows?: { label: string; m: string; m1: string }[]
-  encaissementCRows?: { label: string; m: string; m1: string }[]
-  recouvrementRows?: { label: string; m: string; m1: string }[]
-  parcAbonnesRows?: { label: string; m: string; m1: string }[]
-  activationRows?: { label: string; m: string; m1: string }[]
-  chiffreAffairesCRows?: { label: string; m: string; m1: string }[]
+  reclamationRows?: ReclamationRow[]
+  reclamationGpRows?: ReclamationGpRow[]
+  ePayementPopRows?: EPayementRow[]
+  ePayementPrpRows?: EPayementRow[]
+  totalEncaissementRows?: TotalEncaissementRow[]
+  rechargementRows?: RechargementRow[]
+  recouvrementRows?: RecouvrementRow[]
+  desactivationResiliationRows?: DesactivationResiliationRow[]
+  parcAbonnesB2bRows?: ParcAbonnesB2BRow[]
+  parcAbonnesGpRows?: ParcAbonnesGpRow[]
+  totalParcAbonnesRows?: TotalParcAbonnesRow[]
+  totalParcAbonnesTechnologieRows?: TotalParcAbonnesTechnologieRow[]
+  activationRows?: ActivationRow[]
+  chiffreAffairesMdaRows?: ChiffreAffairesMdaRow[]
+  compteResultatRows?: CompteResultatRow[]
   
   // Regionale Tables
   regionaleRows?: { label: string; m: string; m1: string }[]
@@ -240,15 +248,28 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     effectifGspRows: [],
     absenteismeRows: [],
     mouvementEffectifsRows: [],
+    mouvementEffectifsDomaineRows: [],
+    formationRows: {
+      effectifsFormesGspRows: [],
+      formationsDomainesRows: [],
+      frequenceFormationRow: undefined,
+    },
     // Commercial
     reclamationRows: [],
-    ePayementRows: [],
+    reclamationGpRows: [],
+    ePayementPopRows: [],
+    ePayementPrpRows: [],
+    totalEncaissementRows: [],
     rechargementRows: [],
-    encaissementCRows: [],
     recouvrementRows: [],
-    parcAbonnesRows: [],
+    desactivationResiliationRows: [],
+    parcAbonnesB2bRows: [],
+    parcAbonnesGpRows: [],
+    totalParcAbonnesRows: [],
+    totalParcAbonnesTechnologieRows: [],
     activationRows: [],
-    chiffreAffairesCRows: [],
+    chiffreAffairesMdaRows: [],
+    compteResultatRows: [],
     // Regionale
     regionaleRows: [],
   }
@@ -323,15 +344,27 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     
     // DQRPC Tables (Qualité Réseau)
     case "disponibilite_reseau":
-      tableau.disponibiliteReseauRows = toArray(parsedData.disponibiliteReseauRows)
+      tableau.disponibiliteReseauRows = toArray<DisponibiliteReseauRow>(parsedData.disponibiliteReseauRows)
       break
     case "mttr":
-      tableau.mttrRows = toArray(parsedData.mttrRows)
+      tableau.mttrRows = toArray<MttrRegionRow>(parsedData.mttrRows)
       break
     
     // Support Tables (RH + Formation + Créances)
     case "creance_contentieuses":
-      tableau.creancesContentieusesRows = toArray(parsedData.creancesContentieusesRows)
+      tableau.creancesContentieusesRows = toArray<CreancesContentieusesRow>(parsedData.creancesContentieusesRows)
+      break
+    case "frais_personnel":
+      tableau.fraisPersonnelRows = toArray(parsedData.fraisPersonnelRows)
+      break
+    case "effectif_gsp":
+      tableau.effectifGspRows = toArray(parsedData.effectifGspRows)
+      break
+    case "absenteisme":
+      tableau.absenteismeRows = toArray(parsedData.absenteismeRows)
+      break
+    case "mouvement_effectifs":
+      tableau.mouvementEffectifsRows = toArray(parsedData.mouvementEffectifsRows)
       break
     case "rh":
       tableau.fraisPersonnelRows = toArray(parsedData.fraisPersonnelRows)
@@ -339,40 +372,103 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
       tableau.absenteismeRows = toArray(parsedData.absenteismeRows)
       tableau.mouvementEffectifsRows = toArray(parsedData.mouvementEffectifsRows)
       break
+    case "mouvement_effectifs_domaine":
+      tableau.mouvementEffectifsDomaineRows = toArray<MouvementEffectifsDomaineRow>(parsedData.mouvementEffectifsDomaineRows)
+      break
+    case "effectifs_formes_gsp": {
+      const formationData = parsedData.formationRows as Record<string, unknown> | undefined
+      tableau.formationRows = {
+        effectifsFormesGspRows: toArray(formationData?.effectifsFormesGspRows),
+        formationsDomainesRows: toArray(formationData?.formationsDomainesRows),
+        frequenceFormationRow: formationData?.frequenceFormationRow as FrequenceFormationRow | undefined,
+      }
+      break
+    }
+    case "formations_domaines": {
+      const formationData = parsedData.formationRows as Record<string, unknown> | undefined
+      tableau.formationRows = {
+        effectifsFormesGspRows: toArray(formationData?.effectifsFormesGspRows),
+        formationsDomainesRows: toArray(formationData?.formationsDomainesRows),
+        frequenceFormationRow: formationData?.frequenceFormationRow as FrequenceFormationRow | undefined,
+      }
+      break
+    }
+    case "frequence_formation": {
+      const formationData = parsedData.formationRows as Record<string, unknown> | undefined
+      tableau.formationRows = {
+        effectifsFormesGspRows: toArray(formationData?.effectifsFormesGspRows),
+        formationsDomainesRows: toArray(formationData?.formationsDomainesRows),
+        frequenceFormationRow: formationData?.frequenceFormationRow as FrequenceFormationRow | undefined,
+      }
+      break
+    }
     case "formation": {
       const formationData = parsedData.formationRows as Record<string, unknown> | undefined
       tableau.formationRows = {
         effectifsFormesGspRows: toArray(formationData?.effectifsFormesGspRows),
         formationsDomainesRows: toArray(formationData?.formationsDomainesRows),
-        frequenceFormationRow: formationData?.frequenceFormationRow as { mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string } | undefined,
+        frequenceFormationRow: formationData?.frequenceFormationRow as FrequenceFormationRow | undefined,
+      }
+      break
+    }
+    case "frequence_formation": {
+      const formationData = parsedData.frequenceFormationRow as FrequenceFormationRow | undefined
+      tableau.formationRows = {
+        effectifsFormesGspRows: [],
+        formationsDomainesRows: [],
+        frequenceFormationRow: formationData,
       }
       break
     }
     
     // Commercial Tables
     case "reclamation":
-      tableau.reclamationRows = toArray(parsedData.reclamationRows)
+      tableau.reclamationRows = toArray<ReclamationRow>(parsedData.reclamationRows)
+      break
+    case "reclamation_gp":
+      tableau.reclamationGpRows = toArray<ReclamationGpRow>(parsedData.reclamationGpRows)
       break
     case "e_payement":
-      tableau.ePayementRows = toArray(parsedData.ePayementRows)
+      tableau.ePayementPopRows = toArray<EPayementRow>(parsedData.ePayementRows)
+      break
+    case "e_payement_pop":
+      tableau.ePayementPopRows = toArray<EPayementRow>(parsedData.ePayementPopRows)
+      break
+    case "e_payement_prp":
+      tableau.ePayementPrpRows = toArray<EPayementRow>(parsedData.ePayementPrpRows)
+      break
+    case "total_encaissement":
+      tableau.totalEncaissementRows = toArray<TotalEncaissementRow>(parsedData.totalEncaissementRows)
       break
     case "rechargement":
-      tableau.rechargementRows = toArray(parsedData.rechargementRows)
-      break
-    case "encaissement_c":
-      tableau.encaissementCRows = toArray(parsedData.encaissementCRows)
+      tableau.rechargementRows = toArray<RechargementRow>(parsedData.rechargementRows)
       break
     case "recouvrement":
-      tableau.recouvrementRows = toArray(parsedData.recouvrementRows)
+      tableau.recouvrementRows = toArray<RecouvrementRow>(parsedData.recouvrementRows)
       break
-    case "parc_abonnes":
-      tableau.parcAbonnesRows = toArray(parsedData.parcAbonnesRows)
+    case "desactivation_resiliation":
+      tableau.desactivationResiliationRows = toArray<DesactivationResiliationRow>(parsedData.desactivationResiliationRows)
+      break
+    case "parc_abonnes_b2b":
+      tableau.parcAbonnesB2bRows = toArray<ParcAbonnesB2BRow>(parsedData.parcAbonnesB2bRows)
+      break
+    case "parc_abonnes_gp":
+      tableau.parcAbonnesGpRows = toArray<ParcAbonnesGpRow>(parsedData.parcAbonnesGpRows)
+      break
+    case "total_parc_abonnes":
+      tableau.totalParcAbonnesRows = toArray<TotalParcAbonnesRow>(parsedData.totalParcAbonnesRows)
+      break
+    case "total_parc_abonnes_technologie":
+      tableau.totalParcAbonnesTechnologieRows = toArray<TotalParcAbonnesTechnologieRow>(parsedData.totalParcAbonnesTechnologieRows)
       break
     case "activation":
-      tableau.activationRows = toArray(parsedData.activationRows)
+      tableau.activationRows = toArray<ActivationRow>(parsedData.activationRows)
       break
-    case "chiffre_affaires_c":
-      tableau.chiffreAffairesCRows = toArray(parsedData.chiffreAffairesCRows)
+    case "chiffre_affaires_mda":
+      tableau.chiffreAffairesMdaRows = toArray<ChiffreAffairesMdaRow>(parsedData.chiffreAffairesMdaRows)
+      break
+    case "compte_resultat":
+      tableau.compteResultatRows = toArray<CompteResultatRow>(parsedData.compteResultatRows)
       break
     
     // Regionale Tables
@@ -421,32 +517,33 @@ const DASH_TABS = [
   { key: "amelioration_qualite",        label: "19 - Amelioration qualité",          color: "#7c3aed", title: "AMELIORATION QUALITE" },
   { key: "couverture_reseau",           label: "20 - Couverture Réseau",             color: "#0891b2", title: "COUVERTURE RESEAU" },
   { key: "action_notable_reseau",       label: "21 - Action Notable Réseau",         color: "#ea580c", title: "ACTION NOTABLE SUR LE RESEAU" },
+  { key: "situation_reseaux",           label: "22 - Situation Reseaux",             color: "#2db34b", title: "SITUATION RESEAUX" },
   
   // Tableaux DQRPC (Qualité Réseau)
-  { key: "disponibilite_reseau",  label: "22 - Disponibilité Réseau", color: "#2db34b", title: "DISPONIBILITE RESEAU" },
-  { key: "mttr",                label: "23 - MTTR",              color: "#1d6fb8", title: "MTTR / DR" },
+  { key: "disponibilite_reseau",  label: "23 - Disponibilité Réseau", color: "#2db34b", title: "DISPONIBILITE RESEAU" },
+  { key: "mttr",                label: "24 - MTTR",              color: "#1d6fb8", title: "MTTR / DR" },
   
   // Tableaux Support (RH + Formation + Créances)
-  { key: "creance_contentieuses",      label: "24 - Creance contentieuses",    color: "#2db34b", title: "CREANCE CONTENTIEUSES" },
-  { key: "rh",                      label: "25 - RH",                    color: "#1d6fb8", title: "RESSOURCES HUMAINES" },
-  { key: "formation",               label: "26 - Formation",             color: "#7c3aed", title: "FORMATION" },
+  { key: "creance_contentieuses",      label: "25 - Creance contentieuses",    color: "#2db34b", title: "CREANCE CONTENTIEUSES" },
+  { key: "rh",                      label: "26 - RH",                    color: "#1d6fb8", title: "RESSOURCES HUMAINES" },
+  { key: "formation",               label: "27 - Formation",             color: "#7c3aed", title: "FORMATION" },
   
   // Tableaux Commercial
-  { key: "reclamation",   label: "27 - Reclamation",                color: "#2db34b", title: "RECLAMATION" },
-  { key: "e_payement",   label: "28 - E-payment",                  color: "#1d6fb8", title: "E-PAYMENT" },
-  { key: "rechargement",label: "29 - Rechargement",               color: "#7c3aed", title: "RECHARGEMENT" },
-  { key: "encaissement_c",label: "30 - Encaissement",                 color: "#0891b2", title: "ENCAISSEMENT" },
-  { key: "recouvrement",label: "31 - Recouvrement",                color: "#ea580c", title: "RECOUVREMENT" },
-  { key: "parc_abonnes", label: "32 - Parc Abonnes",                color: "#be123c", title: "PARC ABONNES" },
-  { key: "activation",  label: "33 - Activation SIM",             color: "#854d0e", title: "ACTIVATION DESIM" },
-  { key: "chiffre_affaires_c", label: "34 - Chiffre d'affaires",      color: "#0f766e", title: "CHIFFRE D'AFFAIRES" },
+  { key: "reclamation",   label: "28 - Reclamation",                color: "#2db34b", title: "RECLAMATION" },
+  { key: "e_payement",   label: "29 - E-payment",                  color: "#1d6fb8", title: "E-PAYMENT" },
+  { key: "rechargement",label: "30 - Rechargement",               color: "#7c3aed", title: "RECHARGEMENT" },
+  { key: "encaissement_c",label: "31 - Encaissement",                 color: "#0891b2", title: "ENCAISSEMENT" },
+  { key: "recouvrement",label: "32 - Recouvrement",                color: "#ea580c", title: "RECOUVREMENT" },
+  { key: "parc_abonnes", label: "33 - Parc Abonnes",                color: "#be123c", title: "PARC ABONNES" },
+  { key: "activation",  label: "34 - Activation SIM",             color: "#854d0e", title: "ACTIVATION DESIM" },
+  { key: "chiffre_affaires_c", label: "35 - Chiffre d'affaires",      color: "#0f766e", title: "CHIFFRE D'AFFAIRES" },
   
   // Tableaux Régionale
-  { key: "regionale",     label: "35 - Regionale",          color: "#2db34b", title: "TABLEAU REGIONAL" },
+  { key: "regionale",     label: "36 - Regionale",          color: "#2db34b", title: "TABLEAU REGIONAL" },
   
   // Tableaux Autres
-  { key: "commercial_autres", label: "36 - Commercial Autres", color: "#1d6fb8", title: "AUTRES TABLEAUX COMMERCIAUX" },
-  { key: "finances_autres",   label: "37 - Finances Autres",   color: "#7c3aed", title: "AUTRES TABLEAUX FINANCES" },
+  { key: "commercial_autres", label: "37 - Commercial Autres", color: "#1d6fb8", title: "AUTRES TABLEAUX COMMERCIAUX" },
+  { key: "finances_autres",   label: "38 - Finances Autres",   color: "#7c3aed", title: "AUTRES TABLEAUX FINANCES" },
 ]
 
 // aaa Shared styles & helpers aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -549,6 +646,8 @@ const num = (v: string | number | null | undefined) => {
 
   return Number.isFinite(parsed) ? parsed : 0
 }
+const toPercent = (numerator: number, denominator: number) =>
+  denominator ? (numerator / denominator) * 100 : 0
 const resolveEncaissementAmounts = (row: EncRow) => {
   const htRaw = (row.ht ?? "").trim()
   if (htRaw !== "") {
@@ -583,6 +682,834 @@ const textForPdf = (value?: string) => {
 }
 const TH: React.CSSProperties = { border: "1px solid #d1d5db", padding: "1px 4px", textAlign: "left", fontWeight: 600, lineHeight: "1.1" }
 const TD: React.CSSProperties = { border: "1px solid #e5e7eb", padding: "1px 4px", lineHeight: "1.1" }
+
+// Types pour les tableaux /tableau
+type ReclamationRow = { category: "recues" | "traitees"; type: "GP" | "B2B"; mGp: string; mB2b: string; m1Gp: string; m1B2b: string }
+type ReclamationGpRow = { label: string; recues: string; traitees: string }
+type EPayementRow = { rechargement: string; m: string; m1: string; evol: string }
+type RechargementRow = { canal: string; m: string; m1: string; taux: string }
+type TotalEncaissementRow = { mGp: string; mB2b: string; m1Gp: string; m1B2b: string; evol: string }
+type RecouvrementRow = { label: string; mGp: string; mB2b: string; m1Gp: string; m1B2b: string }
+type DesactivationResiliationRow = { designation: string; m: string; m1: string; evol: string }
+type ParcAbonnesB2BRow = { designation: string; m: string; m1: string; evol: string }
+type ParcAbonnesGpRow = { designation: string; m: string; m1: string; evol: string }
+type TotalParcAbonnesRow = { designation: string; m: string; m1: string; evol: string }
+type TotalParcAbonnesTechnologieRow = { designation: string; m: string; m1: string; evol: string }
+type ActivationRow = { designation: string; m: string; m1: string; evol: string }
+type ChiffreAffairesMdaRow = { designation: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
+
+type RealisationTechniqueReseauRow = { label: string; m: string; m1: string }
+type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
+type TraficDataRow = { label: string; m: string; m1: string }
+type AmeliorationQualiteRow = { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }
+type CouvertureReseauRow = { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }
+type ActionNotableReseauRow = { action: string; objectif2025: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
+
+type DisponibiliteReseauRow = { designation: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
+type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; wilayaM1: string; objectifM1: string; realiseM1: string; ecart: string }
+type MttrRegionRow = { region: string; cities: MttrCityRow[] }
+
+type CreancesContentieusesRow = { designation: string; m: string; m1: string; evol: string }
+type MouvementEffectifsRow = { bloc: "arrives" | "departs"; operation: string; mCadresSup: string; mCadres: string; mMaitrise: string; mExecution: string; m1CadresSup: string; m1Cadres: string; m1Maitrise: string; m1Execution: string }
+type MouvementEffectifsDomaineRow = { bloc: "recrutement" | "sortant"; domaine: string; mCdi: string; mCdd: string; mCta: string; m1Cdi: string; m1Cdd: string; m1Cta: string }
+type FrequenceFormationRow = { m1Objectif: string; m1Realise: string; m1Taux: string; mObjectif: string; mRealise: string; mTaux: string }
+
+type CompteResultatRow = { designation: string; mBudget: string; mRealise: string; mTaux: string; m1Budget: string; m1Realise: string; m1Taux: string }
+
+const RECHARGEMENT_DR_LABELS = ["DR Alger", "DR Oran", "DR Constantine", "DR Setif", "DR Ouargla", "DR Bechar", "DR Annaba", "DR Chlef"] as const
+
+// === COMPOSANTS D'AFFICHAGE EN LECTURE SEULE (pour dashboard) ===
+function SimpleEvolTableDisplay({ title, rows }: { title: string; rows: { designation: string; m: string; m1: string; evol: string }[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{title}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.designation}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.evol)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function SimplePartTableDisplay({ title, rows, labelKey }: { title: string; rows: Array<Record<string, string>>; labelKey: string }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{title}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Part %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row[labelKey]}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.part)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function OrtTableDisplay({ title, rows, labelKey, order }: { title: string; rows: Array<Record<string, string>>; labelKey: string; order: "m1-first" | "m-first" }) {
+  const firstLabel = order === "m1-first" ? "M-1" : "M"
+  const secondLabel = order === "m1-first" ? "M" : "M-1"
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{title}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{firstLabel}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{secondLabel}</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {"Objectif,Realise,Taux".split(",").map((h, i) => (
+                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {"Objectif,Realise,Taux".split(",").map((h, i) => (
+                <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row[labelKey]}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
+                {(order === "m1-first"
+                  ? ["m1Objectif", "m1Realise", "m1Taux", "mObjectif", "mRealise", "mTaux"]
+                  : ["mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"]
+                ).map((field) => (
+                  <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function RechargementBlockDisplay({ title, rows }: { title: string; rows: RechargementRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement PRP (Million DA)/ DR</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${title}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{RECHARGEMENT_DR_LABELS[index] ?? row.canal}</td>
+                <td className="px-3 py-2 border-b text-right text-xs font-semibold">{fmt(row.m)}</td>
+                <td className="px-3 py-2 border-b text-right text-xs font-semibold">{fmt(row.m1)}</td>
+                <td className="px-3 py-2 border-b text-right text-xs font-semibold">{fmt(row.taux)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function CreancesContentieusesBlockDisplay({ rows }: { rows: CreancesContentieusesRow[] }) {
+  return <SimpleEvolTableDisplay title="Creances Contentieuses" rows={rows} />
+}
+
+function MouvementEffectifsBlockDisplay({ rows }: { rows: MouvementEffectifsRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Mouvement des effectifs</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Type d'operation</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {["Cadres Sup", "Cadres", "Maitrise", "Execution"].map((h, i) => (
+                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 3 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {["Cadres Sup", "Cadres", "Maitrise", "Execution"].map((h, i) => (
+                <th key={i + 4} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.bloc}-${row.operation}-${index}`} className={row.operation === "TOTAL" ? "bg-green-100 font-semibold" : "bg-white"}>
+                {index === 0 && <td rowSpan={6} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Arrives</td>}
+                {index === 6 && <td rowSpan={10} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Departs</td>}
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.operation}</td>
+                {(["mCadresSup", "mCadres", "mMaitrise", "mExecution", "m1CadresSup", "m1Cadres", "m1Maitrise", "m1Execution"] as const).map((field) => (
+                  <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function MouvementEffectifsDomaineBlockDisplay({ rows }: { rows: MouvementEffectifsDomaineRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Mouvement des effectifs par Domaine</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs par Domaine</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Domaine</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {["CDI", "CDD", "CTA"].map((h, i) => (
+                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {["CDI", "CDD", "CTA"].map((h, i) => (
+                <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`mouvdom-${index}`} className={row.domaine === "TOTAL" ? "bg-green-100 font-semibold" : "bg-white"}>
+                {index === 0 && <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Recrutement</td>}
+                {index === 5 && <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">Sortant</td>}
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.domaine}</td>
+                {(["mCdi", "mCdd", "mCta", "m1Cdi", "m1Cdd", "m1Cta"] as const).map((field) => (
+                  <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function FrequenceFormationBlockDisplay({ row }: { row: FrequenceFormationRow }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Frequence des Sessions de Formation</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {["Objectif", "Realise", "Taux"].map((h, i) => (
+                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {["Objectif", "Realise", "Taux"].map((h, i) => (
+                <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-white">
+              {(["m1Objectif", "m1Realise", "m1Taux", "mObjectif", "mRealise", "mTaux"] as const).map((field) => (
+                <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field])}</td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ReclamationBlockDisplay({ rows }: { rows: ReclamationRow[] }) {
+  const recuesRows = rows.filter((r) => r.category === "recues")
+  const traiteesRows = rows.filter((r) => r.category === "traitees")
+  const recuesGp = recuesRows.find((r) => r.type === "GP")
+  const recuesB2b = recuesRows.find((r) => r.type === "B2B")
+  const traiteesGp = traiteesRows.find((r) => r.type === "GP")
+  const traiteesB2b = traiteesRows.find((r) => r.type === "B2B")
+
+  const totalM = num(recuesGp?.mGp) + num(recuesB2b?.mB2b)
+  const totalM1 = num(recuesGp?.m1Gp) + num(recuesB2b?.m1B2b)
+  const totalTraiteesM = num(traiteesGp?.mGp) + num(traiteesB2b?.mB2b)
+  const totalTraiteesM1 = num(traiteesGp?.m1Gp) + num(traiteesB2b?.m1B2b)
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Tableau Reclamation</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-gray-50">
+              <th colSpan={2} className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-40">Reclamations</th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">M</th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">M-1</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-white">
+              <td rowSpan={2} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle w-28">Reclamations recues</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center w-12">GP</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesGp?.mGp ?? "")}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesGp?.m1Gp ?? "")}</td>
+            </tr>
+            <tr className="bg-white">
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesB2b?.mB2b ?? "")}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesB2b?.m1B2b ?? "")}</td>
+            </tr>
+            <tr className="bg-gray-50">
+              <td rowSpan={2} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle">Reclamations traitees</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">GP</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesGp?.mGp ?? "")}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesGp?.m1Gp ?? "")}</td>
+            </tr>
+            <tr className="bg-gray-50">
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesB2b?.mB2b ?? "")}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesB2b?.m1B2b ?? "")}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr className="bg-green-100">
+              <td colSpan={2} className="px-2 py-2 text-xs text-right border border-gray-200 font-semibold">Taux de traitement (%)</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(toPercent(totalTraiteesM, totalM))}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(toPercent(totalTraiteesM1, totalM1))}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ReclamationGpBlockDisplay({ rows }: { rows: ReclamationGpRow[] }) {
+  const totalRecues = rows.reduce((s, r) => s + num(r.recues), 0)
+  const totalTraitees = rows.reduce((s, r) => s + num(r.traitees), 0)
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Tableau Reclamation GP</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Type de Reclamation GP</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b" colSpan={2}>M</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Taux de traitement</th>
+              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Part des reclamations recus</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b"></th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Recues</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Traitees</th>
+              <th className="px-3 py-2 border-b"></th>
+              <th className="px-3 py-2 border-b"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => {
+              const recues = num(row.recues)
+              const traitees = num(row.traitees)
+              return (
+                <tr key={`${row.label}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                  <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.recues)}</td>
+                  <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.traitees)}</td>
+                  <td className="px-3 py-2 border-b text-xs text-right font-semibold text-gray-700">{fmt(toPercent(traitees, recues))}</td>
+                  <td className="px-3 py-2 border-b text-xs text-right font-semibold text-gray-700">{fmt(toPercent(recues, totalRecues))}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-3 py-2 text-xs text-right border-t">Total</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(totalRecues)}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(totalTraitees)}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(totalTraitees, totalRecues))}</td>
+              <td className="px-3 py-2 text-xs border-t text-right">{totalRecues > 0 ? "100,00" : ""}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function EPayementBlockDisplay({ title, rows }: { title: string; rows: EPayementRow[] }) {
+  const totalM = rows.reduce((sum, row) => sum + num(row.m), 0)
+  const totalM1 = rows.reduce((sum, row) => sum + num(row.m1), 0)
+  const totalEvol = rows.reduce((sum, row) => sum + num(row.evol), 0)
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${title}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.rechargement}</td>
+                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m)}</td>
+                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m1)}</td>
+                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.evol)}</td>
+              </tr>
+            ))}
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-3 py-2 border-b text-xs font-semibold text-gray-800">TOTAL</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totalM)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totalM1)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totalEvol)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function TotalEncaissementBlockDisplay({ row }: { row: TotalEncaissementRow | undefined }) {
+  if (!row) return <div className="text-xs text-muted-foreground">Aucune donnée</div>
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Totale des encaissements</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <tbody>
+            <tr className="bg-gray-50">
+              <td rowSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r align-middle">Encaissement (MDA)</td>
+              <td colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</td>
+              <td colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</td>
+              <td className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</td>
+            </tr>
+            <tr className="bg-gray-50">
+              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</td>
+              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</td>
+              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</td>
+              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</td>
+              <td className="px-3 py-1 border-b"></td>
+            </tr>
+            <tr className="bg-white">
+              <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.mGp)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.mB2b)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m1Gp)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m1B2b)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.evol)}</td>
+            </tr>
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-3 py-2 border-b text-xs">Totale</td>
+              <td className="px-3 py-2 border-b text-right">{fmt(row.mGp || "0")}</td>
+              <td className="px-3 py-2 border-b text-right">{fmt(row.mB2b || "0")}</td>
+              <td className="px-3 py-2 border-b text-right">{fmt(row.m1Gp || "0")}</td>
+              <td className="px-3 py-2 border-b text-right">{fmt(row.m1B2b || "0")}</td>
+              <td className="px-3 py-2 border-b text-center">{row.evol || "-"}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function RecouvrementBlockDisplay({ rows }: { rows: RecouvrementRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Recouvrement (MDA)</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={3} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement (MDA)</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">B2B</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.mGp)}</td>
+                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.mB2b)}</td>
+                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m1Gp)}</td>
+                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m1B2b)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ChiffreAffairesMdaBlockDisplay({ rows }: { rows: ChiffreAffairesMdaRow[] }) {
+  const totals = {
+    mObjectif: rows.reduce((sum, r) => sum + num(r.mObjectif), 0),
+    mRealise: rows.reduce((sum, r) => sum + num(r.mRealise), 0),
+    mTaux: rows.reduce((sum, r) => sum + num(r.mTaux), 0),
+    m1Objectif: rows.reduce((sum, r) => sum + num(r.m1Objectif), 0),
+    m1Realise: rows.reduce((sum, r) => sum + num(r.m1Realise), 0),
+    m1Taux: rows.reduce((sum, r) => sum + num(r.m1Taux), 0),
+  }
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Chiffre d'Affaires (MDA)</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Chiffre d'Affaires (MDA)</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {"Objectif,Realise,Taux".split(",").map((h, i) => (
+                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {"Objectif,Realise,Taux".split(",").map((h, i) => (
+                <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                {("mObjectif,mRealise,mTaux,m1Objectif,m1Realise,m1Taux".split(",") as Array<keyof ChiffreAffairesMdaRow>).map((field) => (
+                  <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field])}</td>
+                ))}
+              </tr>
+            ))}
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">Totale</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mObjectif)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mRealise)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mTaux)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.m1Objectif)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.m1Realise)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.m1Taux)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function CompteResultatBlockDisplay({ rows }: { rows: CompteResultatRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Compte de resultat</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Designations</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {"Budget,Realise,Taux".split(",").map((h, i) => (
+                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {"Budget,Realise,Taux".split(",").map((h, i) => (
+                <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.designation}-${index}`} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                {(["mBudget", "mRealise", "mTaux", "m1Budget", "m1Realise", "m1Taux"] as const).map((field) => (
+                  <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function RealisationTechniqueReseauDisplay({ rows }: { rows: RealisationTechniqueReseauRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Suivi des infrastructures Reseau 2G/3G/4G</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Realisations techniques</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function SituationReseauDisplay({ rows }: { rows: SituationReseauRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Situation Reseaux</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.situation}-${index}`} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.situation}</td>
+                <td className="px-3 py-2 border-b text-xs text-gray-700 whitespace-pre-line">{row.equipements}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function TraficDataDisplay({ rows }: { rows: TraficDataRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Evolution du Trafic Data</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Trafic Data (TB)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.label}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function DynamicWilayaTableDisplay({ title, rows }: { title: string; rows: Array<{ wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }> }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{title}</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={index} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.wilaya}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mObjectif)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mRealise)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1Objectif)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1Realise)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.ecart)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs"></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ActionNotableReseauDisplay({ rows }: { rows: ActionNotableReseauRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Action notable sur le reseau</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Action</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Objectif 2025</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {"Objectif,Realise,Taux".split(",").map((h, i) => (
+                <th key={i} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {"Objectif,Realise,Taux".split(",").map((h, i) => (
+                <th key={i + 3} className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={index} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.action}</td>
+                <td className="px-3 py-2 border-b text-xs text-gray-700">{row.objectif2025}</td>
+                {(["mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"] as const).map((field) => (
+                  <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field])}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function DisponibiliteReseauDisplay({ rows }: { rows: DisponibiliteReseauRow[] }) {
+  return <OrtTableDisplay title="Designations" rows={rows as Array<Record<string, string>>} labelKey="designation" order="m1-first" />
+}
+
+function MttrBlockDisplay({ rows }: { rows: MttrRegionRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">MTTR / DR</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+            </tr>
+            <tr className="bg-gray-50">
+              {["WILAYA", "Objectif", "Realise"].map((h, i) => (
+                <th key={i} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+              {["WILAYA", "Objectif", "Realise"].map((h, i) => (
+                <th key={i + 3} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((region, regionIndex) =>
+              region.cities.map((city, cityIndex) => (
+                <tr key={`mttr-${regionIndex}-${cityIndex}`} className="bg-white">
+                  {cityIndex === 0 && (
+                    <td rowSpan={region.cities.length} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">
+                      {region.region}
+                    </td>
+                  )}
+                  <td className="px-3 py-2 border-b text-xs">{city.wilayaM}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.objectifM)}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.realiseM)}</td>
+                  <td className="px-3 py-2 border-b text-xs">{city.wilayaM1}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.objectifM1)}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.realiseM1)}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.ecart)}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs"></td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
 
 function EncTable({ rows }: { rows: EncRow[] }) {
   const computedRows = rows.map((row) => ({
@@ -1120,57 +2047,186 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     
     // Tableaux DVDRS (Réseau Technique)
     case "suivi_infrastructures_reseau":
-      return renderGenericTable(decl.realisationTechniqueReseauRows ?? [], ["label", "m", "m1"])
+      return <RealisationTechniqueReseauDisplay rows={decl.realisationTechniqueReseauRows ?? []} />
     case "evolution_trafic_data":
-      return renderGenericTable(decl.traficDataRows ?? [], ["label", "m", "m1"])
+      return <TraficDataDisplay rows={decl.traficDataRows ?? []} />
     case "amelioration_qualite":
-      return renderGenericTable(decl.ameliorationQualiteRows ?? [], ["wilaya", "mObjectif", "mRealise", "m1Objectif", "m1Realise", "ecart"])
+      return <DynamicWilayaTableDisplay title="Debit MBPS/Wilaya" rows={decl.ameliorationQualiteRows ?? []} />
     case "couverture_reseau":
-      return renderGenericTable(decl.couvertureReseauRows ?? [], ["wilaya", "mObjectif", "mRealise", "m1Objectif", "m1Realise", "ecart"])
+      return <DynamicWilayaTableDisplay title="Couverture Reseau/Wilaya" rows={decl.couvertureReseauRows ?? []} />
     case "action_notable_reseau":
-      return renderGenericTable(decl.actionNotableReseauRows ?? [], ["action", "objectif2025", "mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"])
+      return <ActionNotableReseauDisplay rows={decl.actionNotableReseauRows ?? []} />
     
     // Tableaux DQRPC (Qualité Réseau)
     case "disponibilite_reseau":
-      return renderGenericTable(decl.disponibiliteReseauRows ?? [], ["label", "m", "m1"])
+      return <DisponibiliteReseauDisplay rows={decl.disponibiliteReseauRows ?? []} />
     case "mttr":
-      return renderGenericTable(decl.mttrRows ?? [], ["label", "m", "m1"])
+      return <MttrBlockDisplay rows={decl.mttrRows ?? []} />
     
     // Tableaux Support (RH + Formation + Créances)
     case "creance_contentieuses":
-      return renderGenericTable(decl.creancesContentieusesRows ?? [], ["designation", "m", "m1", "evol"])
+      return <CreancesContentieusesBlockDisplay rows={decl.creancesContentieusesRows ?? []} />
+    
+    // Support RH Sub-tabs
+    case "frais_personnel":
+      return decl.fraisPersonnelRows?.length ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Frais personnel (MDA)</p>
+          <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Frais personnel (MDA)</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+                </tr>
+              </thead>
+              <tbody>
+                {decl.fraisPersonnelRows.map((row, index) => (
+                  <tr key={`${row.designation}-${index}`} className="bg-white">
+                    <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                    <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
+                    <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : <div className="text-xs text-muted-foreground">Aucune donnée</div>
+    
+    case "effectif_gsp":
+      return <SimplePartTableDisplay title="GSP" rows={decl.effectifGspRows as Array<Record<string, string>>} labelKey="gsp" />
+    
+    case "absenteisme":
+      return <SimplePartTableDisplay title="Absenteisme (jours)" rows={decl.absenteismeRows as Array<Record<string, string>>} labelKey="motif" />
+    
+    case "mouvement_effectifs":
+      return decl.mouvementEffectifsRows?.length ? (
+        <MouvementEffectifsBlockDisplay rows={decl.mouvementEffectifsRows} />
+      ) : <div className="text-xs text-muted-foreground">Aucune donnée</div>
+    
+    // Support Formation Sub-tabs
+    case "effectifs_formes_gsp":
+      return decl.formationRows?.effectifsFormesGspRows?.length ? (
+        <OrtTableDisplay title="Effectifs Formes par GSP" rows={decl.formationRows.effectifsFormesGspRows as Array<Record<string, string>>} labelKey="gsp" order="m1-first" />
+      ) : <div className="text-xs text-muted-foreground">Aucune donnée</div>
+    
+    case "formations_domaines":
+      return decl.formationRows?.formationsDomainesRows?.length ? (
+        <OrtTableDisplay title="Domaines" rows={decl.formationRows.formationsDomainesRows as Array<Record<string, string>>} labelKey="domaine" order="m1-first" />
+      ) : <div className="text-xs text-muted-foreground">Aucune donnée</div>
+    
     case "rh":
-      return renderGenericTable(decl.fraisPersonnelRows ?? [], ["designation", "m", "m1"])
+      return (
+        <div className="space-y-4">
+          {decl.fraisPersonnelRows?.length ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Frais personnel (MDA)</p>
+              <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Frais personnel (MDA)</th>
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {decl.fraisPersonnelRows.map((row, index) => (
+                      <tr key={`${row.designation}-${index}`} className="bg-white">
+                        <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                        <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
+                        <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+          {decl.effectifGspRows?.length ? (
+            <SimplePartTableDisplay title="GSP" rows={decl.effectifGspRows as Array<Record<string, string>>} labelKey="gsp" />
+          ) : null}
+          {decl.absenteismeRows?.length ? (
+            <SimplePartTableDisplay title="Absenteisme (jours)" rows={decl.absenteismeRows as Array<Record<string, string>>} labelKey="motif" />
+          ) : null}
+          {decl.mouvementEffectifsRows?.length ? (
+            <MouvementEffectifsBlockDisplay rows={decl.mouvementEffectifsRows} />
+          ) : null}
+          {decl.mouvementEffectifsDomaineRows?.length ? (
+            <MouvementEffectifsDomaineBlockDisplay rows={decl.mouvementEffectifsDomaineRows} />
+          ) : null}
+        </div>
+      )
     case "formation":
-      if (decl.formationRows?.effectifsFormesGspRows) {
-        return renderGenericTable(decl.formationRows.effectifsFormesGspRows, ["gsp", "mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"])
-      }
-      if (decl.formationRows?.formationsDomainesRows) {
-        return renderGenericTable(decl.formationRows.formationsDomainesRows, ["domaine", "mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"])
-      }
-      if (decl.formationRows?.frequenceFormationRow) {
-        const f = decl.formationRows.frequenceFormationRow
-        return renderGenericTable([f], ["mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"])
-      }
-      return <div className="text-xs text-muted-foreground">Aucune donnée</div>
+      return (
+        <div className="space-y-4">
+          {decl.formationRows?.effectifsFormesGspRows?.length ? (
+            <OrtTableDisplay title="Effectifs Formes par GSP" rows={decl.formationRows.effectifsFormesGspRows as Array<Record<string, string>>} labelKey="gsp" order="m1-first" />
+          ) : null}
+          {decl.formationRows?.formationsDomainesRows?.length ? (
+            <OrtTableDisplay title="Domaines" rows={decl.formationRows.formationsDomainesRows as Array<Record<string, string>>} labelKey="domaine" order="m1-first" />
+          ) : null}
+          {decl.formationRows?.frequenceFormationRow ? (
+            <FrequenceFormationBlockDisplay row={decl.formationRows.frequenceFormationRow} />
+          ) : null}
+          {!decl.formationRows ? <div className="text-xs text-muted-foreground">Aucune donnée</div> : null}
+        </div>
+      )
     
     // Tableaux Commercial
     case "reclamation":
-      return renderGenericTable(decl.reclamationRows ?? [], ["label", "m", "m1"])
+      return <ReclamationBlockDisplay rows={decl.reclamationRows ?? []} />
+    case "reclamation_gp":
+      return <ReclamationGpBlockDisplay rows={decl.reclamationGpRows ?? []} />
     case "e_payement":
-      return renderGenericTable(decl.ePayementRows ?? [], ["label", "m", "m1"])
+      return <EPayementBlockDisplay title="E-PAYEMENT (MDA)" rows={decl.ePayementPopRows ?? []} />
+    case "e_payement_pop":
+      return <EPayementBlockDisplay title="E-PAYEMENT POP (MDA)" rows={decl.ePayementPopRows ?? []} />
+    case "e_payement_prp":
+      return <EPayementBlockDisplay title="E-PAYEMENT PRP (MDA)" rows={decl.ePayementPrpRows ?? []} />
+    case "total_encaissement":
+      return <TotalEncaissementBlockDisplay row={decl.totalEncaissementRows?.[0]} />
     case "rechargement":
-      return renderGenericTable(decl.rechargementRows ?? [], ["label", "m", "m1"])
-    case "encaissement_c":
-      return renderGenericTable(decl.encaissementCRows ?? [], ["label", "m", "m1"])
+      return <RechargementBlockDisplay title="Rechargement" rows={decl.rechargementRows ?? []} />
     case "recouvrement":
-      return renderGenericTable(decl.recouvrementRows ?? [], ["label", "m", "m1"])
-    case "parc_abonnes":
-      return renderGenericTable(decl.parcAbonnesRows ?? [], ["label", "m", "m1"])
+      return <RecouvrementBlockDisplay rows={decl.recouvrementRows ?? []} />
+    case "desactivation_resiliation":
+      return <SimpleEvolTableDisplay title="Desactivation / Resiliation" rows={decl.desactivationResiliationRows ?? []} />
+    case "parc_abonnes_b2b":
+      return <SimpleEvolTableDisplay title="Parc Abonnes B2B" rows={decl.parcAbonnesB2bRows ?? []} />
+    case "parc_abonnes_gp":
+      return <SimpleEvolTableDisplay title="Parc Abonnes GP" rows={decl.parcAbonnesGpRows ?? []} />
+    case "total_parc_abonnes":
+      return <SimpleEvolTableDisplay title="Total Parc Abonnes" rows={decl.totalParcAbonnesRows ?? []} />
+    case "total_parc_abonnes_technologie":
+      return <SimpleEvolTableDisplay title="Total Parc Abonnes par Technologie" rows={decl.totalParcAbonnesTechnologieRows ?? []} />
     case "activation":
-      return renderGenericTable(decl.activationRows ?? [], ["label", "m", "m1"])
+      return <SimpleEvolTableDisplay title="Activation" rows={decl.activationRows ?? []} />
+    case "chiffre_affaires_mda":
+      return <ChiffreAffairesMdaBlockDisplay rows={decl.chiffreAffairesMdaRows ?? []} />
+    
+    // Aliases for DASH_TABS keys to match internal display keys
+    case "encaissement_c":
+      return <TotalEncaissementBlockDisplay row={decl.totalEncaissementRows?.[0]} />
+    case "parc_abonnes":
+      return <SimpleEvolTableDisplay title="Parc Abonnes" rows={decl.totalParcAbonnesRows ?? []} />
     case "chiffre_affaires_c":
-      return renderGenericTable(decl.chiffreAffairesCRows ?? [], ["label", "m", "m1"])
+      return <ChiffreAffairesMdaBlockDisplay rows={decl.chiffreAffairesMdaRows ?? []} />
+    
+    // Tableaux Support (Nouveaux)
+    case "creances_contentieuses":
+      return <CreancesContentieusesBlockDisplay rows={decl.creancesContentieusesRows ?? []} />
+    case "mouvement_effectifs_domaine":
+      return <MouvementEffectifsDomaineBlockDisplay rows={decl.mouvementEffectifsDomaineRows ?? []} />
+    case "frequence_formation":
+      if (decl.formationRows?.frequenceFormationRow) {
+        return <FrequenceFormationBlockDisplay row={decl.formationRows.frequenceFormationRow} />
+      }
+      return <div className="text-xs text-muted-foreground">Aucune donnée</div>
+    case "compte_resultat":
+      return <CompteResultatBlockDisplay rows={decl.compteResultatRows ?? []} />
     
     // Tableaux Régionale
     case "regionale":
@@ -2072,6 +3128,67 @@ export default function tableauDashboardPage() {
     }
   }
 
+    const getTableauDisplayName = (tabKey: string): string => {
+    const key = (tabKey ?? "").trim().toLowerCase()
+    const displayNames: Record<string, string> = {
+      // Finance
+      encaissement: "Encaissement",
+      tva_immo: "TVA / IMMO",
+      tva_biens: "TVA / Biens & Services",
+      droits_timbre: "Droits de Timbre",
+      ca_tap: "CA 7% & CA Global 1%",
+      etat_tap: "État TAP",
+      ca_siege: "CA Siège",
+      irg: "Situation IRG",
+      taxe2: "Taxe 2%",
+      taxe_masters: "Taxe des Master 1,5%",
+      taxe_vehicule: "Taxe Véhicule",
+      taxe_formation: "Taxe Formation",
+      acompte: "Acompte Provisionnel",
+      ibs: "IBS Fournisseurs Étrangers",
+      taxe_domicil: "Taxe Domiciliation",
+      tva_autoliq: "TVA Auto Liquidation",
+      finances_autres: "Autres Tableaux Finances",
+      // DVDRS
+      suivi_infrastructures_reseau: "Suivi Infrastructures Réseau 2G/3G/4G",
+      evolution_trafic_data: "Évolution Trafic Data",
+      amelioration_qualite: "Amélioration Qualité",
+      couverture_reseau: "Couverture Réseau",
+      action_notable_reseau: "Action Notable Réseau",
+      situation_reseaux: "Situation Réseaux",
+      // DQRPC
+      disponibilite_reseau: "Disponibilité Réseau",
+      mttr: "MTTR / DR",
+      // Support RH
+      frais_personnel: "Frais Personnel",
+      effectif_gsp: "Effectifs GSP",
+      absenteisme: "Absentéisme",
+      mouvement_effectifs: "Mouvement des Effectifs",
+      mouvement_effectifs_domaine: "Mouvement des Effectifs par Domaine",
+      // Support Formation
+      effectifs_formes_gsp: "Effectifs Formés GSP",
+      formations_domaines: "Formations par Domaine",
+      frequence_formation: "Fréquence Formation",
+      // Support
+      creance_contentieuses: "Créances Contentieuses",
+      rh: "Ressources Humaines",
+      formation: "Formation",
+      // Commercial
+      reclamation: "Réclamation",
+      e_payement: "E-Payment",
+      rechargement: "Rechargement",
+      encaissement_c: "Encaissement",
+      recouvrement: "Recouvrement",
+      parc_abonnes: "Parc Abonnés",
+      activation: "Activation SIM",
+      chiffre_affaires_c: "Chiffre d'Affaires",
+      commercial_autres: "Autres Tableaux Commerciaux",
+      // Régionale
+      regionale: "Tableau Régional",
+    }
+    return displayNames[key] || key
+  }
+
   const gettableauType = (decl: Savedtableau) => {
     const declaredKey = (decl.tabKey ?? "").trim().toLowerCase()
     if (declaredKey) {
@@ -2099,6 +3216,30 @@ export default function tableauDashboardPage() {
     return { key: "encaissement", label: "Non défini", color: "#6b7280" }
   }
 
+  const gettableauDomain = (decl: Savedtableau) => {
+    const key = (gettableauType(decl).key ?? decl.tabKey ?? "").trim().toLowerCase()
+    
+    // Finance: 16 tableaux
+    if (["encaissement", "tva_immo", "tva_biens", "droits_timbre", "ca_tap", "etat_tap", "ca_siege", "irg", "taxe2", "taxe_masters", "taxe_vehicule", "taxe_formation", "acompte", "ibs", "taxe_domicil", "tva_autoliq", "finances_autres"].includes(key)) return "Finance"
+    
+    // DVDRS: 6 tableaux (including situation_reseaux)
+    if (["suivi_infrastructures_reseau", "situation_reseaux", "evolution_trafic_data", "amelioration_qualite", "couverture_reseau", "action_notable_reseau"].includes(key)) return "DVDRS"
+    
+    // DQRPC: 2 tableaux
+    if (["disponibilite_reseau", "mttr"].includes(key)) return "DQRPC"
+    
+    // Support: 9 sub-tab keys (creance + 5 RH + 3 Formation)
+    if (["creance_contentieuses", "frais_personnel", "effectif_gsp", "absenteisme", "mouvement_effectifs", "mouvement_effectifs_domaine", "effectifs_formes_gsp", "formations_domaines", "frequence_formation", "rh", "formation"].includes(key)) return "Support"
+    
+    // Commerciale: 14 tableaux (14 commercial sub-tabs)
+    if (["reclamation", "reclamation_gp", "e_payement_pop", "e_payement_prp", "total_encaissement", "rechargement", "recouvrement", "desactivation_resiliation", "parc_abonnes_b2b", "parc_abonnes_gp", "total_parc_abonnes", "total_parc_abonnes_technologie", "activation", "chiffre_affaires_mda", "e_payement", "encaissement_c", "parc_abonnes", "chiffre_affaires_c", "commercial_autres"].includes(key)) return "Commerciale"
+    
+    // DirectionRegionale: 1 tableau
+    if (key === "regionale") return "DirectionRegionale"
+    
+    return "Finance"
+  }
+
   const hasActiveFilters = !!(filterType || filterMois || filterAnnee || filterDirection || filterStatus || filterDateFrom || filterDateTo)
 
   const filteredtableaux = tableaux.filter((decl) => {
@@ -2106,7 +3247,7 @@ export default function tableauDashboardPage() {
     if (filterType && declType.key !== filterType) return false
     if (filterMois && decl.mois !== filterMois) return false
     if (filterAnnee && decl.annee !== filterAnnee) return false
-    if (filterDirection && !(decl.direction ?? "").toLowerCase().includes(filterDirection.toLowerCase())) return false
+    if (filterDirection && gettableauDomain(decl) !== filterDirection) return false
     if (filterStatus === "approved" && !decl.isApproved) return false
     if (filterStatus === "pending" && !!decl.isApproved) return false
     if (filterDateFrom && new Date(decl.createdAt) < new Date(filterDateFrom)) return false
@@ -2121,7 +3262,7 @@ export default function tableauDashboardPage() {
     } else if (sortCol === "type") {
       cmp = gettableauType(a).label.localeCompare(gettableauType(b).label, "fr")
     } else if (sortCol === "direction") {
-      cmp = (a.direction ?? "").localeCompare(b.direction ?? "", "fr")
+      cmp = gettableauDomain(a).localeCompare(gettableauDomain(b), "fr")
     } else if (sortCol === "periode") {
       cmp = (a.annee + a.mois).localeCompare(b.annee + b.mois)
     }
@@ -2306,33 +3447,14 @@ export default function tableauDashboardPage() {
       ? sortDir === "asc" ? <ChevronUp size={13} className="inline ml-0.5" /> : <ChevronDown size={13} className="inline ml-0.5" />
       : <span className="inline-block w-3" />
 
-  const reminderDirectionOptions = (() => {
-    const normalizeDirection = (value: string) => {
-      const normalized = value.trim().toLowerCase()
-      if (!normalized) return ""
-      if (normalized === "siege" || normalized === "siége" || normalized.includes("siege") || normalized.includes("siége")) {
-        return "Siége"
-      }
-      return value.trim()
-    }
-
-    const tableauDirections = tableaux
-      .map((tableau) => normalizeDirection(tableau.direction ?? ""))
-      .filter(Boolean)
-
-    if (tableauDirections.length > 0) {
-      return Array.from(new Set(tableauDirections)).sort((a, b) => a.localeCompare(b, "fr"))
-    }
-
-    const fallbackDirections = [
-      ...reminders.map((reminder) => normalizeDirection(reminder.direction ?? "")),
-      ...regions.map((region) => normalizeDirection(region.name)),
-      "Siége",
-    ].filter(Boolean)
-
-    return Array.from(new Set(fallbackDirections)).sort((a, b) => a.localeCompare(b, "fr"))
-  })()
-
+  const domainOptions = [
+    "Commerciale",
+    "DVDRS",
+    "DQRPC",
+    "Support",
+    "Finance",
+    "DirectionRegionale",
+  ]
   const viewTab = DASH_TABS.find((t) => t.key === viewTabKey)
   const viewTabColor = viewTab?.color ?? "#000"
   const viewTabTitle = viewTab?.title ?? viewTabKey
@@ -2419,7 +3541,7 @@ export default function tableauDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard tableau</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            tableaux tableaus récentes
+            tableaux tableaus récents
           </p>
         </div>
 
@@ -2428,7 +3550,7 @@ export default function tableauDashboardPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-base">
-                tableaux récentes
+                tableaux récents
                 {tableaux.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     ({filteredtableaux.length}{hasActiveFilters ? ` / ${tableaux.length}` : ""})
@@ -2492,11 +3614,11 @@ export default function tableauDashboardPage() {
                   <input type="number" placeholder="ex: 2025" value={filterAnnee} onChange={e => setFilterAnnee(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Direction</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Domaine</label>
                   <select value={filterDirection} onChange={e => setFilterDirection(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
                     <option value="">Tous</option>
-                    {reminderDirectionOptions.map((direction) => (
-                      <option key={direction} value={direction}>{direction}</option>
+                    {domainOptions.map((domain) => (
+                      <option key={domain} value={domain}>{domain}</option>
                     ))}
                   </select>
                 </div>
@@ -2530,10 +3652,10 @@ export default function tableauDashboardPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("type")}>
-                        Type de tableau <SortIcon col="type" />
+                        Nom Tableau <SortIcon col="type" />
                       </TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("direction")}>
-                        Direction <SortIcon col="direction" />
+                        Domaine <SortIcon col="direction" />
                       </TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("periode")}>
                         Période <SortIcon col="periode" />
@@ -2572,10 +3694,10 @@ export default function tableauDashboardPage() {
                         >
                           <TableCell>
                             <Badge variant="outline" className="text-xs">
-                              {declType.label}
+                              {getTableauDisplayName(declType.key)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm">{decl.direction || <span className="text-muted-foreground italic">a</span>}</TableCell>
+                          <TableCell className="text-sm">{gettableauDomain(decl)}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-xs">
                               {MONTHS[decl.mois] || decl.mois} {decl.annee}

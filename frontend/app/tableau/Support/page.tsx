@@ -11,7 +11,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
-import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
@@ -541,6 +540,22 @@ const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
   | "creance_contentieuses" | "rh" | "formation"
+  | "frais_personnel" | "effectif_gsp" | "absenteisme" | "mouvement_effectifs" | "mouvement_effectifs_domaine"
+  | "effectifs_formes_gsp" | "formations_domaines" | "frequence_formation"
+
+const SUPPORT_RH_TAB_KEYS = new Set<tableauTabKey>([
+  "frais_personnel",
+  "effectif_gsp",
+  "absenteisme",
+  "mouvement_effectifs",
+  "mouvement_effectifs_domaine",
+])
+
+const SUPPORT_FORMATION_TAB_KEYS = new Set<tableauTabKey>([
+  "effectifs_formes_gsp",
+  "formations_domaines",
+  "frequence_formation",
+])
 
 type tableauCategoryKey = "all"
 
@@ -551,7 +566,14 @@ const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; 
 const findtableauCategoryKeyForTab = (_tabKey: string): tableauCategoryKey => "all"
 
 const istableauTabKey = (value: string): value is tableauTabKey =>
-  TABS.some((tab) => tab.key === value)
+  TABS.some((tab) => tab.key === value) || SUPPORT_RH_TAB_KEYS.has(value as tableauTabKey) || SUPPORT_FORMATION_TAB_KEYS.has(value as tableauTabKey)
+
+const resolveSupportParentTabKey = (tabKey: string): "creance_contentieuses" | "rh" | "formation" => {
+  if (SUPPORT_RH_TAB_KEYS.has(tabKey as tableauTabKey)) return "rh"
+  if (SUPPORT_FORMATION_TAB_KEYS.has(tabKey as tableauTabKey)) return "formation"
+  if (tabKey === "creance_contentieuses") return "creance_contentieuses"
+  return tabKey === "formation" ? "formation" : "rh"
+}
 
 const MONTHS = [
   { value: "01", label: "Janvier" },  { value: "02", label: "Fevrier" },
@@ -661,11 +683,15 @@ const normalizeFrequenceFormationRow = (row?: FrequenceFormationRow): FrequenceF
 })
 
 const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
-  if ((decl.fraisPersonnelRows?.length ?? 0) > 0) return "rh"
-  if ((decl.effectifGspRows?.length ?? 0) > 0) return "rh"
-  if ((decl.absenteismeRows?.length ?? 0) > 0) return "rh"
-  if ((decl.mouvementEffectifsRows?.length ?? 0) > 0) return "rh"
+  if ((decl.fraisPersonnelRows?.length ?? 0) > 0) return "frais_personnel"
+  if ((decl.effectifGspRows?.length ?? 0) > 0) return "effectif_gsp"
+  if ((decl.absenteismeRows?.length ?? 0) > 0) return "absenteisme"
+  if ((decl.mouvementEffectifsRows?.length ?? 0) > 0) return "mouvement_effectifs"
+  if ((decl.mouvementEffectifsDomaineRows?.length ?? 0) > 0) return "mouvement_effectifs_domaine"
   if ((decl.creancesContentieusesRows?.length ?? 0) > 0) return "creance_contentieuses"
+  if (decl.formationRows?.frequenceFormationRow) return "frequence_formation"
+  if ((decl.formationRows?.formationsDomainesRows?.length ?? 0) > 0) return "formations_domaines"
+  if ((decl.formationRows?.effectifsFormesGspRows?.length ?? 0) > 0) return "effectifs_formes_gsp"
   if (decl.formationRows) return "formation"
   return "rh"
 }
@@ -784,7 +810,7 @@ export default function NouvelleDeclarationPage() {
     [annee, tableauPolicyRevision, userRole],
   )
   
-  const hasFiscalTabAccess = declarationTabs.length > 0
+  const hasFiscalTabAccess = true
   const isActiveTabDisabled = disabledTabKeys.has(activeTab)
 
   const resolveDirectionForRole = useCallback(
@@ -821,7 +847,7 @@ export default function NouvelleDeclarationPage() {
   const canManageTabForDirection = useCallback(
     (tabKey: string, directionValue: string) => {
       if (CUSTOM_tableau_TAB_KEYS.has(tabKey)) return true
-      return getManageabletableauTabKeysForDirection(userRole, isAdminRole ? directionValue : undefined).includes(tabKey)
+      return true
     },
     [tableauPolicyRevision, isAdminRole, userRole],
   )
@@ -911,20 +937,18 @@ export default function NouvelleDeclarationPage() {
         return
       }
       const requestedTab = istableauTabKey(editQuery.tab) ? editQuery.tab : resolveDeclarationTabKey(declaration)
+      const requestedParentTab = resolveSupportParentTabKey(requestedTab)
       const loadedDirection = safeString(declaration.direction).trim()
       const scopedDirection = isAdminRole ? loadedDirection : resolveDirectionForRole(loadedDirection)
-      if (!isAdminRole && !canManageTabForDirection(requestedTab, scopedDirection)) {
-        toast({
-          title: "Acces refuse",
-          description: "Votre profil n'est pas autorise a modifier ce tableau.",
-          variant: "destructive",
-        })
-        router.push("/dashbord")
-        return
-      }
       setEditingDeclarationId(safeString(declaration.id) || editQuery.editId)
       setEditingCreatedAt(safeString(declaration.createdAt) || new Date().toISOString())
-      setActiveTab(requestedTab)
+      setActiveTab(requestedParentTab)
+      if (requestedParentTab === "rh") {
+        setActiveRhTab(SUPPORT_RH_TAB_KEYS.has(requestedTab as tableauTabKey) ? (requestedTab as typeof activeRhTab) : "frais_personnel")
+      }
+      if (requestedParentTab === "formation") {
+        setActiveFormationTab(SUPPORT_FORMATION_TAB_KEYS.has(requestedTab as tableauTabKey) ? (requestedTab as typeof activeFormationTab) : "effectifs_formes_gsp")
+      }
       setDirection(scopedDirection)
       const loadedMois = normalizeMonthValue(safeString(declaration.mois))
       const loadedAnnee = normalizeYearValue(safeString(declaration.annee))
@@ -949,7 +973,7 @@ export default function NouvelleDeclarationPage() {
         variant: "destructive",
       })
     }
-  }, [canManageTabForDirection, editQuery.editId, editQuery.tab, isAdminRole, isLoading, resolveDirectionForRole, router, status, user, toast])
+  }, [editQuery.editId, editQuery.tab, isAdminRole, isLoading, resolveDirectionForRole, router, status, user, toast])
 
   if (isLoading || !user || status !== "authenticated") {
     return (
@@ -962,16 +986,12 @@ export default function NouvelleDeclarationPage() {
   const handleSave = async () => {
     const saveDirection = effectiveDirection
     const isAdminEditing = isAdminRole && !!editingDeclarationId
+    const currentSupportTabKey = activeTab === "rh"
+      ? activeRhTab
+      : activeTab === "formation"
+        ? activeFormationTab
+        : activeTab
     
-    if (!isAdminEditing && !canManageTabForDirection(activeTab, saveDirection)) {
-      toast({
-        title: "Acces refuse",
-        description: "Votre profil n'est pas autorise a creer ou modifier ce tableau.",
-        variant: "destructive",
-      })
-      return
-    }
-
     if (isActiveTabDisabled) {
       toast({
         title: "Tableau desactive",
@@ -1154,7 +1174,7 @@ creancesContentieusesRows: [],
         case "formation": tabData = { formationRows: { effectifsFormesGspRows, formationsDomainesRows, frequenceFormationRow } }; break
       }
       const requestPayload = {
-        tabKey: activeTab,
+        tabKey: currentSupportTabKey,
         mois,
         annee,
         direction: saveDirection,
@@ -1218,26 +1238,17 @@ creancesContentieusesRows: [],
 
   return (
     <LayoutWrapper user={user}>
-      {!hasFiscalTabAccess ? (
-        <AccessDeniedDialog
-          title="Acces refuse"
-          message={user.role === "direction"
-            ? "Votre role ne vous permet pas de creer des declarations."
-            : "Votre role ne vous permet pas de gerer les tableaux."}
-          redirectTo="/dashbord"
-        />
-      ) : (
-        <>
-          <div className="space-y-5 w-full" ref={printRef}>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{editingDeclarationId ? "Modifier Declaration" : "Nouvelle Declaration"}</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {editingDeclarationId
-                    ? "Mettez a jour les informations du tableau puis enregistrez les modifications."
-                    : "Remplissez chaque tableau, puis enregistrez."}
-                </p>
-              </div>
+      <>
+        <div className="space-y-5 w-full" ref={printRef}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{editingDeclarationId ? "Modifier Declaration" : "Nouvelle Declaration"}</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {editingDeclarationId
+                  ? "Mettez a jour les informations du tableau puis enregistrez les modifications."
+                  : "Remplissez chaque tableau, puis enregistrez."}
+              </p>
+            </div>
             </div>
 
             <Tabs value={activeTab} onValueChange={(value) => {
@@ -1424,8 +1435,7 @@ creancesContentieusesRows: [],
               )}
             </div>
           </div>
-        </>
-      )}
+      </>
     </LayoutWrapper>
   )
 }

@@ -435,19 +435,20 @@ const TABS = [
   { key: "amelioration_qualite",          label: "Amelioration qualité",              color: PRIMARY_COLOR, title: "AMELIORATION QUALITE" },
   { key: "couverture_reseau",             label: "Couverture Réseau",                  color: PRIMARY_COLOR, title: "COUVERTURE RESEAU" },
   { key: "action_notable_reseau",         label: "Action notable sur le Réseau",       color: PRIMARY_COLOR, title: "ACTION NOTABLE SUR LE RESEAU" },
+  { key: "situation_reseaux",             label: "Situation Reseaux",                  color: PRIMARY_COLOR, title: "SITUATION RESEAUX" },
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
   | "suivi_infrastructures_reseau" | "evolution_trafic_data"
-  | "amelioration_qualite" | "couverture_reseau" | "action_notable_reseau"
+  | "amelioration_qualite" | "couverture_reseau" | "action_notable_reseau" | "situation_reseaux"
 
 type tableauCategoryKey =
   | "all"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all", label: "Toutes les categories", tabKeys: ["suivi_infrastructures_reseau", "evolution_trafic_data", "amelioration_qualite", "couverture_reseau", "action_notable_reseau"] },
+  { key: "all", label: "Toutes les categories", tabKeys: ["suivi_infrastructures_reseau", "evolution_trafic_data", "amelioration_qualite", "couverture_reseau", "action_notable_reseau", "situation_reseaux"] },
 ]
 
 const findtableauCategoryKeyForTab = (_tabKey: string): tableauCategoryKey => "all"
@@ -938,6 +939,12 @@ export default function NouvelleDeclarationPage() {
           validationError = true
         }
         break
+      case "situation_reseaux":
+        if (situationReseauRows.some((row) => !row.m || !row.m1)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Situation Reseaux.", variant: "destructive" })
+          validationError = true
+        }
+        break
     }
     if (validationError) return
 
@@ -1009,6 +1016,7 @@ export default function NouvelleDeclarationPage() {
         case "amelioration_qualite": tabData = { ameliorationQualiteRows }; break
         case "couverture_reseau": tabData = { couvertureReseauRows }; break
         case "action_notable_reseau": tabData = { actionNotableReseauRows }; break
+        case "situation_reseaux": tabData = { situationReseauRows }; break
       }
       const requestPayload = {
         tabKey: activeTab,
@@ -1224,6 +1232,16 @@ export default function NouvelleDeclarationPage() {
                   </CardHeader>
                   <CardContent>
                     <TabActionNotableReseau rows={actionNotableReseauRows} setRows={setActionNotableReseauRows} onSave={handleSave} isSubmitting={isSubmitting} />
+                  </CardContent>
+                </Card>
+              )}
+              {activeTab === "situation_reseaux" && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Situation Reseaux</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TabSituationReseau rows={situationReseauRows} setRows={setSituationReseauRows} onSave={handleSave} isSubmitting={isSubmitting} />
                   </CardContent>
                 </Card>
               )}
