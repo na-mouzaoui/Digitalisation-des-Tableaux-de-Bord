@@ -43,6 +43,7 @@ export function Sidebar({ user }: SidebarProps) {
   const [opentableau, setOpentableau] = useState(
     pathname.startsWith("/tableau")
   )
+  const isTableauSectionActive = pathname.startsWith("/tableau")
 
   const handleLogout = async () => {
     await logout()
@@ -55,7 +56,7 @@ export function Sidebar({ user }: SidebarProps) {
     href: string,
     Icon?: React.ElementType
   ) => {
-    const isActive = pathname === href
+    const isActive = pathname === href || pathname.startsWith(href + "/")
 
     return (
       <Link
@@ -108,7 +109,7 @@ export function Sidebar({ user }: SidebarProps) {
                 {/* Lien vers /tableau */}
                 <Link
                   href="/tableau"
-                  className="flex items-center gap-2 flex-1"
+                  className={`flex items-center gap-2 flex-1 ${isTableauSectionActive ? "text-white" : ""}`}
                 >
                   <FilePlus className="h-5 w-5 text-red-500" />
                   Nouveaux tableaux

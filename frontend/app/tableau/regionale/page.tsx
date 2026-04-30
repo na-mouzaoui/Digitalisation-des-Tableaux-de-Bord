@@ -1,8 +1,11 @@
 "use client"
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react"
+import { Suspense } from "react"
 import { LayoutWrapper } from "@/components/layout-wrapper"
 import { useAuth } from "@/hooks/use-auth"
+import { useTableauStepNavigation } from "@/hooks/use-tableau-step-navigation"
+import { TableauHeader } from "@/components/tableau-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -323,10 +326,11 @@ type TabKey =
   | "amelioration_qualite"
   | "mttr"
 
-type CategoryKey = "reseau"
+type CategoryKey = "reseau" | "all"
 
 const CATEGORY_OPTIONS: Array<{ key: CategoryKey; label: string; tabKeys: TabKey[] }> = [
-  { key: "reseau", label: "Reseau",                 tabKeys: ["realisation_technique_reseau", "amelioration_qualite", "mttr"] },
+  { key: "all", label: "Tous",        tabKeys: ["realisation_technique_reseau", "amelioration_qualite", "mttr"] },
+  { key: "reseau", label: "Reseau",   tabKeys: ["realisation_technique_reseau", "amelioration_qualite", "mttr"] },
 ]
 
 const findCategoryKeyForTab = (tabKey: string): CategoryKey =>
@@ -422,10 +426,11 @@ const resolveTabKey = (decl: SavedData): TabKey => {
 
 // 
 // PAGE
-export default function NouvelleDeclarationPage() {
+function RegionalePageContent() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const { toast } = useToast()
   const router = useRouter()
+  const { navigateToNextStep } = useTableauStepNavigation("regionale")
   const printRef = useRef<HTMLDivElement>(null)
   const [editQuery, setEditQuery] = useState<{ editId: string; tab: string }>({ editId: "", tab: "" })
 
@@ -447,6 +452,11 @@ export default function NouvelleDeclarationPage() {
       editId: safeString(params.get("editId")).trim(),
       tab: safeString(params.get("tab")).trim(),
     })
+
+    const requestedTab = safeString(params.get("tab")).trim()
+    if (requestedTab && istableauTabKey(requestedTab)) {
+      setActiveTab(requestedTab)
+    }
   }, [])
 
   // Global meta
@@ -881,7 +891,7 @@ export default function NouvelleDeclarationPage() {
       description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
     })
     setIsSubmitting(false)
-    router.push("/dashbord")
+    navigateToNextStep(activeTab, mois, annee)
   }
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
@@ -909,16 +919,15 @@ export default function NouvelleDeclarationPage() {
       ) : (
         <>
           <div className="space-y-5 w-full" ref={printRef}>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{editingDeclarationId ? "Modifier Declaration" : "Nouvelle Declaration"}</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {editingDeclarationId
-                    ? "Mettez a jour les informations du tableau puis enregistrez les modifications."
-                    : "Remplissez chaque tableau, puis enregistrez."}
-                </p>
-              </div>
-            </div>
+            <TableauHeader
+              title="Tableaux Regionale"
+              domain="regionale"
+              currentTabKey={activeTab}
+              mois={mois}
+              annee={annee}
+              onBackClick={() => router.push("/dashbord")}
+              layout="horizontal"
+            />
 
             <Card className="border border-gray-200">
               <CardContent className="pt-4 pb-3">
@@ -1025,5 +1034,13 @@ export default function NouvelleDeclarationPage() {
         </>
       )}
     </LayoutWrapper>
+  )
+}
+
+export default function NouvelleDeclarationPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-sm text-muted-foreground">Chargement...</p></div>}>
+      <RegionalePageContent />
+    </Suspense>
   )
 }

@@ -3655,7 +3655,7 @@ export default function tableauDashboardPage() {
                         Nom Tableau <SortIcon col="type" />
                       </TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("direction")}>
-                        Domaine <SortIcon col="direction" />
+                        Structure <SortIcon col="direction" />
                       </TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("periode")}>
                         Période <SortIcon col="periode" />
