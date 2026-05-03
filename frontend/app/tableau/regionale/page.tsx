@@ -454,7 +454,7 @@ function RegionalePageContent() {
     })
 
     const requestedTab = safeString(params.get("tab")).trim()
-    if (requestedTab && istableauTabKey(requestedTab)) {
+    if (requestedTab) {
       setActiveTab(requestedTab)
     }
   }, [])

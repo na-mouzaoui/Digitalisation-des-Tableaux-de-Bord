@@ -1,9 +1,8 @@
 "use client"
 
 import React from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { TableauStepNav, TableauStepNavHorizontal } from "@/components/tableau-step-nav"
+import { TableauStepNav } from "@/components/tableau-step-nav"
 import { DomainKey } from "@/lib/tableau-domain-steps"
 import { ChevronLeft } from "lucide-react"
 
@@ -48,27 +47,14 @@ export function TableauHeader({
         )}
       </div>
 
-      {/* Carte de progression */}
-      <Card className="border-blue-100 bg-blue-50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Progression de saisie</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {layout === "horizontal" ? (
-            <TableauStepNavHorizontal
-              domain={domain}
-              currentTabKey={currentTabKey}
-              completedTabKeys={completedTabKeys}
-            />
-          ) : (
-            <TableauStepNav
-              domain={domain}
-              currentTabKey={currentTabKey}
-              completedTabKeys={completedTabKeys}
-            />
-          )}
-        </CardContent>
-      </Card>
+      {/* Conteneur de progression transparent */}
+      <div className="w-full bg-transparent">
+        <TableauStepNav
+          domain={domain}
+          currentTabKey={currentTabKey}
+          completedTabKeys={completedTabKeys}
+        />
+      </div>
     </div>
   )
 }
