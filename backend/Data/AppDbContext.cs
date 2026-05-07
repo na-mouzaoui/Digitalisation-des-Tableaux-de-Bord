@@ -15,6 +15,9 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<Tableau> Tableaus { get; set; }
     public DbSet<AdminSetting> AdminSettings { get; set; }
+    public DbSet<Domaine> Domaines { get; set; }
+    public DbSet<SousDomaine> SousDomaines { get; set; }
+    public DbSet<Categorie> Categories { get; set; }
     public DbSet<Kpi> Kpis { get; set; }
     public DbSet<SousKpi> SousKpis { get; set; }
 
@@ -98,6 +101,56 @@ public class AppDbContext : DbContext
                 .HasDefaultValue("[]");
         });
 
+        // Domaine configuration
+        modelBuilder.Entity<Domaine>(entity =>
+        {
+            entity.ToTable("Domaines");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Designation)
+                .HasMaxLength(255)
+                .IsRequired();
+            entity.HasMany(e => e.SousDomaines)
+                .WithOne(sd => sd.Domaine)
+                .HasForeignKey(sd => sd.DomaineId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SousDomaine configuration
+        modelBuilder.Entity<SousDomaine>(entity =>
+        {
+            entity.ToTable("SousDomaines");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Designation)
+                .HasMaxLength(255)
+                .IsRequired();
+            entity.HasOne(e => e.Domaine)
+                .WithMany(d => d.SousDomaines)
+                .HasForeignKey(e => e.DomaineId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.Categories)
+                .WithOne(c => c.SousDomaine)
+                .HasForeignKey(c => c.SousDomaineId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Categorie configuration
+        modelBuilder.Entity<Categorie>(entity =>
+        {
+            entity.ToTable("Categories");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Designation)
+                .HasMaxLength(255)
+                .IsRequired();
+            entity.HasOne(e => e.SousDomaine)
+                .WithMany(sd => sd.Categories)
+                .HasForeignKey(e => e.SousDomaineId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.Kpis)
+                .WithOne(k => k.Categorie)
+                .HasForeignKey(k => k.CategorieId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // KPI configuration
         modelBuilder.Entity<Kpi>(entity =>
         {
@@ -106,7 +159,11 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Nom)
                 .HasMaxLength(120)
                 .IsRequired();
-            entity.HasIndex(e => e.Nom)
+            entity.HasOne(e => e.Categorie)
+                .WithMany(c => c.Kpis)
+                .HasForeignKey(e => e.CategorieId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.CategorieId, e.Nom })
                 .IsUnique();
         });
 

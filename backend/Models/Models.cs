@@ -70,10 +70,41 @@ public class AdminSetting
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
+public class Domaine
+{
+    public int Id { get; set; }
+    public string Designation { get; set; } = string.Empty;
+    
+    public ICollection<SousDomaine> SousDomaines { get; set; } = new List<SousDomaine>();
+}
+
+public class SousDomaine
+{
+    public int Id { get; set; }
+    public int DomaineId { get; set; }
+    public string Designation { get; set; } = string.Empty;
+    
+    public Domaine Domaine { get; set; } = null!;
+    public ICollection<Categorie> Categories { get; set; } = new List<Categorie>();
+}
+
+public class Categorie
+{
+    public int Id { get; set; }
+    public int SousDomaineId { get; set; }
+    public string Designation { get; set; } = string.Empty;
+    
+    public SousDomaine SousDomaine { get; set; } = null!;
+    public ICollection<Kpi> Kpis { get; set; } = new List<Kpi>();
+}
+
 public class Kpi
 {
     public int Id { get; set; }
+    public int CategorieId { get; set; }
     public string Nom { get; set; } = string.Empty;
+    
+    public Categorie Categorie { get; set; } = null!;
     public ICollection<SousKpi> SousKpis { get; set; } = new List<SousKpi>();
 }
 
