@@ -98,6 +98,7 @@ public class AdminController : ControllerBase
         new(ManagedTableauKeys, StringComparer.OrdinalIgnoreCase);
 
     private static string NormalizeTabKey(string? tabKey) => (tabKey ?? "").Trim().ToLowerInvariant();
+    private static string NormalizeKpiName(string? name) => (name ?? "").Trim().ToLowerInvariant();
 
     private static List<string> ParseDisabledTabKeys(string? raw)
     {
@@ -150,6 +151,11 @@ public class AdminController : ControllerBase
     {
         public string TabKey { get; set; } = string.Empty;
         public bool IsEnabled { get; set; } = true;
+    }
+
+    public class KpiRowsRequest
+    {
+        public List<string> Designations { get; set; } = new();
     }
 
     private int GetCurrentUserId()
@@ -475,6 +481,100 @@ public class AdminController : ControllerBase
             isEnabled = request.IsEnabled,
             disabledTabKeys = ParseDisabledTabKeys(setting.DisabledTabKeysJson),
             updatedAt = setting.UpdatedAt,
+        });
+    }
+
+    // ?????????????????????????????????????????????
+    // KPI ROW MANAGEMENT
+    // ?????????????????????????????????????????????
+
+    [HttpGet("kpis/by-name/{name}")]
+    public async Task<IActionResult> GetKpiByName(string name)
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        var normalizedName = NormalizeKpiName(name);
+        if (string.IsNullOrWhiteSpace(normalizedName))
+            return BadRequest(new { message = "Nom KPI invalide." });
+
+        var kpi = await _context.Kpis
+            .Include(k => k.SousKpis)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(k => k.Nom == normalizedName);
+
+        if (kpi == null)
+        {
+            return Ok(new
+            {
+                id = (int?)null,
+                name = normalizedName,
+                rows = Array.Empty<string>(),
+            });
+        }
+
+        var rows = kpi.SousKpis
+            .OrderBy(r => r.Order)
+            .Select(r => r.Designation)
+            .ToArray();
+
+        return Ok(new
+        {
+            id = kpi.Id,
+            name = kpi.Nom,
+            rows,
+        });
+    }
+
+    [HttpPut("kpis/by-name/{name}")]
+    public async Task<IActionResult> UpsertKpiRows(string name, [FromBody] KpiRowsRequest request)
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        var normalizedName = NormalizeKpiName(name);
+        if (string.IsNullOrWhiteSpace(normalizedName))
+            return BadRequest(new { message = "Nom KPI invalide." });
+
+        var cleanedRows = (request.Designations ?? new List<string>())
+            .Select(d => (d ?? "").Trim())
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .ToList();
+
+        var kpi = await _context.Kpis
+            .Include(k => k.SousKpis)
+            .FirstOrDefaultAsync(k => k.Nom == normalizedName);
+
+        if (kpi == null)
+        {
+            kpi = new Kpi { Nom = normalizedName };
+            _context.Kpis.Add(kpi);
+        }
+
+        _context.SousKpis.RemoveRange(kpi.SousKpis);
+        kpi.SousKpis = cleanedRows
+            .Select((designation, index) => new SousKpi
+            {
+                Designation = designation,
+                Order = index,
+            })
+            .ToList();
+
+        await _context.SaveChangesAsync();
+
+        await _auditService.LogAction(
+            GetCurrentUserId(),
+            "UPDATE_KPI_ROWS",
+            "Kpi",
+            kpi.Id,
+            new { name = kpi.Nom, rows = cleanedRows }
+        );
+
+        return Ok(new
+        {
+            id = kpi.Id,
+            name = kpi.Nom,
+            rows = cleanedRows,
         });
     }
 }

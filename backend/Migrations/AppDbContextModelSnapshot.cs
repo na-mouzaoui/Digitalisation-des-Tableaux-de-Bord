@@ -92,6 +92,27 @@ namespace CheckFillingAPI.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Kpi", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nom")
+                        .IsUnique();
+
+                    b.ToTable("Kpis", (string)null);
+                });
+
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Region", b =>
                 {
                     b.Property<int>("Id")
@@ -116,6 +137,33 @@ namespace CheckFillingAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DR", (string)null);
+                });
+
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.SousKpi", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Designation")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("KpiId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KpiId", "Order")
+                        .IsUnique();
+
+                    b.ToTable("SousKpis", (string)null);
                 });
 
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Tableau", b =>
@@ -308,6 +356,17 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.SousKpi", b =>
+                {
+                    b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.Kpi", "Kpi")
+                        .WithMany("SousKpis")
+                        .HasForeignKey("KpiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Kpi");
+                });
+
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Tableau", b =>
                 {
                     b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.User", "ApprovedByUser")
@@ -324,6 +383,11 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Kpi", b =>
+                {
+                    b.Navigation("SousKpis");
                 });
 
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.User", b =>

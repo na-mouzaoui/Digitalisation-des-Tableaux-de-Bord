@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
+import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
 const PRIMARY_COLOR = "#2db34b"
@@ -117,6 +118,7 @@ const DEFAULT_RECLAMATION_ROWS: ReclamationRow[] = [
   { category: "traitees", type: "GP",  mGp: "", mB2b: "", m1Gp: "", m1B2b: "" },
   { category: "traitees", type: "B2B", mGp: "", mB2b: "", m1Gp: "", m1B2b: "" },
 ]
+const DEFAULT_RECLAMATION_LABELS = ["Recues GP", "Recues B2B", "Traitees GP", "Traitees B2B"] as const
 
 // ?? Réclamation GP ???????????????????????????????????????????????????????????
 type ReclamationGpRow = { label: string; recues: string; traitees: string }
@@ -958,6 +960,23 @@ const TABS = [
   { key: "chiffre_affaires_mda",           label: "Chiffre d'Affaires (MDA)",              color: PRIMARY_COLOR, title: "CHIFFRE D'AFFAIRES (MDA)" },
 ]
 
+const KPI_TAB_KEYS = [
+  "reclamation",
+  "reclamation_gp",
+  "e_payement_pop",
+  "e_payement_prp",
+  "total_encaissement",
+  "rechargement",
+  "recouvrement",
+  "desactivation_resiliation",
+  "parc_abonnes_b2b",
+  "parc_abonnes_gp",
+  "total_parc_abonnes",
+  "total_parc_abonnes_technologie",
+  "activation",
+  "chiffre_affaires_mda",
+]
+
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
@@ -1210,6 +1229,7 @@ function CommercialPageContent() {
   const [editingSourceMois, setEditingSourceMois] = useState("")
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
+  const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
 
   // Tab data (lifted) - TABLEAUX CONSERVéS
   const [reclamationRows, setReclamationRows] = useState<ReclamationRow[]>(DEFAULT_RECLAMATION_ROWS.map((row) => ({ ...row })))
@@ -1233,6 +1253,157 @@ function CommercialPageContent() {
   const isRegionalRole = isRegionaltableauRole(userRole)
   const isFinanceRole = isFinancetableauRole(userRole)
   const adminSelectedDirection = safeString(direction).trim()
+
+  useEffect(() => {
+    let cancelled = false
+    const loadKpis = async () => {
+      const map = await fetchKpiRowsMap(KPI_TAB_KEYS)
+      if (!cancelled) {
+        setKpiRows(map)
+      }
+    }
+    loadKpis()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    const getLabels = (key: string, fallback: readonly string[]) => {
+      const rows = kpiRows[key]
+      return rows && rows.length > 0 ? rows : Array.from(fallback)
+    }
+
+    const parseReclamationLabel = (label: string) => {
+      const lower = label.toLowerCase()
+      const category: ReclamationRow["category"] = lower.includes("traite") ? "traitees" : "recues"
+      const type: ReclamationRow["type"] = lower.includes("b2b") ? "B2B" : "GP"
+      return { category, type }
+    }
+
+    const reclamationLabels = getLabels("reclamation", DEFAULT_RECLAMATION_LABELS)
+    setReclamationRows((prev) => reclamationLabels.map((label, i) => {
+      const parsed = parseReclamationLabel(label)
+      const row = prev[i]
+      return {
+        category: parsed.category,
+        type: parsed.type,
+        mGp: safeString(row?.mGp),
+        mB2b: safeString(row?.mB2b),
+        m1Gp: safeString(row?.m1Gp),
+        m1B2b: safeString(row?.m1B2b),
+      }
+    }))
+
+    const reclamationGpLabels = getLabels("reclamation_gp", RECLAMATION_GP_LABELS)
+    setReclamationGpRows((prev) => reclamationGpLabels.map((label, i) => ({
+      label,
+      recues: safeString(prev[i]?.recues),
+      traitees: safeString(prev[i]?.traitees),
+    })))
+
+    const ePayementPopLabels = getLabels("e_payement_pop", EPAYEMENT_CHANNELS)
+    setEPayementPopRows((prev) => ePayementPopLabels.map((rechargement, i) => ({
+      rechargement,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const ePayementPrpLabels = getLabels("e_payement_prp", EPAYEMENT_CHANNELS)
+    setEPayementPrpRows((prev) => ePayementPrpLabels.map((rechargement, i) => ({
+      rechargement,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const totalEncaissementLabels = getLabels("total_encaissement", ["Total"])
+    setTotalEncaissementRows((prev) => {
+      const count = Math.max(1, totalEncaissementLabels.length)
+      return Array.from({ length: count }, (_, i) => ({
+        mGp: safeString(prev[i]?.mGp),
+        mB2b: safeString(prev[i]?.mB2b),
+        m1Gp: safeString(prev[i]?.m1Gp),
+        m1B2b: safeString(prev[i]?.m1B2b),
+        evol: safeString(prev[i]?.evol) || "-",
+      }))
+    })
+
+    const rechargementLabels = getLabels("rechargement", RECHARGEMENT_DR_LABELS)
+    setRechargementRows((prev) => rechargementLabels.map((canal, i) => ({
+      canal,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      taux: safeString(prev[i]?.taux),
+    })))
+
+    const recouvrementLabels = getLabels("recouvrement", RECOUVREMENT_LABELS)
+    setRecouvrementRows((prev) => recouvrementLabels.map((label, i) => ({
+      label,
+      mGp: safeString(prev[i]?.mGp),
+      mB2b: safeString(prev[i]?.mB2b),
+      m1Gp: safeString(prev[i]?.m1Gp),
+      m1B2b: safeString(prev[i]?.m1B2b),
+    })))
+
+    const desactivationLabels = getLabels("desactivation_resiliation", DESACTIVATION_RESILIATION_LABELS)
+    setDesactivationResiliationRows((prev) => desactivationLabels.map((designation, i) => ({
+      designation,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const parcB2bLabels = getLabels("parc_abonnes_b2b", PARC_ABONNES_B2B_LABELS)
+    setParcAbonnesB2bRows((prev) => parcB2bLabels.map((designation, i) => ({
+      designation,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const parcGpLabels = getLabels("parc_abonnes_gp", PARC_ABONNES_GP_LABELS)
+    setParcAbonnesGpRows((prev) => parcGpLabels.map((designation, i) => ({
+      designation,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const totalParcLabels = getLabels("total_parc_abonnes", TOTAL_PARC_ABONNES_LABELS)
+    setTotalParcAbonnesRows((prev) => totalParcLabels.map((designation, i) => ({
+      designation,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const totalTechLabels = getLabels("total_parc_abonnes_technologie", TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS)
+    setTotalParcAbonnesTechnologieRows((prev) => totalTechLabels.map((designation, i) => ({
+      designation,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const activationLabels = getLabels("activation", ACTIVATION_LABELS)
+    setActivationRows((prev) => activationLabels.map((designation, i) => ({
+      designation,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const chiffreLabels = getLabels("chiffre_affaires_mda", CHIFFRE_AFFAIRES_MDA_LABELS)
+    setChiffreAffairesMdaRows((prev) => chiffreLabels.map((designation, i) => ({
+      designation,
+      mObjectif: safeString(prev[i]?.mObjectif),
+      mRealise: safeString(prev[i]?.mRealise),
+      mTaux: safeString(prev[i]?.mTaux),
+      m1Objectif: safeString(prev[i]?.m1Objectif),
+      m1Realise: safeString(prev[i]?.m1Realise),
+      m1Taux: safeString(prev[i]?.m1Taux),
+    })))
+  }, [kpiRows])
   
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),

@@ -10,6 +10,7 @@ import AdminUserManagement from "@/components/admin-user-management"
 import AdminAuditLogs from "@/components/admin-audit-logs"
 import AdmintableauSettings from "@/components/admin-fiscal-settings"
 import AdminRegionConfig from "@/components/admin-region-config"
+import AdminTableauRows from "@/components/admin-tableau-rows"
 import { logout } from "@/lib/auth-client"
 
 export default function AdminPage() {
@@ -91,6 +92,15 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <AdmintableauSettings />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Gestion des lignes des tableaux</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AdminTableauRows />
               </CardContent>
             </Card>
 

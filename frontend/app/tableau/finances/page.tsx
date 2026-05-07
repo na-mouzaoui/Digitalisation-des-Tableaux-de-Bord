@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
+import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
@@ -221,6 +222,8 @@ const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; 
   { key: "cr", label: "CR", tabKeys: ["compte_resultat"] },
 ]
 
+const KPI_TAB_KEYS = ["compte_resultat"]
+
 const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
   tableau_CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "cr"
 
@@ -349,6 +352,7 @@ function FinancesPageContent() {
   const [editingSourceMois, setEditingSourceMois] = useState("")
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
+  const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
 
   const [compteResultatRows, setCompteResultatRows] = useState<CompteResultatRow[]>(DEFAULT_COMPTE_RESULTAT_ROWS.map((row) => ({ ...row })))
   const [tableauDeclarations, settableauDeclarations] = useState<Apitableautableau[]>([])
@@ -358,6 +362,32 @@ function FinancesPageContent() {
   const isRegionalRole = isRegionaltableauRole(userRole)
   const isFinanceRole = isFinancetableauRole(userRole)
   const adminSelectedDirection = safeString(direction).trim()
+
+  useEffect(() => {
+    let cancelled = false
+    const loadKpis = async () => {
+      const map = await fetchKpiRowsMap(KPI_TAB_KEYS)
+      if (!cancelled) {
+        setKpiRows(map)
+      }
+    }
+    loadKpis()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    const labels = kpiRows["compte_resultat"]
+    const finalLabels = labels && labels.length > 0 ? labels : COMPTE_RESULTAT_LABELS
+    setCompteResultatRows((prev) => finalLabels.map((designation, i) => ({
+      designation,
+      mBudget: safeString(prev[i]?.mBudget),
+      mRealise: safeString(prev[i]?.mRealise),
+      mTaux: safeString(prev[i]?.mTaux),
+      m1Budget: safeString(prev[i]?.m1Budget),
+      m1Realise: safeString(prev[i]?.m1Realise),
+      m1Taux: safeString(prev[i]?.m1Taux),
+    })))
+  }, [kpiRows])
 
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),

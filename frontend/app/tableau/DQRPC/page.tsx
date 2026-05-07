@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
+import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
@@ -282,6 +283,11 @@ const TABS = [
   { key: "mttr",                           label: "MTTR",                                  color: PRIMARY_COLOR, title: "MTTR / DR" },
 ]
 
+const KPI_TAB_KEYS = [
+  "disponibilite_reseau",
+  "mttr",
+]
+
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey = "disponibilite_reseau" | "mttr"
@@ -434,6 +440,7 @@ function DQRPCPageContent() {
   const [editingSourceMois, setEditingSourceMois] = useState("")
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
+  const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
 
   // Tab data
   const [disponibiliteReseauRows, setDisponibiliteReseauRows] = useState<DisponibiliteReseauRow[]>(DEFAULT_DISPONIBILITE_RESEAU_ROWS.map((row) => ({ ...row })))
@@ -445,6 +452,55 @@ function DQRPCPageContent() {
   const isRegionalRole = isRegionaltableauRole(userRole)
   const isFinanceRole = isFinancetableauRole(userRole)
   const adminSelectedDirection = safeString(direction).trim()
+
+  useEffect(() => {
+    let cancelled = false
+    const loadKpis = async () => {
+      const map = await fetchKpiRowsMap(KPI_TAB_KEYS)
+      if (!cancelled) {
+        setKpiRows(map)
+      }
+    }
+    loadKpis()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    const getLabels = (key: string, fallback: readonly string[]) => {
+      const rows = kpiRows[key]
+      return rows && rows.length > 0 ? rows : Array.from(fallback)
+    }
+
+    const dispoLabels = getLabels("disponibilite_reseau", DISPONIBILITE_RESEAU_LABELS)
+    setDisponibiliteReseauRows((prev) => dispoLabels.map((designation, i) => ({
+      designation,
+      mObjectif: safeString(prev[i]?.mObjectif),
+      mRealise: safeString(prev[i]?.mRealise),
+      mTaux: safeString(prev[i]?.mTaux),
+      m1Objectif: safeString(prev[i]?.m1Objectif),
+      m1Realise: safeString(prev[i]?.m1Realise),
+      m1Taux: safeString(prev[i]?.m1Taux),
+    })))
+
+    const mttrLabels = getLabels("mttr", MTTR_REGIONS)
+    setMttrRows((prev) => mttrLabels.map((regionName, i) => {
+      const sourceCities = Array.isArray(prev[i]?.cities) ? prev[i].cities : []
+      return {
+        region: regionName,
+        cities: sourceCities.length > 0
+          ? sourceCities.map((city) => ({
+              wilayaM: safeString(city.wilayaM),
+              objectifM: safeString(city.objectifM),
+              realiseM: safeString(city.realiseM),
+              wilayaM1: safeString(city.wilayaM1),
+              objectifM1: safeString(city.objectifM1),
+              realiseM1: safeString(city.realiseM1),
+              ecart: safeString(city.ecart),
+            }))
+          : [{ ...EMPTY_MTTR_CITY_ROW }],
+      }
+    }))
+  }, [kpiRows])
   
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),

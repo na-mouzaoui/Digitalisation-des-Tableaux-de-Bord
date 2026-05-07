@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
 import { API_BASE } from "@/lib/config"
+import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
 const PRIMARY_COLOR = "#2db34b"
@@ -534,6 +535,16 @@ function TabFrequenceFormation({ row, setRow, onSave, isSubmitting }: TabFrequen
 // 7. CONFIGURATION DES ONGLETS (6 tableaux conservés)
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
+    "frais_personnel",
+    "effectif_gsp",
+    "absenteisme",
+    "mouvement_effectifs",
+    "mouvement_effectifs_domaine",
+    "creance_contentieuses",
+    "effectifs_formes_gsp",
+    "formations_domaines",
+    "frequence_formation",
+  ]
   { key: "creance_contentieuses", label: "Creance contentieuses",    color: PRIMARY_COLOR, title: "CREANCE CONTENTIEUSES" },
   { key: "rh",                 label: "RH",                    color: PRIMARY_COLOR, title: "RH" },
   { key: "formation",           label: "Formation",              color: PRIMARY_COLOR, title: "FORMATION" },
@@ -763,6 +774,7 @@ function SupportPageContent() {
   const [editingDeclarationId, setEditingDeclarationId] = useState<string | null>(null)
   const [editingCreatedAt, setEditingCreatedAt] = useState("")
   const [editingSourceMois, setEditingSourceMois] = useState("")
+    const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
 
@@ -789,6 +801,127 @@ function SupportPageContent() {
   const isRegionalRole = isRegionaltableauRole(userRole)
   const isFinanceRole = isFinancetableauRole(userRole)
   const adminSelectedDirection = safeString(direction).trim()
+    useEffect(() => {
+      let cancelled = false
+      const loadKpis = async () => {
+        const map = await fetchKpiRowsMap(KPI_TAB_KEYS)
+        if (!cancelled) {
+          setKpiRows(map)
+        }
+      }
+      loadKpis()
+      return () => { cancelled = true }
+    }, [])
+
+    useEffect(() => {
+      const getLabels = (key: string, fallback: readonly string[]) => {
+        const rows = kpiRows[key]
+        return rows && rows.length > 0 ? rows : Array.from(fallback)
+      }
+
+      const parseMouvementLabel = (label: string) => {
+        const parts = label.split("-")
+        const prefix = parts[0]?.trim().toLowerCase() ?? ""
+        const bloc: MouvementEffectifsRow["bloc"] = prefix.startsWith("depart") ? "departs" : "arrives"
+        const operation = parts.length > 1 ? parts.slice(1).join("-").trim() : label.trim()
+        return { bloc, operation }
+      }
+
+      const parseDomaineLabel = (label: string) => {
+        const parts = label.split("-")
+        const prefix = parts[0]?.trim().toLowerCase() ?? ""
+        const bloc: MouvementEffectifsDomaineRow["bloc"] = prefix.startsWith("sort") ? "sortant" : "recrutement"
+        const domaine = parts.length > 1 ? parts.slice(1).join("-").trim() : label.trim()
+        return { bloc, domaine }
+      }
+
+      const fraisLabels = getLabels("frais_personnel", FRAIS_PERSONNEL_LABELS)
+      setFraisPersonnelRows((prev) => fraisLabels.map((designation, i) => ({
+        designation,
+        m: safeString(prev[i]?.m),
+        m1: safeString(prev[i]?.m1),
+      })))
+
+      const effectifLabels = getLabels("effectif_gsp", EFFECTIF_GSP_LABELS)
+      setEffectifGspRows((prev) => effectifLabels.map((gsp, i) => ({
+        gsp,
+        m: safeString(prev[i]?.m),
+        m1: safeString(prev[i]?.m1),
+        part: safeString(prev[i]?.part),
+      })))
+
+      const absenteismeLabels = getLabels("absenteisme", ABSENTEISME_LABELS)
+      setAbsenteismeRows((prev) => absenteismeLabels.map((motif, i) => ({
+        motif,
+        m: safeString(prev[i]?.m),
+        m1: safeString(prev[i]?.m1),
+        part: safeString(prev[i]?.part),
+      })))
+
+      const mouvementFallback = MOUVEMENT_EFFECTIFS_TEMPLATE.map((item) => `${item.bloc === "arrives" ? "Arrives" : "Departs"} - ${item.operation}`)
+      const mouvementLabels = getLabels("mouvement_effectifs", mouvementFallback)
+      setMouvementEffectifsRows((prev) => mouvementLabels.map((label, i) => {
+        const parsed = parseMouvementLabel(label)
+        return {
+          bloc: parsed.bloc,
+          operation: parsed.operation,
+          mCadresSup: safeString(prev[i]?.mCadresSup),
+          mCadres: safeString(prev[i]?.mCadres),
+          mMaitrise: safeString(prev[i]?.mMaitrise),
+          mExecution: safeString(prev[i]?.mExecution),
+          m1CadresSup: safeString(prev[i]?.m1CadresSup),
+          m1Cadres: safeString(prev[i]?.m1Cadres),
+          m1Maitrise: safeString(prev[i]?.m1Maitrise),
+          m1Execution: safeString(prev[i]?.m1Execution),
+        }
+      }))
+
+      const domaineFallback = MOUVEMENT_EFFECTIFS_DOMAINE_TEMPLATE.map((item) => `${item.bloc === "sortant" ? "Sortant" : "Recrutement"} - ${item.domaine}`)
+      const domaineLabels = getLabels("mouvement_effectifs_domaine", domaineFallback)
+      setMouvementEffectifsDomaineRows((prev) => domaineLabels.map((label, i) => {
+        const parsed = parseDomaineLabel(label)
+        return {
+          bloc: parsed.bloc,
+          domaine: parsed.domaine,
+          mCdi: safeString(prev[i]?.mCdi),
+          mCdd: safeString(prev[i]?.mCdd),
+          mCta: safeString(prev[i]?.mCta),
+          m1Cdi: safeString(prev[i]?.m1Cdi),
+          m1Cdd: safeString(prev[i]?.m1Cdd),
+          m1Cta: safeString(prev[i]?.m1Cta),
+        }
+      }))
+
+      const creanceLabels = getLabels("creance_contentieuses", CREANCES_CONTENTIEUSES_LABELS)
+      setCreancesContentieusesRows((prev) => creanceLabels.map((designation, i) => ({
+        designation,
+        m: safeString(prev[i]?.m),
+        m1: safeString(prev[i]?.m1),
+        evol: safeString(prev[i]?.evol),
+      })))
+
+      const effectifsFormesLabels = getLabels("effectifs_formes_gsp", EFFECTIFS_FORMES_GSP_LABELS)
+      setEffectifsFormesGspRows((prev) => effectifsFormesLabels.map((gsp, i) => ({
+        gsp,
+        mObjectif: safeString(prev[i]?.mObjectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
+        m1Objectif: safeString(prev[i]?.m1Objectif),
+        m1Realise: safeString(prev[i]?.m1Realise),
+        m1Taux: safeString(prev[i]?.m1Taux),
+      })))
+
+      const formationsLabels = getLabels("formations_domaines", FORMATIONS_DOMAINES_LABELS)
+      setFormationsDomainesRows((prev) => formationsLabels.map((domaine, i) => ({
+        domaine,
+        mObjectif: safeString(prev[i]?.mObjectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
+        m1Objectif: safeString(prev[i]?.m1Objectif),
+        m1Realise: safeString(prev[i]?.m1Realise),
+        m1Taux: safeString(prev[i]?.m1Taux),
+      })))
+    }, [kpiRows])
   
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),

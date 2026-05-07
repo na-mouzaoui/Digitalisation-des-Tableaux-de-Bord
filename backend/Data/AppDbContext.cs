@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<Tableau> Tableaus { get; set; }
     public DbSet<AdminSetting> AdminSettings { get; set; }
+    public DbSet<Kpi> Kpis { get; set; }
+    public DbSet<SousKpi> SousKpis { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -94,6 +96,33 @@ public class AppDbContext : DbContext
             entity.Property(e => e.DisabledTabKeysJson)
                 .HasColumnType("nvarchar(max)")
                 .HasDefaultValue("[]");
+        });
+
+        // KPI configuration
+        modelBuilder.Entity<Kpi>(entity =>
+        {
+            entity.ToTable("Kpis");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nom)
+                .HasMaxLength(120)
+                .IsRequired();
+            entity.HasIndex(e => e.Nom)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<SousKpi>(entity =>
+        {
+            entity.ToTable("SousKpis");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Designation)
+                .HasMaxLength(200)
+                .IsRequired();
+            entity.HasOne(e => e.Kpi)
+                .WithMany(k => k.SousKpis)
+                .HasForeignKey(e => e.KpiId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.KpiId, e.Order })
+                .IsUnique();
         });
 
         // Seed data

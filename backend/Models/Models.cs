@@ -70,6 +70,23 @@ public class AdminSetting
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
+public class Kpi
+{
+    public int Id { get; set; }
+    public string Nom { get; set; } = string.Empty;
+    public ICollection<SousKpi> SousKpis { get; set; } = new List<SousKpi>();
+}
+
+public class SousKpi
+{
+    public int Id { get; set; }
+    public int KpiId { get; set; }
+    public string Designation { get; set; } = string.Empty;
+    public int Order { get; set; }
+
+    public Kpi Kpi { get; set; } = null!;
+}
+
 // DTOs
 public class CreateUserRequest
 {

@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
+import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
@@ -441,6 +442,15 @@ const TABS = [
   { key: "situation_reseaux",             label: "Situation Reseaux",                  color: PRIMARY_COLOR, title: "SITUATION RESEAUX" },
 ]
 
+const KPI_TAB_KEYS = [
+  "suivi_infrastructures_reseau",
+  "evolution_trafic_data",
+  "amelioration_qualite",
+  "couverture_reseau",
+  "action_notable_reseau",
+  "situation_reseaux",
+]
+
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
@@ -618,6 +628,7 @@ function DVDRSPageContent() {
   const [editingSourceMois, setEditingSourceMois] = useState("")
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
+  const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
 
   // Tab data (TABLEAUX CONSERVéS)
   const [realisationTechniqueReseauRows, setRealisationTechniqueReseauRows] = useState<RealisationTechniqueReseauRow[]>(DEFAULT_REALISATION_TECHNIQUE_RESEAU_ROWS.map((row) => ({ ...row })))
@@ -633,6 +644,85 @@ function DVDRSPageContent() {
   const isRegionalRole = isRegionaltableauRole(userRole)
   const isFinanceRole = isFinancetableauRole(userRole)
   const adminSelectedDirection = safeString(direction).trim()
+
+  useEffect(() => {
+    let cancelled = false
+    const loadKpis = async () => {
+      const map = await fetchKpiRowsMap(KPI_TAB_KEYS)
+      if (!cancelled) {
+        setKpiRows(map)
+      }
+    }
+    loadKpis()
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    const getLabels = (key: string, fallback: readonly string[]) => {
+      const rows = kpiRows[key]
+      return rows && rows.length > 0 ? rows : Array.from(fallback)
+    }
+
+    const realisationLabels = getLabels("suivi_infrastructures_reseau", REALISATION_TECHNIQUE_RESEAU_LABELS)
+    setRealisationTechniqueReseauRows((prev) => realisationLabels.map((label, i) => ({
+      label,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+    })))
+
+    const situationLabels = getLabels("situation_reseaux", DEFAULT_SITUATION_RESEAU_ROWS.map((row) => row.situation))
+    setSituationReseauRows((prev) => situationLabels.map((situation, i) => ({
+      situation,
+      equipements: safeString(prev[i]?.equipements) || DEFAULT_SITUATION_RESEAU_ROWS[i]?.equipements || "",
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+    })))
+
+    const traficLabels = getLabels("evolution_trafic_data", TRAFIC_DATA_LABELS)
+    setTraficDataRows((prev) => traficLabels.map((label, i) => ({
+      label,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+    })))
+
+    const ameliorationLabels = getLabels("amelioration_qualite", ["Wilaya 1"])
+    setAmeliorationQualiteRows((prev) => {
+      if (ameliorationLabels.length === 0) return prev.length ? prev : [{ ...EMPTY_AMELIORATION_QUALITE_ROW }]
+      return ameliorationLabels.map((wilaya, i) => ({
+        wilaya,
+        mObjectif: safeString(prev[i]?.mObjectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        m1Objectif: safeString(prev[i]?.m1Objectif),
+        m1Realise: safeString(prev[i]?.m1Realise),
+        ecart: safeString(prev[i]?.ecart),
+      }))
+    })
+
+    const couvertureLabels = getLabels("couverture_reseau", ["Wilaya 1"])
+    setCouvertureReseauRows((prev) => {
+      if (couvertureLabels.length === 0) return prev.length ? prev : [{ ...EMPTY_COUVERTURE_RESEAU_ROW }]
+      return couvertureLabels.map((wilaya, i) => ({
+        wilaya,
+        mObjectif: safeString(prev[i]?.mObjectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        m1Objectif: safeString(prev[i]?.m1Objectif),
+        m1Realise: safeString(prev[i]?.m1Realise),
+        ecart: safeString(prev[i]?.ecart),
+      }))
+    })
+
+    const actionLabels = getLabels("action_notable_reseau", DEFAULT_ACTION_NOTABLE_RESEAU_ROWS.map((row) => row.action))
+    setActionNotableReseauRows((prev) => actionLabels.map((action, i) => ({
+      action,
+      objectif2025: safeString(prev[i]?.objectif2025) || DEFAULT_ACTION_NOTABLE_RESEAU_ROWS[i]?.objectif2025 || "",
+      mObjectif: safeString(prev[i]?.mObjectif),
+      mRealise: safeString(prev[i]?.mRealise),
+      mTaux: safeString(prev[i]?.mTaux),
+      m1Objectif: safeString(prev[i]?.m1Objectif),
+      m1Realise: safeString(prev[i]?.m1Realise),
+      m1Taux: safeString(prev[i]?.m1Taux),
+    })))
+  }, [kpiRows])
   
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),
