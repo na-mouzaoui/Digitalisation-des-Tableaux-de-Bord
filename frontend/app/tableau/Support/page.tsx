@@ -535,19 +535,21 @@ function TabFrequenceFormation({ row, setRow, onSave, isSubmitting }: TabFrequen
 // 7. CONFIGURATION DES ONGLETS (6 tableaux conservés)
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-    "frais_personnel",
-    "effectif_gsp",
-    "absenteisme",
-    "mouvement_effectifs",
-    "mouvement_effectifs_domaine",
-    "creance_contentieuses",
-    "effectifs_formes_gsp",
-    "formations_domaines",
-    "frequence_formation",
-  ]
-  { key: "creance_contentieuses", label: "Creance contentieuses",    color: PRIMARY_COLOR, title: "CREANCE CONTENTIEUSES" },
-  { key: "rh",                 label: "RH",                    color: PRIMARY_COLOR, title: "RH" },
-  { key: "formation",           label: "Formation",              color: PRIMARY_COLOR, title: "FORMATION" },
+  { key: "creance_contentieuses", label: "Creance contentieuses", color: PRIMARY_COLOR, title: "CREANCE CONTENTIEUSES" },
+  { key: "rh", label: "RH", color: PRIMARY_COLOR, title: "RH" },
+  { key: "formation", label: "Formation", color: PRIMARY_COLOR, title: "FORMATION" },
+]
+
+const KPI_TAB_KEYS = [
+  "frais_personnel",
+  "effectif_gsp",
+  "absenteisme",
+  "mouvement_effectifs",
+  "mouvement_effectifs_domaine",
+  "creance_contentieuses",
+  "effectifs_formes_gsp",
+  "formations_domaines",
+  "frequence_formation",
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
@@ -774,9 +776,9 @@ function SupportPageContent() {
   const [editingDeclarationId, setEditingDeclarationId] = useState<string | null>(null)
   const [editingCreatedAt, setEditingCreatedAt] = useState("")
   const [editingSourceMois, setEditingSourceMois] = useState("")
-    const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
   const [editingSourceAnnee, setEditingSourceAnnee] = useState("")
   const [tableauPolicyRevision, settableauPolicyRevision] = useState(0)
+  const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
 
   // Sub-tab for Formation
   const [activeFormationTab, setActiveFormationTab] = useState<"effectifs_formes_gsp" | "formations_domaines" | "frequence_formation">("effectifs_formes_gsp")

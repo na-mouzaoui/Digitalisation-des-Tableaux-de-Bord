@@ -1987,17 +1987,6 @@ function CommercialPageContent() {
               layout="horizontal"
             />
 
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{editingDeclarationId ? "Modifier Declaration" : "Tableaux Commercial"}</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {editingDeclarationId
-                    ? "Mettez a jour les informations du tableau puis enregistrez les modifications."
-                    : "Remplissez chaque tableau, puis enregistrez."}
-                </p>
-              </div>
-            </div>
-
             <Tabs value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)} className="w-full">
               <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:bg-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-400 rounded">
                 {declarationCategoryOptions.map((category) => (

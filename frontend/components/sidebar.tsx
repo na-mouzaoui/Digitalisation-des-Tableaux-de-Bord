@@ -104,24 +104,19 @@ export function Sidebar({ user }: SidebarProps) {
 
             {/* Accordion Nouveaux Tableaux */}
             <div className="mt-2">
-              <div className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">
-                
-                {/* Lien vers /tableau (utilise renderNavLink pour gérer l'état actif) */}
-                {renderNavLink("Nouveaux tableaux", "/tableau", FilePlus)}
-
-                {/* Toggle accordion */}
-                <button
-                  type="button"
-                  onClick={() => setOpentableau(!opentableau)}
-                  className="ml-2"
-                >
-                  {opentableau ? (
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setOpentableau(!opentableau)}
+                className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <FilePlus className="h-5 w-5 text-red-600" />
+                <span className="flex-1 text-left">Nouveaux tableaux</span>
+                {opentableau ? (
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
 
               {opentableau && (
                 <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100 pl-2">

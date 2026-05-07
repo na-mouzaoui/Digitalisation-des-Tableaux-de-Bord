@@ -332,12 +332,12 @@ type CategoryKey = "reseau" | "all"
 const CATEGORY_OPTIONS: Array<{ key: CategoryKey; label: string; tabKeys: TabKey[] }> = [
   { key: "all", label: "Tous",        tabKeys: ["realisation_technique_reseau", "amelioration_qualite", "mttr"] },
   { key: "reseau", label: "Reseau",   tabKeys: ["realisation_technique_reseau", "amelioration_qualite", "mttr"] },
+]
 
 const KPI_TAB_KEYS = [
   "realisation_technique_reseau",
   "amelioration_qualite",
   "mttr",
-]
 ]
 
 const findCategoryKeyForTab = (tabKey: string): CategoryKey =>
