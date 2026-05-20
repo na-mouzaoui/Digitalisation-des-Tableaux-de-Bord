@@ -25,21 +25,23 @@ export interface TableauStep {
  */
 export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
   finances: [
-    { key: "compte_resultat", label: "Compte de Résultat" },
+    { key: "compte_resultat", label: "Finance DCG" },
+    { key: "avancement_engagement", label: "Finance DFC" },
   ],
   DVDRS: [
-    { key: "suivi_infrastructures_reseau", label: "Suivi Infrastructures Réseau" },
-    { key: "evolution_trafic_data", label: "Évolution Trafic Data" },
-    { key: "amelioration_qualite", label: "Amélioration Qualité" },
-    { key: "couverture_reseau", label: "Couverture Réseau" },
-    { key: "action_notable_reseau", label: "Action Notable Réseau" },
-    { key: "situation_reseaux", label: "Situation Réseaux" },
+    { key: "reseau", label: "Reseau technique" },
   ],
   DQRPC: [
-    { key: "disponibilite_reseau", label: "Disponibilité Réseau" },
-    { key: "mttr", label: "MTTR / DR" },
+    { key: "reseau", label: "Qualité Reseau" },
   ],
   commercial: [
+    { key: "chiffre_affaires_mda", label: "Chiffre d'Affaires MDA" },
+    { key: "parc_abonnes_b2b", label: "Parc Abonnés B2B" },
+    { key: "parc_abonnes_gp", label: "Parc Abonnés GP" },
+    { key: "total_parc_abonnes", label: "Total Parc Abonnés" },
+    { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnés/Technologie" },
+    { key: "desactivation_resiliation", label: "Désactivation/Résiliation" },
+    { key: "activation", label: "Activation SIM" },
     { key: "reclamation", label: "Réclamation" },
     { key: "reclamation_gp", label: "Réclamation GP" },
     { key: "e_payement_pop", label: "E-Payment POP" },
@@ -47,23 +49,14 @@ export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
     { key: "total_encaissement", label: "Total Encaissement" },
     { key: "rechargement", label: "Rechargement" },
     { key: "recouvrement", label: "Recouvrement" },
-    { key: "desactivation_resiliation", label: "Désactivation/Résiliation" },
-    { key: "parc_abonnes_b2b", label: "Parc Abonnés B2B" },
-    { key: "parc_abonnes_gp", label: "Parc Abonnés GP" },
-    { key: "total_parc_abonnes", label: "Total Parc Abonnés" },
-    { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnés/Technologie" },
-    { key: "activation", label: "Activation SIM" },
-    { key: "chiffre_affaires_mda", label: "Chiffre d'Affaires MDA" },
   ],
   Support: [
-    { key: "creance_contentieuses", label: "Créances Contentieuses" },
+    { key: "creances_contentieuses", label: "Créances Contentieuses" },
     { key: "rh", label: "Ressources Humaines" },
     { key: "formation", label: "Formation" },
   ],
   regionale: [
-    { key: "realisation_technique_reseau", label: "Réalisation Technique Réseau" },
-    { key: "amelioration_qualite", label: "Amélioration Qualité" },
-    { key: "mttr", label: "MTTR / DR" },
+    { key: "reseau", label: "Réseau" },
   ],
 }
 

@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "CheckFillingAPI": {
+    "TAP_API": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",

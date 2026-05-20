@@ -16,7 +16,8 @@ export interface TableauStep {
  */
 export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
   finances: [
-    { key: "compte_resultat", label: "Compte de Résultat", tabKey: "cr" },
+    { key: "compte_resultat", label: "Finance DCG", tabKey: "cr" },
+    { key: "avancement_engagement", label: "Finance DFC", tabKey: "avancement_engagement" },
   ],
   DVDRS: [
     { key: "suivi_infrastructures_reseau", label: "Suivi Infrastructures Réseau" },

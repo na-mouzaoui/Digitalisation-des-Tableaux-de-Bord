@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -110,15 +109,15 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 // ?????????????????????????????????????????????????????????????????????????????
 
 // ?? Disponibilité Réseau ??????????????????????????????????????????????????????
-type DisponibiliteReseauRow = { designation: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
+type DisponibiliteReseauRow = { designation: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
 const DISPONIBILITE_RESEAU_LABELS = ["Disponibilite des Services", "Disponibilite Coeur Reseau", "Disponibilite Acces Radio 2G", "Disponibilite Acces Radio 3G", "Disponibilite Acces Radio 4G", "Drop call 2G", "RAB Voice Drop 3G", "ERAB Drop 4G", "MTTR", "2G Congestion Rate", "Disponibilite Globale reseau"] as const
-const DEFAULT_DISPONIBILITE_RESEAU_ROWS: DisponibiliteReseauRow[] = DISPONIBILITE_RESEAU_LABELS.map((designation) => ({ designation, mObjectif: "", mRealise: "", mTaux: "", m1Objectif: "", m1Realise: "", m1Taux: "" }))
+const DEFAULT_DISPONIBILITE_RESEAU_ROWS: DisponibiliteReseauRow[] = DISPONIBILITE_RESEAU_LABELS.map((designation) => ({ designation, m1Realise: "", mObjectif: "", mRealise: "", mTaux: "" }))
 
 // ?? MTTR ??????????????????????????????????????????????????????????????????????
-type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; wilayaM1: string; objectifM1: string; realiseM1: string; ecart: string }
+type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; realiseM1: string; ecart: string }
 type MttrRegionRow = { region: string; cities: MttrCityRow[] }
 const MTTR_REGIONS = ["DR Alger", "DR Oran", "DR Constantine", "DR Setif", "DR Ouargla", "DR Bechar", "DR Annaba", "DR Chlef"] as const
-const EMPTY_MTTR_CITY_ROW: MttrCityRow = { wilayaM: "", objectifM: "", realiseM: "", wilayaM1: "", objectifM1: "", realiseM1: "", ecart: "" }
+const EMPTY_MTTR_CITY_ROW: MttrCityRow = { wilayaM: "", objectifM: "", realiseM: "", realiseM1: "", ecart: "" }
 const DEFAULT_MTTR_ROWS: MttrRegionRow[] = MTTR_REGIONS.map((region) => ({ region, cities: [{ ...EMPTY_MTTR_CITY_ROW }] }))
 
 
@@ -157,7 +156,7 @@ interface OrtTableProps {
   update: (index: number, field: string, value: string) => void
 }
 function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: OrtTableProps) {
-  const fields = ["mObjectif", "mRealise", "mTaux", "m1Objectif", "m1Realise", "m1Taux"]
+  const fields = ["m1Realise", "mObjectif", "mRealise", "mTaux"]
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -165,15 +164,13 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
               {["Objectif", "Realise", "Taux"].map((h, i) => (
-                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
-              ))}
-              {["Objectif", "Realise", "Taux"].map((h, i) => (
-                <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
+                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? "" : " border-r"}`}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -227,17 +224,15 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
             <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
               {["WILAYA", "Objectif", "Realise"].map((h, i) => (
                 <th key={i} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
-              ))}
-              {["WILAYA", "Objectif", "Realise"].map((h, i) => (
-                <th key={i + 3} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -253,12 +248,10 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
                       </div>
                     </td>
                   )}
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.realiseM1} onChange={(e) => updateCity(regionIndex, cityIndex, "realiseM1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                   <td className="px-1 py-1 border-b"><Input value={city.wilayaM}  onChange={(e) => updateCity(regionIndex, cityIndex, "wilayaM",  e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
                   <td className="px-1 py-1 border-b"><AmountInput value={city.objectifM} onChange={(e) => updateCity(regionIndex, cityIndex, "objectifM", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                   <td className="px-1 py-1 border-b"><AmountInput value={city.realiseM}  onChange={(e) => updateCity(regionIndex, cityIndex, "realiseM",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-1 py-1 border-b"><Input value={city.wilayaM1} onChange={(e) => updateCity(regionIndex, cityIndex, "wilayaM1", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
-                  <td className="px-1 py-1 border-b"><AmountInput value={city.objectifM1} onChange={(e) => updateCity(regionIndex, cityIndex, "objectifM1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-1 py-1 border-b"><AmountInput value={city.realiseM1}  onChange={(e) => updateCity(regionIndex, cityIndex, "realiseM1",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                   <td className="px-1 py-1 border-b"><AmountInput value={city.ecart}      onChange={(e) => updateCity(regionIndex, cityIndex, "ecart",      e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                   <td className="px-1 py-1 border-b text-center">
                     <Button type="button" size="icon" variant="ghost" onClick={() => removeCity(regionIndex, cityIndex)} disabled={region.cities.length <= 1} className="h-7 w-7 text-red-600"><Trash2 size={12} /></Button>
@@ -358,7 +351,7 @@ const normalizeYearValue = (value: string) =>
 
 const normalizeDisponibiliteReseauRows = (rows?: DisponibiliteReseauRow[]): DisponibiliteReseauRow[] => {
   const src = Array.isArray(rows) ? rows : []
-  return DEFAULT_DISPONIBILITE_RESEAU_ROWS.map((def, i) => ({ designation: def.designation, mObjectif: safeString(src[i]?.mObjectif), mRealise: safeString(src[i]?.mRealise), mTaux: safeString(src[i]?.mTaux), m1Objectif: safeString(src[i]?.m1Objectif), m1Realise: safeString(src[i]?.m1Realise), m1Taux: safeString(src[i]?.m1Taux) }))
+  return DEFAULT_DISPONIBILITE_RESEAU_ROWS.map((def, i) => ({ designation: def.designation, m1Realise: safeString(src[i]?.m1Realise), mObjectif: safeString(src[i]?.mObjectif), mRealise: safeString(src[i]?.mRealise), mTaux: safeString(src[i]?.mTaux) }))
 }
 
 const normalizeMttrRows = (rows?: MttrRegionRow[]): MttrRegionRow[] => {
@@ -368,7 +361,7 @@ const normalizeMttrRows = (rows?: MttrRegionRow[]): MttrRegionRow[] => {
     return {
       region: regionName,
       cities: sourceCities.length > 0
-        ? sourceCities.map((city) => ({ wilayaM: safeString(city.wilayaM), objectifM: safeString(city.objectifM), realiseM: safeString(city.realiseM), wilayaM1: safeString(city.wilayaM1), objectifM1: safeString(city.objectifM1), realiseM1: safeString(city.realiseM1), ecart: safeString(city.ecart) }))
+        ? sourceCities.map((city) => ({ wilayaM: safeString(city.wilayaM), objectifM: safeString(city.objectifM), realiseM: safeString(city.realiseM), realiseM1: safeString(city.realiseM1), ecart: safeString(city.ecart) }))
         : [{ ...EMPTY_MTTR_CITY_ROW }],
     }
   })
@@ -384,7 +377,7 @@ const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
 // PAGE
 function DQRPCPageContent() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
-  const { navigateToNextStep } = useTableauStepNavigation("DQRPC")
+  useTableauStepNavigation("DQRPC")
   const { toast } = useToast()
   const router = useRouter()
   const printRef = useRef<HTMLDivElement>(null)
@@ -474,12 +467,10 @@ function DQRPCPageContent() {
     const dispoLabels = getLabels("disponibilite_reseau", DISPONIBILITE_RESEAU_LABELS)
     setDisponibiliteReseauRows((prev) => dispoLabels.map((designation, i) => ({
       designation,
+      m1Realise: safeString(prev[i]?.m1Realise),
       mObjectif: safeString(prev[i]?.mObjectif),
       mRealise: safeString(prev[i]?.mRealise),
       mTaux: safeString(prev[i]?.mTaux),
-      m1Objectif: safeString(prev[i]?.m1Objectif),
-      m1Realise: safeString(prev[i]?.m1Realise),
-      m1Taux: safeString(prev[i]?.m1Taux),
     })))
 
     const mttrLabels = getLabels("mttr", MTTR_REGIONS)
@@ -492,8 +483,6 @@ function DQRPCPageContent() {
               wilayaM: safeString(city.wilayaM),
               objectifM: safeString(city.objectifM),
               realiseM: safeString(city.realiseM),
-              wilayaM1: safeString(city.wilayaM1),
-              objectifM1: safeString(city.objectifM1),
               realiseM1: safeString(city.realiseM1),
               ecart: safeString(city.ecart),
             }))
@@ -553,7 +542,6 @@ function DQRPCPageContent() {
   )
   
   const hasFiscalTabAccess = declarationTabs.length > 0
-  const isActiveTabDisabled = disabledTabKeys.has(activeTab)
 
   const resolveDirectionForRole = useCallback(
     (fallbackDirection = "") => {
@@ -719,11 +707,11 @@ function DQRPCPageContent() {
     )
   }
 
-  const handleSave = async () => {
+  const handleSave = async (tabKey: tableauTabKey) => {
     const saveDirection = effectiveDirection
     const isAdminEditing = isAdminRole && !!editingDeclarationId
     
-    if (!isAdminEditing && !canManageTabForDirection(activeTab, saveDirection)) {
+    if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
         title: "Acces refuse",
         description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
@@ -732,7 +720,7 @@ function DQRPCPageContent() {
       return
     }
 
-    if (isActiveTabDisabled) {
+    if (disabledTabKeys.has(tabKey)) {
       toast({
         title: "Tableau desactive",
         description: "Le tableau selectionne est desactive par l'administration.",
@@ -780,15 +768,15 @@ function DQRPCPageContent() {
 
     // Validation des champs
     let validationError = false
-    switch (activeTab) {
+    switch (tabKey) {
       case "disponibilite_reseau":
-        if (disponibiliteReseauRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+        if (disponibiliteReseauRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Disponibilite reseau.", variant: "destructive" })
           validationError = true
         }
         break
       case "mttr":
-        if (mttrRows.some((region) => region.cities.some((city) => !city.wilayaM || !city.objectifM || !city.realiseM || !city.wilayaM1 || !city.objectifM1 || !city.realiseM1 || !city.ecart))) {
+        if (mttrRows.some((region) => region.cities.some((city) => !city.wilayaM || !city.objectifM || !city.realiseM || !city.realiseM1 || !city.ecart))) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau MTTR.", variant: "destructive" })
           validationError = true
         }
@@ -821,7 +809,7 @@ function DQRPCPageContent() {
       mttrRows: [],
     }
     
-    switch (activeTab) {
+    switch (tabKey) {
       case "disponibilite_reseau":
         baseDecl.disponibiliteReseauRows = disponibiliteReseauRows
         break
@@ -846,12 +834,12 @@ function DQRPCPageContent() {
       const apiBase = API_BASE
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       let tabData: unknown = {}
-      switch (activeTab) {
+      switch (tabKey) {
         case "disponibilite_reseau": tabData = { disponibiliteReseauRows }; break
         case "mttr": tabData = { mttrRows }; break
       }
       const requestPayload = {
-        tabKey: activeTab,
+        tabKey,
         mois,
         annee,
         direction: saveDirection,
@@ -880,7 +868,13 @@ function DQRPCPageContent() {
       })
 
       if (!createResponse.ok) {
-        throw new Error("Erreur lors de l'enregistrement")
+        const errorText = await createResponse.text().catch(() => "")
+        const cleanText = errorText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+        const details = cleanText.slice(0, 200)
+        const message = details
+          ? `Erreur lors de l'enregistrement: ${details}`
+          : `Erreur lors de l'enregistrement (HTTP ${createResponse.status})`
+        throw new Error(message)
       }
     } catch (error) {
       setIsSubmitting(false)
@@ -892,13 +886,13 @@ function DQRPCPageContent() {
       return
     }
     
-    const tabLabel = TABS.find((t) => t.key === activeTab)?.label ?? activeTab
+    const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
       title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
       description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
     })
     setIsSubmitting(false)
-    navigateToNextStep(activeTab, mois, annee)
+    setActiveTab(tabKey)
   }
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
@@ -912,6 +906,110 @@ function DQRPCPageContent() {
     }
     return ""
   })()
+
+  const completedTabKeys = useMemo(() => {
+    const keys = new Set<string>()
+    const periodMois = safeString(mois).trim()
+    const periodAnnee = safeString(annee).trim()
+    const periodDirection = safeString(effectiveDirection).trim()
+
+    tableauDeclarations.forEach((decl) => {
+      if (
+        safeString(decl.mois).trim() === periodMois &&
+        safeString(decl.annee).trim() === periodAnnee &&
+        safeString(decl.direction).trim() === periodDirection &&
+        istableauTabKey(decl.tabKey)
+      ) {
+        keys.add(decl.tabKey)
+      }
+    })
+
+    if (typeof window !== "undefined") {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("fiscal_declarations") ?? "[]")
+        const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
+        declarations.forEach((decl) => {
+          if (
+            safeString(decl.mois).trim() === periodMois &&
+            safeString(decl.annee).trim() === periodAnnee &&
+            safeString(decl.direction).trim() === periodDirection
+          ) {
+            const tabKey = resolveDeclarationTabKey(decl)
+            if (istableauTabKey(tabKey)) {
+              keys.add(tabKey)
+            }
+          }
+        })
+      } catch {
+        return keys
+      }
+    }
+
+    return keys
+  }, [annee, effectiveDirection, mois, tableauDeclarations])
+
+  const renderDisabledNotice = (tabKey: tableauTabKey) =>
+    disabledTabKeys.has(tabKey) ? (
+      <p className="mb-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
+        Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
+      </p>
+    ) : null
+
+  const getExistingDeclarationForTab = (tabKey: tableauTabKey): Savedtableau | null => {
+    try {
+      const parsed = JSON.parse(typeof localStorage !== "undefined" ? localStorage.getItem("fiscal_declarations") ?? "[]" : "[]")
+      const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
+      return declarations.find(decl => {
+        if (decl.mois !== mois || decl.annee !== annee || decl.direction !== effectiveDirection) return false
+        if (editingDeclarationId && safeString(decl.id) === editingDeclarationId) return false
+        return resolveDeclarationTabKey(decl) === tabKey
+      }) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  const renderExistingWarning = (tabKey: tableauTabKey) => {
+    const existing = getExistingDeclarationForTab(tabKey)
+    return existing ? (
+      <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+        Ce tableau a deja ete enregistre pour la periode {existing.mois}/{existing.annee}. Vous etes sur le point de le modifier.
+      </p>
+    ) : null
+  }
+
+  const renderTabCard = (tabKey: tableauTabKey) => {
+    switch (tabKey) {
+      case "disponibilite_reseau":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Disponibilite reseau</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabDisponibiliteReseau rows={disponibiliteReseauRows} setRows={setDisponibiliteReseauRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "mttr":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>MTTR / DR</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabMttr rows={mttrRows} setRows={setMttrRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      default:
+        return null
+    }
+  }
 
   return (
     <LayoutWrapper user={user}>
@@ -930,23 +1028,12 @@ function DQRPCPageContent() {
               title="Tableaux DQRPC"
               domain="DQRPC"
               currentTabKey={activeTab}
+              completedTabKeys={completedTabKeys}
               mois={mois}
               annee={annee}
               onBackClick={() => router.push("/dashbord")}
               layout="horizontal"
             />
-
-            <Tabs value={activeTab} onValueChange={(value) => {
-                      setActiveTab(value)
-                    }} className="w-full">
-              <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:bg-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-400 rounded">
-                {declarationTabs.map((tab) => (
-                  <TabsTrigger key={tab.key} value={tab.key} className="text-xs px-3 py-2 whitespace-nowrap">
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
 
             <Card className="border border-gray-200">
               <CardContent className="pt-4 pb-3">
@@ -976,32 +1063,7 @@ function DQRPCPageContent() {
                       className="h-10 w-[120px] rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                     />
                   </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
-                    <Select value={activeTab} onValueChange={(value) => {
-                      if (disabledTabKeys.has(value)) return
-                      setActiveTab(value)
-                    }}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner un tableau" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {declarationTabs.length === 0
-                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible</SelectItem>
-                          : declarationTabs.map((t) => (
-                              <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
-                                {t.label}{t.isDisabled ? " (desactive)" : ""}
-                              </SelectItem>
-                            ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
-                {isActiveTabDisabled && (
-                  <p className="mt-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
-                    Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
-                  </p>
-                )}
                 {currentPeriodLockMessage && (
                   <p className="mt-3 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
                     {currentPeriodLockMessage}
@@ -1010,28 +1072,8 @@ function DQRPCPageContent() {
               </CardContent>
             </Card>
 
-            <div>
-              {activeTab === "disponibilite_reseau" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Disponibilite reseau</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabDisponibiliteReseau rows={disponibiliteReseauRows} setRows={setDisponibiliteReseauRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "mttr" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>MTTR / DR</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabMttr rows={mttrRows} setRows={setMttrRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-
+            <div className="space-y-4">
+              {declarationTabs.map((tab) => renderTabCard(tab.key as tableauTabKey))}
             </div>
           </div>
         </>

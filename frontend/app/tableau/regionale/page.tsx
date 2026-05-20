@@ -437,7 +437,7 @@ function RegionalePageContent() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const { toast } = useToast()
   const router = useRouter()
-  const { navigateToNextStep } = useTableauStepNavigation("regionale")
+  useTableauStepNavigation("regionale")
   const printRef = useRef<HTMLDivElement>(null)
   const [editQuery, setEditQuery] = useState<{ editId: string; tab: string }>({ editId: "", tab: "" })
 
@@ -600,7 +600,6 @@ function RegionalePageContent() {
   )
   
   const hasFiscalTabAccess = declarationTabs.length > 0
-  const isActiveTabDisabled = disabledTabKeys.has(activeTab)
 
   const resolveDirectionForRole = useCallback(
     (fallbackDirection = "") => {
@@ -772,11 +771,11 @@ function RegionalePageContent() {
     )
   }
 
-  const handleSave = async () => {
+  const handleSave = async (tabKey: TabKey) => {
     const saveDirection = effectiveDirection
     const isAdminEditing = isAdminRole && !!editingDeclarationId
     
-    if (!isAdminEditing && !canManageTabForDirection(activeTab, saveDirection)) {
+    if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
         title: "Acces refuse",
         description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
@@ -785,7 +784,7 @@ function RegionalePageContent() {
       return
     }
 
-    if (isActiveTabDisabled) {
+    if (disabledTabKeys.has(tabKey)) {
       toast({
         title: "Tableau desactive",
         description: "Le tableau selectionne est desactive par l'administration.",
@@ -832,7 +831,7 @@ function RegionalePageContent() {
     }
 
     let validationError = false
-    switch (activeTab) {
+    switch (tabKey) {
       case "realisation_technique_reseau":
         if (realisationTechniqueReseauRows.some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Realisation technique Reseau.", variant: "destructive" })
@@ -876,7 +875,7 @@ function RegionalePageContent() {
       annee,
     }
     
-    switch (activeTab) {
+    switch (tabKey) {
       case "realisation_technique_reseau":
         baseDecl.realisationTechniqueReseauRows = realisationTechniqueReseauRows
         break
@@ -904,13 +903,13 @@ function RegionalePageContent() {
       const apiBase = API_BASE
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       let tabData: unknown = {}
-      switch (activeTab) {
+      switch (tabKey) {
         case "realisation_technique_reseau": tabData = { realisationTechniqueReseauRows }; break
         case "amelioration_qualite": tabData = { ameliorationQualiteRows }; break
         case "mttr": tabData = { mttrRows }; break
       }
       const requestPayload = {
-        tabKey: activeTab,
+        tabKey,
         mois,
         annee,
         direction: saveDirection,
@@ -939,7 +938,13 @@ function RegionalePageContent() {
       })
 
       if (!createResponse.ok) {
-        throw new Error("Erreur lors de l'enregistrement")
+        const errorText = await createResponse.text().catch(() => "")
+        const cleanText = errorText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+        const details = cleanText.slice(0, 200)
+        const message = details
+          ? `Erreur lors de l'enregistrement: ${details}`
+          : `Erreur lors de l'enregistrement (HTTP ${createResponse.status})`
+        throw new Error(message)
       }
     } catch (error) {
       setIsSubmitting(false)
@@ -951,13 +956,13 @@ function RegionalePageContent() {
       return
     }
     
-    const tabLabel = TABS.find((t) => t.key === activeTab)?.label ?? activeTab
+    const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
       title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
       description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
     })
     setIsSubmitting(false)
-    navigateToNextStep(activeTab, mois, annee)
+    setActiveTab(tabKey)
   }
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
@@ -971,6 +976,128 @@ function RegionalePageContent() {
     }
     return ""
   })()
+
+  const completedTabKeys = useMemo(() => {
+    const keys = new Set<string>()
+    const periodMois = safeString(mois).trim()
+    const periodAnnee = safeString(annee).trim()
+    const periodDirection = safeString(effectiveDirection).trim()
+
+    tableauDeclarations.forEach((decl) => {
+      if (
+        safeString(decl.mois).trim() === periodMois &&
+        safeString(decl.annee).trim() === periodAnnee &&
+        safeString(decl.direction).trim() === periodDirection &&
+        isTabKey(decl.tabKey)
+      ) {
+        keys.add(decl.tabKey)
+      }
+    })
+
+    if (typeof window !== "undefined") {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("fiscal_declarations") ?? "[]")
+        const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
+        declarations.forEach((decl) => {
+          if (
+            safeString(decl.mois).trim() === periodMois &&
+            safeString(decl.annee).trim() === periodAnnee &&
+            safeString(decl.direction).trim() === periodDirection
+          ) {
+            const tabKey = resolveDeclarationTabKey(decl)
+            if (isTabKey(tabKey)) {
+              keys.add(tabKey)
+            }
+          }
+        })
+      } catch {
+        return keys
+      }
+    }
+
+    return keys
+  }, [annee, effectiveDirection, mois, tableauDeclarations])
+
+  const renderDisabledNotice = (tabKey: TabKey) =>
+    disabledTabKeys.has(tabKey) ? (
+      <p className="mb-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
+        Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
+      </p>
+    ) : null
+
+  const getExistingDeclarationForTab = (tabKey: TabKey): SavedData | null => {
+    try {
+      const parsed = JSON.parse(typeof localStorage !== "undefined" ? localStorage.getItem("regionale_declarations") ?? "[]" : "[]")
+      const declarations: SavedData[] = Array.isArray(parsed) ? parsed : []
+      return declarations.find(decl => {
+        if (decl.mois !== mois || decl.annee !== annee || decl.direction !== effectiveDirection) return false
+        if (editingDeclarationId && safeString(decl.id) === editingDeclarationId) return false
+        return resolveTabKey(decl) === tabKey
+      }) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  const renderExistingWarning = (tabKey: TabKey) => {
+    const existing = getExistingDeclarationForTab(tabKey)
+    return existing ? (
+      <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+        Ce tableau a deja ete enregistre pour la periode {existing.mois}/{existing.annee}. Vous etes sur le point de le modifier.
+      </p>
+    ) : null
+  }
+
+  const renderTabCard = (tabKey: TabKey) => {
+    switch (tabKey) {
+      case "realisation_technique_reseau":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Realisation technique Reseau</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabRealisationTechniqueReseau
+                rows={realisationTechniqueReseauRows}
+                setRows={setRealisationTechniqueReseauRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+          </Card>
+        )
+      case "amelioration_qualite":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Amelioration qualite (Debit MBPS/Wilaya)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabAmeliorationQualite rows={ameliorationQualiteRows} setRows={setAmeliorationQualiteRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "mttr":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>MTTR / DR</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabMttr rows={mttrRows} setRows={setMttrRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      default:
+        return null
+    }
+  }
 
   return (
     <LayoutWrapper user={user}>
@@ -989,6 +1116,7 @@ function RegionalePageContent() {
               title="Tableaux Regionale"
               domain="regionale"
               currentTabKey={activeTab}
+              completedTabKeys={completedTabKeys}
               mois={mois}
               annee={annee}
               onBackClick={() => router.push("/dashbord")}
@@ -1024,33 +1152,7 @@ function RegionalePageContent() {
                     />
                   </div>
                   
-                  <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
-                    <Select value={activeTab} onValueChange={(value) => {
-                      if (disabledTabKeys.has(value)) return
-                      setActiveTab(value)
-                      setSelectedCategoryKey(findCategoryKeyForTab(value))
-                    }}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner un tableau" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredTabs.length === 0
-                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible pour cette categorie</SelectItem>
-                          : filteredTabs.map((t) => (
-                              <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
-                                {t.label}{t.isDisabled ? " (desactive)" : ""}
-                              </SelectItem>
-                            ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
-                {isActiveTabDisabled && (
-                  <p className="mt-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
-                    Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
-                  </p>
-                )}
                 {currentPeriodLockMessage && (
                   <p className="mt-3 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
                     {currentPeriodLockMessage}
@@ -1059,42 +1161,8 @@ function RegionalePageContent() {
               </CardContent>
             </Card>
 
-            <div>
-              {activeTab === "realisation_technique_reseau" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Realisation technique Reseau</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabRealisationTechniqueReseau
-                      rows={realisationTechniqueReseauRows}
-                      setRows={setRealisationTechniqueReseauRows}
-                      onSave={handleSave}
-                      isSubmitting={isSubmitting}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "amelioration_qualite" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Amelioration qualite (Debit MBPS/Wilaya)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabAmeliorationQualite rows={ameliorationQualiteRows} setRows={setAmeliorationQualiteRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "mttr" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>MTTR / DR</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabMttr rows={mttrRows} setRows={setMttrRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
+            <div className="space-y-4">
+              {filteredTabs.map((tab) => renderTabCard(tab.key as TabKey))}
             </div>
           </div>
         </>

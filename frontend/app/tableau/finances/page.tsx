@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save } from "lucide-react"
@@ -107,9 +107,7 @@ type CompteResultatRow = {
   mBudget: string
   mRealise: string
   mTaux: string
-  m1Budget: string
   m1Realise: string
-  m1Taux: string
 }
 
 const COMPTE_RESULTAT_LABELS = [
@@ -128,16 +126,27 @@ const COMPTE_RESULTAT_LABELS = [
   "Dotations aux amortissements",
   "Reprises sur pertes de valeur et provisions",
   "Resultat Operationnel",
+  "Produits financiers",
+  "Charges financieres",
+  "RESULTAT FINANCIER",
+  "RESULTAT ORDINAIRE AVANT IMPOTS",
 ] as const
+
+const COMPTE_RESULTAT_GREEN_ROWS = new Set([
+  "Total CA",
+  "VALEUR AJOUTEE D'EXPLOITATION",
+  "EBE",
+  "Resultat Operationnel",
+  "RESULTAT FINANCIER",
+  "RESULTAT ORDINAIRE AVANT IMPOTS",
+])
 
 const DEFAULT_COMPTE_RESULTAT_ROWS: CompteResultatRow[] = COMPTE_RESULTAT_LABELS.map((designation) => ({
   designation,
   mBudget: "",
   mRealise: "",
   mTaux: "",
-  m1Budget: "",
   m1Realise: "",
-  m1Taux: "",
 }))
 
 // ?????????????????????????????????????????????????????????????????????????????
@@ -166,6 +175,8 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteRes
   const update = (index: number, field: keyof CompteResultatRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
+  const mFields = ["mBudget", "mRealise", "mTaux"] as const
+
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -173,13 +184,11 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteRes
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Designations</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              {["Budget", "Realise", "Taux"].map((h, i) => (
-                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
-              ))}
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
               {["Budget", "Realise", "Taux"].map((h, i) => (
                 <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
               ))}
@@ -187,13 +196,245 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteRes
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={row.designation} className="bg-white">
+              <tr key={row.designation} className={COMPTE_RESULTAT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                {(["mBudget", "mRealise", "mTaux", "m1Budget", "m1Realise", "m1Taux"] as const).map((field) => (
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                {mFields.map((field) => (
                   <td key={field} className="px-1 py-1 border-b">
                     <AmountInput value={row[field]} onChange={(e) => update(index, field, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
                   </td>
                 ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+// ?? Investissement (MDA) ???????????????????????????????????????????????????????
+type InvestissementRow = { designation: string; m1: string; m: string; evol: string }
+
+const INVESTISSEMENT_LABELS = [
+  "PREVU",
+  "ENGAGE",
+  "TECHNIQUE PREVU",
+  "TECHNIQUE ENGAGE",
+  "Totale Prevu",
+  "Totale Engage",
+  "Taux",
+] as const
+
+const DEFAULT_INVESTISSEMENT_ROWS: InvestissementRow[] = INVESTISSEMENT_LABELS.map((designation) => ({
+  designation,
+  m1: "",
+  m: "",
+  evol: "",
+}))
+
+const INVESTISSEMENT_GREEN_ROWS = new Set(["Taux"])
+
+// ?? Avancement Engagement (Finance DFC) ????????????????????????????????????????
+type AvancementEngagementRow = { designation: string; m1: string; m: string; evol: string }
+
+const AVANCEMENT_ENGAGEMENT_LABELS = [
+  "Montant de l'investissement",
+  "Dépense d'investissement engagées",
+  "Droits de Douane Exonorés",
+  "TVA Exonérée",
+  "Taux et d'investissement",
+  "Total des emplois créés",
+] as const
+
+const DEFAULT_AVANCEMENT_ENGAGEMENT_ROWS: AvancementEngagementRow[] = AVANCEMENT_ENGAGEMENT_LABELS.map((designation) => ({
+  designation,
+  m1: "",
+  m: "",
+  evol: "",
+}))
+
+// ?? Tresorerie Mobilis (MDA) ???????????????????????????????????????????????????
+type TresorerieMobilisRow = { designation: string; m1: string; m: string; evol: string }
+
+const TRESORERIE_MOBILIS_LABELS = [
+  "Solde Debut de période",
+  "RECETTE (encaissement)",
+  "Client",
+  "Roaming",
+  "Interco",
+  "Autre",
+  "Totale Mois",
+  "totale Cumulé",
+  "DEPENSE (decaissement)",
+  "Exploitations",
+  "Totale Mois",
+  "Totale Cumulé",
+  "Solde Fin de Période",
+] as const
+
+const DEFAULT_TRESORERIE_MOBILIS_ROWS: TresorerieMobilisRow[] = TRESORERIE_MOBILIS_LABELS.map((designation) => ({
+  designation,
+  m1: "",
+  m: "",
+  evol: "",
+}))
+
+const TRESORERIE_MOBILIS_GREEN_INDICES = new Set([6, 10, 12])
+
+interface TabInvestissementProps {
+  rows: InvestissementRow[]
+  setRows: React.Dispatch<React.SetStateAction<InvestissementRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabInvestissement({ rows, setRows, onSave, isSubmitting }: TabInvestissementProps) {
+  const update = (index: number, field: keyof InvestissementRow, value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  const NO_EVOL_INDICES = new Set([4, 5, 6])
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">INVESTISSEMENT (MDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"></th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className={INVESTISSEMENT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
+                {index === 0 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Fonctionement</td>}
+                {index === 2 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">TECHNIQUE</td>}
+                {index > 3 && <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>}
+                <td className="px-3 py-2 border-b text-center text-xs font-medium text-gray-600">{(index === 0 || index === 2) ? "PREVU" : (index === 1 || index === 3) ? "ENGAGE" : ""}</td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                {NO_EVOL_INDICES.has(index) ? (
+                  <td className="px-3 py-2 border-b"></td>
+                ) : (
+                  <td className="px-1 py-1 border-b">
+                    <AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+// ?? Avancement Engagement ???????????????????????????????????????????????????????
+interface TabAvancementEngagementProps {
+  rows: AvancementEngagementRow[]
+  setRows: React.Dispatch<React.SetStateAction<AvancementEngagementRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabAvancementEngagement({ rows, setRows, onSave, isSubmitting }: TabAvancementEngagementProps) {
+  const update = (index: number, field: keyof AvancementEngagementRow, value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Etat d'avancement des engagement (MDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.designation} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+// ?? Tresorerie Mobilis ?????????????????????????????????????????????????????????
+interface TabTresorerieMobilisProps {
+  rows: TresorerieMobilisRow[]
+  setRows: React.Dispatch<React.SetStateAction<TresorerieMobilisRow[]>>
+  onSave: () => void
+  isSubmitting: boolean
+}
+
+function TabTresorerieMobilis({ rows, setRows, onSave, isSubmitting }: TabTresorerieMobilisProps) {
+  const update = (index: number, field: keyof TresorerieMobilisRow, value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Trésorerie Mobilis (MDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"></th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.designation}-${index}`} className={TRESORERIE_MOBILIS_GREEN_INDICES.has(index) ? "bg-green-100 font-semibold" : "bg-white"}>
+                {index === 1 ? (
+                  <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">RECETTE (encaissement)</td>
+                ) : index === 8 ? (
+                  <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">DEPENSE (decaissement)</td>
+                ) : index === 0 || (index >= 6 && index <= 7) || index >= 10 ? (
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                ) : null}
+                <td className="px-3 py-2 border-b text-center text-xs font-medium text-gray-600">
+                  {(index >= 2 && index <= 5) ? ["Client", "Roaming", "Interco", "Autre"][index - 2] : index === 8 ? "Investissements" : index === 9 ? "Exploitations" : ""}
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
+                <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -209,20 +450,22 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteRes
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
   { key: "compte_resultat", label: "Compte de resultat", color: PRIMARY_COLOR, title: "COMPTE DE RESULTAT" },
+  { key: "investissement", label: "Investissement (MDA)", color: PRIMARY_COLOR, title: "INVESTISSEMENT (MDA)" },
+  { key: "avancement_engagement", label: "Finance DFC", color: PRIMARY_COLOR, title: "ETAT D'AVANCEMENT DES ENGAGEMENTS (MDA)" },
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
-type tableauTabKey = "compte_resultat"
+type tableauTabKey = "compte_resultat" | "investissement" | "avancement_engagement"
 
 type tableauCategoryKey = "cr" | "all"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all", label: "Tous", tabKeys: ["compte_resultat"] },
+  { key: "all", label: "Tous", tabKeys: ["compte_resultat", "investissement", "avancement_engagement"] },
   { key: "cr", label: "CR", tabKeys: ["compte_resultat"] },
 ]
 
-const KPI_TAB_KEYS = ["compte_resultat"]
+const KPI_TAB_KEYS = ["compte_resultat", "investissement", "avancement_engagement"]
 
 const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
   tableau_CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "cr"
@@ -254,6 +497,9 @@ interface Savedtableau {
   mois: string
   annee: string
   compteResultatRows?: CompteResultatRow[]
+  investissementRows?: InvestissementRow[]
+  avancementEngagementRows?: AvancementEngagementRow[]
+  tresorerieMobilisRows?: TresorerieMobilisRow[]
 }
 
 type Apitableautableau = {
@@ -284,13 +530,56 @@ const normalizeCompteResultatRows = (rows?: CompteResultatRow[]): CompteResultat
     mBudget: safeString(src[i]?.mBudget),
     mRealise: safeString(src[i]?.mRealise),
     mTaux: safeString(src[i]?.mTaux),
-    m1Budget: safeString(src[i]?.m1Budget),
     m1Realise: safeString(src[i]?.m1Realise),
-    m1Taux: safeString(src[i]?.m1Taux),
+  }))
+}
+
+const normalizeInvestissementRows = (rows?: InvestissementRow[]): InvestissementRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return INVESTISSEMENT_LABELS.map((designation, i) => ({
+    designation,
+    m1: safeString(src[i]?.m1),
+    m: safeString(src[i]?.m),
+    evol: safeString(src[i]?.evol),
+  }))
+}
+
+const normalizeAvancementEngagementRows = (rows?: AvancementEngagementRow[]): AvancementEngagementRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return AVANCEMENT_ENGAGEMENT_LABELS.map((designation, i) => ({
+    designation,
+    m1: safeString(src[i]?.m1),
+    m: safeString(src[i]?.m),
+    evol: safeString(src[i]?.evol),
+  }))
+}
+
+const normalizeTresorerieMobilisRows = (rows?: TresorerieMobilisRow[]): TresorerieMobilisRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  // Migration from old 12-row format to current 13-row format
+  if (src.length === 12) {
+    const map12to13 = [0, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    return TRESORERIE_MOBILIS_LABELS.map((designation, i) => {
+      const j = map12to13[i]
+      return {
+        designation,
+        m1: j >= 0 ? safeString(src[j]?.m1) : "",
+        m: j >= 0 ? safeString(src[j]?.m) : "",
+        evol: j >= 0 ? safeString(src[j]?.evol) : "",
+      }
+    })
+  }
+  return TRESORERIE_MOBILIS_LABELS.map((designation, i) => ({
+    designation,
+    m1: safeString(src[i]?.m1),
+    m: safeString(src[i]?.m),
+    evol: safeString(src[i]?.evol),
   }))
 }
 
 const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
+  if ((decl.avancementEngagementRows?.length ?? 0) > 0) return "avancement_engagement"
+  if ((decl.investissementRows?.length ?? 0) > 0) return "investissement"
   if ((decl.compteResultatRows?.length ?? 0) > 0) return "compte_resultat"
   return "compte_resultat"
 }
@@ -300,7 +589,7 @@ function FinancesPageContent() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const { toast } = useToast()
   const router = useRouter()
-  const { navigateToNextStep } = useTableauStepNavigation("finances")
+  useTableauStepNavigation("finances")
   const printRef = useRef<HTMLDivElement>(null)
   const [editQuery, setEditQuery] = useState<{ editId: string; tab: string }>({ editId: "", tab: "" })
 
@@ -355,6 +644,9 @@ function FinancesPageContent() {
   const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
 
   const [compteResultatRows, setCompteResultatRows] = useState<CompteResultatRow[]>(DEFAULT_COMPTE_RESULTAT_ROWS.map((row) => ({ ...row })))
+  const [investissementRows, setInvestissementRows] = useState<InvestissementRow[]>(DEFAULT_INVESTISSEMENT_ROWS.map((row) => ({ ...row })))
+  const [avancementEngagementRows, setAvancementEngagementRows] = useState<AvancementEngagementRow[]>(DEFAULT_AVANCEMENT_ENGAGEMENT_ROWS.map((row) => ({ ...row })))
+  const [tresorerieMobilisRows, setTresorerieMobilisRows] = useState<TresorerieMobilisRow[]>(DEFAULT_TRESORERIE_MOBILIS_ROWS.map((row) => ({ ...row })))
   const [tableauDeclarations, settableauDeclarations] = useState<Apitableautableau[]>([])
 
   const userRole = user?.role ?? ""
@@ -383,9 +675,7 @@ function FinancesPageContent() {
       mBudget: safeString(prev[i]?.mBudget),
       mRealise: safeString(prev[i]?.mRealise),
       mTaux: safeString(prev[i]?.mTaux),
-      m1Budget: safeString(prev[i]?.m1Budget),
       m1Realise: safeString(prev[i]?.m1Realise),
-      m1Taux: safeString(prev[i]?.m1Taux),
     })))
   }, [kpiRows])
 
@@ -439,7 +729,6 @@ function FinancesPageContent() {
   )
 
   const hasFiscalTabAccess = declarationTabs.length > 0
-  const isActiveTabDisabled = disabledTabKeys.has(activeTab)
 
   const resolveDirectionForRole = useCallback(
     (fallbackDirection = "") => {
@@ -592,6 +881,9 @@ function FinancesPageContent() {
       setEditingSourceMois(loadedMois)
       setEditingSourceAnnee(loadedAnnee)
       setCompteResultatRows(normalizeCompteResultatRows(declaration.compteResultatRows))
+      setInvestissementRows(normalizeInvestissementRows(declaration.investissementRows))
+      setAvancementEngagementRows(normalizeAvancementEngagementRows(declaration.avancementEngagementRows))
+      setTresorerieMobilisRows(normalizeTresorerieMobilisRows(declaration.tresorerieMobilisRows))
     } catch {
       toast({
         title: "Erreur de chargement",
@@ -609,11 +901,19 @@ function FinancesPageContent() {
     )
   }
 
-  const handleSave = async () => {
+  const handleStepClick = (pointKey: string) => {
+    if (istableauTabKey(pointKey)) {
+      const category = findtableauCategoryKeyForTab(pointKey)
+      setSelectedCategoryKey(category)
+      setActiveTab(pointKey)
+    }
+  }
+
+  const handleSave = async (tabKey: tableauTabKey) => {
     const saveDirection = effectiveDirection
     const isAdminEditing = isAdminRole && !!editingDeclarationId
 
-    if (!isAdminEditing && !canManageTabForDirection(activeTab, saveDirection)) {
+    if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
         title: "Acces refuse",
         description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
@@ -622,7 +922,7 @@ function FinancesPageContent() {
       return
     }
 
-    if (isActiveTabDisabled) {
+    if (disabledTabKeys.has(tabKey)) {
       toast({
         title: "Tableau desactive",
         description: "Le tableau selectionne est desactive par l'administration.",
@@ -669,8 +969,16 @@ function FinancesPageContent() {
     }
 
     let validationError = false
-    if (compteResultatRows.some((row) => !row.mBudget || !row.mRealise || !row.mTaux || !row.m1Budget || !row.m1Realise || !row.m1Taux)) {
+    if (tabKey === "compte_resultat" && compteResultatRows.some((row) => !row.mBudget || !row.mRealise || !row.mTaux || !row.m1Realise)) {
       toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Compte de resultat.", variant: "destructive" })
+      validationError = true
+    }
+    if (tabKey === "investissement" && investissementRows.some((row) => !row.m1 || !row.m)) {
+      toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Investissement.", variant: "destructive" })
+      validationError = true
+    }
+    if (tabKey === "avancement_engagement" && (avancementEngagementRows.some((row) => !row.m1 || !row.m || !row.evol) || tresorerieMobilisRows.some((row) => !row.m1 || !row.m || !row.evol))) {
+      toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Finance DFC.", variant: "destructive" })
       validationError = true
     }
     if (validationError) return
@@ -696,6 +1004,9 @@ function FinancesPageContent() {
       mois,
       annee,
       compteResultatRows,
+      investissementRows,
+      avancementEngagementRows,
+      tresorerieMobilisRows,
     }
 
     try {
@@ -713,10 +1024,14 @@ function FinancesPageContent() {
     try {
       const apiBase = API_BASE
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-      const tabData = { compteResultatRows }
+      const tabData = tabKey === "avancement_engagement"
+        ? { avancementEngagementRows, tresorerieMobilisRows }
+        : tabKey === "investissement"
+        ? { investissementRows }
+        : { compteResultatRows }
 
       const requestPayload = {
-        tabKey: activeTab,
+        tabKey,
         mois,
         annee,
         direction: saveDirection,
@@ -745,7 +1060,13 @@ function FinancesPageContent() {
       })
 
       if (!createResponse.ok) {
-        throw new Error("Erreur lors de l'enregistrement")
+        const errorText = await createResponse.text().catch(() => "")
+        const cleanText = errorText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+        const details = cleanText.slice(0, 200)
+        const message = details
+          ? `Erreur lors de l'enregistrement: ${details}`
+          : `Erreur lors de l'enregistrement (HTTP ${createResponse.status})`
+        throw new Error(message)
       }
     } catch (error) {
       setIsSubmitting(false)
@@ -757,13 +1078,13 @@ function FinancesPageContent() {
       return
     }
 
-    const tabLabel = TABS.find((t) => t.key === activeTab)?.label ?? activeTab
+    const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
       title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
       description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
     })
     setIsSubmitting(false)
-    navigateToNextStep(activeTab, mois, annee)
+    setActiveTab(tabKey)
   }
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
@@ -777,6 +1098,77 @@ function FinancesPageContent() {
     }
     return ""
   })()
+
+  const completedTabKeys = useMemo(() => {
+    const keys = new Set<string>()
+    const periodMois = safeString(mois).trim()
+    const periodAnnee = safeString(annee).trim()
+    const periodDirection = safeString(effectiveDirection).trim()
+
+    tableauDeclarations.forEach((decl) => {
+      if (
+        safeString(decl.mois).trim() === periodMois &&
+        safeString(decl.annee).trim() === periodAnnee &&
+        safeString(decl.direction).trim() === periodDirection &&
+        istableauTabKey(decl.tabKey)
+      ) {
+        keys.add(decl.tabKey)
+      }
+    })
+
+    if (typeof window !== "undefined") {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("fiscal_declarations") ?? "[]")
+        const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
+        declarations.forEach((decl) => {
+          if (
+            safeString(decl.mois).trim() === periodMois &&
+            safeString(decl.annee).trim() === periodAnnee &&
+            safeString(decl.direction).trim() === periodDirection
+          ) {
+            const tabKey = resolveDeclarationTabKey(decl)
+            if (istableauTabKey(tabKey)) {
+              keys.add(tabKey)
+            }
+          }
+        })
+      } catch {
+        return keys
+      }
+    }
+
+    return keys
+  }, [annee, effectiveDirection, mois, tableauDeclarations])
+
+  const renderDisabledNotice = (tabKey: tableauTabKey) =>
+    disabledTabKeys.has(tabKey) ? (
+      <p className="mb-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
+        Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
+      </p>
+    ) : null
+
+  const getExistingDeclarationForTab = (tabKey: tableauTabKey): Savedtableau | null => {
+    try {
+      const parsed = JSON.parse(typeof localStorage !== "undefined" ? localStorage.getItem("fiscal_declarations") ?? "[]" : "[]")
+      const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
+      return declarations.find(decl => {
+        if (decl.mois !== mois || decl.annee !== annee || decl.direction !== effectiveDirection) return false
+        if (editingDeclarationId && safeString(decl.id) === editingDeclarationId) return false
+        return resolveDeclarationTabKey(decl) === tabKey
+      }) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  const renderExistingWarning = (tabKey: tableauTabKey) => {
+    const existing = getExistingDeclarationForTab(tabKey)
+    return existing ? (
+      <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+        Ce tableau a deja ete enregistre pour la periode {existing.mois}/{existing.annee}. Vous etes sur le point de le modifier.
+      </p>
+    ) : null
+  }
 
   return (
     <LayoutWrapper user={user}>
@@ -795,9 +1187,11 @@ function FinancesPageContent() {
               title="Tableaux Finances"
               domain="finances"
               currentTabKey={activeTab}
+              completedTabKeys={completedTabKeys}
               mois={mois}
               annee={annee}
               onBackClick={() => router.push("/dashbord")}
+              onStepClick={handleStepClick}
               layout="horizontal"
             />
 
@@ -829,34 +1223,7 @@ function FinancesPageContent() {
                       className="h-10 w-[120px] rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                     />
                   </div>
-                  
-                  <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
-                    <Select value={activeTab} onValueChange={(value) => {
-                      if (disabledTabKeys.has(value)) return
-                      setActiveTab(value)
-                      setSelectedCategoryKey(findtableauCategoryKeyForTab(value))
-                    }}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner un tableau" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredDeclarationTabs.length === 0
-                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible pour cette categorie</SelectItem>
-                          : filteredDeclarationTabs.map((t) => (
-                              <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
-                                {t.label}{t.isDisabled ? " (desactive)" : ""}
-                              </SelectItem>
-                            ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
-                {isActiveTabDisabled && (
-                  <p className="mt-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
-                    Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
-                  </p>
-                )}
                 {currentPeriodLockMessage && (
                   <p className="mt-3 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
                     {currentPeriodLockMessage}
@@ -865,15 +1232,55 @@ function FinancesPageContent() {
               </CardContent>
             </Card>
 
-            <div>
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Compte de resultat</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TabCompteResultat rows={compteResultatRows} setRows={setCompteResultatRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                </CardContent>
-              </Card>
+            <div className="space-y-4">
+              {activeTab !== "avancement_engagement" && (
+                <>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Compte de resultat</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {renderDisabledNotice("compte_resultat")}
+                      {renderExistingWarning("compte_resultat")}
+                      <TabCompteResultat rows={compteResultatRows} setRows={setCompteResultatRows} onSave={() => handleSave("compte_resultat")} isSubmitting={isSubmitting} />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Investissement (MDA)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {renderDisabledNotice("investissement")}
+                      {renderExistingWarning("investissement")}
+                      <TabInvestissement rows={investissementRows} setRows={setInvestissementRows} onSave={() => handleSave("investissement")} isSubmitting={isSubmitting} />
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+              {activeTab === "avancement_engagement" && (
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Etat d'avancement des engagement (MDA)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {renderDisabledNotice("avancement_engagement")}
+                      {renderExistingWarning("avancement_engagement")}
+                      <TabAvancementEngagement rows={avancementEngagementRows} setRows={setAvancementEngagementRows} onSave={() => handleSave("avancement_engagement")} isSubmitting={isSubmitting} />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Trésorerie Mobilis (MDA)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {renderDisabledNotice("avancement_engagement")}
+                      {renderExistingWarning("avancement_engagement")}
+                      <TabTresorerieMobilis rows={tresorerieMobilisRows} setRows={setTresorerieMobilisRows} onSave={() => handleSave("avancement_engagement")} isSubmitting={isSubmitting} />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </div>
         </>

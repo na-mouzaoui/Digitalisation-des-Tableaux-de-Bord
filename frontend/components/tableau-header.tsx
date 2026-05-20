@@ -14,6 +14,7 @@ interface TableauHeaderProps {
   mois?: string
   annee?: string
   onBackClick?: () => void
+  onStepClick?: (pointKey: string) => void
   layout?: "vertical" | "horizontal"
 }
 
@@ -25,6 +26,7 @@ export function TableauHeader({
   mois,
   annee,
   onBackClick,
+  onStepClick,
   layout = "vertical",
 }: TableauHeaderProps) {
   return (
@@ -53,6 +55,7 @@ export function TableauHeader({
           domain={domain}
           currentTabKey={currentTabKey}
           completedTabKeys={completedTabKeys}
+          onStepClick={onStepClick}
         />
       </div>
     </div>

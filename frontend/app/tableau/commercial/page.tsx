@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useRef, useEffect, Suspense } from "rea
 import { LayoutWrapper } from "@/components/layout-wrapper"
 import { useAuth } from "@/hooks/use-auth"
 import { useTableauStepNavigation } from "@/hooks/use-tableau-step-navigation"
+import { getDomainProgressSteps } from "@/lib/tableau-progress"
 import { TableauHeader } from "@/components/tableau-header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -49,7 +50,7 @@ const fmt = (v: number | string) => {
 }
 
 const normalizeAmountInput = (value: string) => {
-  const raw = value.replace(/\u00A0/g, " ").trim()
+  const raw = (value ?? "").replace(/\u00A0/g, " ").trim()
   if (!raw) return ""
   const hasTrailingSeparator = /[.,]$/.test(raw)
   const cleaned = raw.replace(/\s/g, "").replace(/,/g, ".").replace(/[^0-9.]/g, "")
@@ -62,7 +63,7 @@ const normalizeAmountInput = (value: string) => {
 }
 
 const formatAmountInput = (value: string) => {
-  const normalized = normalizeAmountInput(value)
+  const normalized = normalizeAmountInput(value ?? "")
   if (!normalized) return ""
   const hasTrailingDot = normalized.endsWith(".")
   const [integerPart, decimalPart = ""] = normalized.split(".")
@@ -120,11 +121,6 @@ const DEFAULT_RECLAMATION_ROWS: ReclamationRow[] = [
 ]
 const DEFAULT_RECLAMATION_LABELS = ["Recues GP", "Recues B2B", "Traitees GP", "Traitees B2B"] as const
 
-// ?? Réclamation GP ???????????????????????????????????????????????????????????
-type ReclamationGpRow = { label: string; recues: string; traitees: string }
-const RECLAMATION_GP_LABELS = ["Appels", "Couverture", "Offres", "Data", "SMS", "Autres"] as const
-const DEFAULT_RECLAMATION_GP_ROWS: ReclamationGpRow[] = RECLAMATION_GP_LABELS.map((label) => ({ label, recues: "", traitees: "" }))
-
 // ?? E-Payement ???????????????????????????????????????????????????????????????
 type EPayementRow = { rechargement: string; m: string; m1: string; evol: string }
 const EPAYEMENT_CHANNELS = ["Baridimob", "webportail", "GAB-Alg Poste", "WINPAY (BNA)"] as const
@@ -132,10 +128,9 @@ const createDefaultEPayementRows = (): EPayementRow[] =>
   EPAYEMENT_CHANNELS.map((rechargement) => ({ rechargement, m: "", m1: "", evol: "" }))
 
 // ?? Rechargement
-type RechargementRow = { canal: string; m: string; m1: string; taux: string }
-const RECHARGEMENT_DR_LABELS = ["DR Alger", "DR Oran", "DR Constantine", "DR Setif", "DR Ouargla", "DR Bechar", "DR Annaba", "DR Chlef"] as const
-const createDefaultRechargementRows = (): RechargementRow[] =>
-  RECHARGEMENT_DR_LABELS.map((canal) => ({ canal, m: "", m1: "", taux: "" }))
+type RechargementRow = { designation: string; m: string; m1: string; evol: string }
+const RECHARGEMENT_LABELS = ["Rechargement PRP Mensuel en Mlrds DA HT", "CA Prélèvements DM en Mlrds DA HT", "Evol"] as const
+const DEFAULT_RECHARGEMENT_ROWS: RechargementRow[] = RECHARGEMENT_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
 // ?? Situation Reseaux
 type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
@@ -146,48 +141,44 @@ const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
 ]
 
 // ?? Total Encaissement ???????????????????????????????????????????????????????
-type TotalEncaissementRow = { mGp: string; mB2b: string; m1Gp: string; m1B2b: string; evol: string }
-const EMPTY_TOTAL_ENCAISSEMENT_ROW: TotalEncaissementRow = { mGp: "", mB2b: "", m1Gp: "", m1B2b: "", evol: "-" }
+type TotalEncaissementRow = { designation: string; m: string; m1: string; evol: string }
+const TOTAL_ENCAISSEMENT_LABELS = ["GP", "B2B", "Total"] as const
+const DEFAULT_TOTAL_ENCAISSEMENT_ROWS: TotalEncaissementRow[] = TOTAL_ENCAISSEMENT_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
 // ?? Recouvrement ?????????????????????????????????????????????????????????????
-type RecouvrementRow = { label: string; mGp: string; mB2b: string; m1Gp: string; m1B2b: string }
-const RECOUVREMENT_LABELS = ["Montant Mis en Recouvrement", "Montant Recouvre", "Total"] as const
-const DEFAULT_RECOUVREMENT_ROWS: RecouvrementRow[] = RECOUVREMENT_LABELS.map((label) => ({ label, mGp: "", mB2b: "", m1Gp: "", m1B2b: "" }))
-
-// ?? Désactivation / Résiliation ???????????????????????????????????????????????
-type DesactivationResiliationRow = { designation: string; m: string; m1: string; evol: string }
-const DESACTIVATION_RESILIATION_LABELS = ["Postpaid GP", "Prepaid GP", "Postpaid B2B", "Prepaid B2B", "Total"] as const
-const DEFAULT_DESACTIVATION_RESILIATION_ROWS: DesactivationResiliationRow[] = DESACTIVATION_RESILIATION_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
-
-// ?? Parc Abonnés B2B ??????????????????????????????????????????????????????????
-type ParcAbonnesB2BRow = { designation: string; m: string; m1: string; evol: string }
-const PARC_ABONNES_B2B_LABELS = ["Postpaid B2B", "Prepaid B2B", "TOTAL"] as const
-const DEFAULT_PARC_ABONNES_B2B_ROWS: ParcAbonnesB2BRow[] = PARC_ABONNES_B2B_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
+type RecouvrementRow = { designation: string; m1Recouvre: string; mMis: string; mRecouvre: string; mTaux: string }
+const RECOUVREMENT_LABELS = ["GP", "B2B", "Total"] as const
+const DEFAULT_RECOUVREMENT_ROWS: RecouvrementRow[] = RECOUVREMENT_LABELS.map((designation) => ({ designation, m1Recouvre: "", mMis: "", mRecouvre: "", mTaux: "" }))
 
 // ?? Parc Abonnés GP ???????????????????????????????????????????????????????????
 type ParcAbonnesGpRow = { designation: string; m: string; m1: string; evol: string }
-const PARC_ABONNES_GP_LABELS = ["Postpaid GP", "Prepaid GP", "TOTAL"] as const
+const PARC_ABONNES_GP_LABELS = ["Parc Abonnés GP", "Parc Abonnés B2B", "TOTAL"] as const
 const DEFAULT_PARC_ABONNES_GP_ROWS: ParcAbonnesGpRow[] = PARC_ABONNES_GP_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
-
-// ?? Total Parc Abonnés ????????????????????????????????????????????????????????
-type TotalParcAbonnesRow = { designation: string; m: string; m1: string; evol: string }
-const TOTAL_PARC_ABONNES_LABELS = ["Parc Postpaid", "Parc Prepaid", "TOTAL"] as const
-const DEFAULT_TOTAL_PARC_ABONNES_ROWS: TotalParcAbonnesRow[] = TOTAL_PARC_ABONNES_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
 // ?? Total Parc Abonnés par Technologie ???????????????????????????????????????
 type TotalParcAbonnesTechnologieRow = { designation: string; m: string; m1: string; evol: string }
-const TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS = ["2G", "3G", "4G", "TOTAL"] as const
+const TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS = ["2G", "3G", "4G", "5G", "TOTAL"] as const
 const DEFAULT_TOTAL_PARC_ABONNES_TECHNOLOGIE_ROWS: TotalParcAbonnesTechnologieRow[] = TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
 // ?? Activation ????????????????????????????????????????????????????????????????
 type ActivationRow = { designation: string; m: string; m1: string; evol: string }
-const ACTIVATION_LABELS = ["Postpaid GP", "Prepaid GP", "Postpaid B2B", "Prepaid B2B", "Total"] as const
+const ACTIVATION_LABELS = ["GP", "B2B", "Total"] as const
 const DEFAULT_ACTIVATION_ROWS: ActivationRow[] = ACTIVATION_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
+// ?? Désactivation ?????????????????????????????????????????????????????????????
+type DesactivationRow = { designation: string; m: string; m1: string; evol: string }
+const DESACTIVATION_LABELS = ["GP", "B2B", "Total"] as const
+const DEFAULT_DESACTIVATION_ROWS: DesactivationRow[] = DESACTIVATION_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
+
+// ?? Résiliation ???????????????????????????????????????????????????????????????
+type ResiliationRow = { designation: string; m: string; m1: string; evol: string }
+const RESILIATION_LABELS = ["GP", "B2B", "Total"] as const
+const DEFAULT_RESILIATION_ROWS: ResiliationRow[] = RESILIATION_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
+
 // ?? Chiffre d'Affaires MDA ????????????????????????????????????????????????????
-type ChiffreAffairesMdaRow = { designation: string; mObjectif: string; mRealise: string; mTaux: string; m1Objectif: string; m1Realise: string; m1Taux: string }
+type ChiffreAffairesMdaRow = { designation: string; mObjectif: string; mRealise: string; mTaux: string; m1Realise: string }
 const CHIFFRE_AFFAIRES_MDA_LABELS = ["Grand Public", "B2B", "Interco & Roaming"] as const
-const DEFAULT_CHIFFRE_AFFAIRES_MDA_ROWS: ChiffreAffairesMdaRow[] = CHIFFRE_AFFAIRES_MDA_LABELS.map((designation) => ({ designation, mObjectif: "", mRealise: "", mTaux: "", m1Objectif: "", m1Realise: "", m1Taux: "" }))
+const DEFAULT_CHIFFRE_AFFAIRES_MDA_ROWS: ChiffreAffairesMdaRow[] = CHIFFRE_AFFAIRES_MDA_LABELS.map((designation) => ({ designation, mObjectif: "", mRealise: "", mTaux: "", m1Realise: "" }))
 
 
 // ?????????????????????????????????????????????????????????????????????????????
@@ -242,6 +233,7 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
   const traiteesB2B_M1 = traiteesRows.find(r => r.type === "B2B")?.m1B2b || ""
   
   // États pour les taux de traitement (inputs normaux)
+  const toNumber = (v: string) => parseFloat(v.replace(",", ".")) || 0
   const [tauxM, setTauxM] = useState("")
   const [tauxM1, setTauxM1] = useState("")
 
@@ -285,7 +277,7 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
           <tbody>
             {/* Ligne Réclamations reçues - GP */}
             <tr className="bg-white">
-              <td rowSpan={2} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle w-28">
+              <td rowSpan={3} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle w-28">
                 Réclamations reçues
               </td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center w-12">GP</td>
@@ -326,9 +318,19 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
                 />
               </td>
             </tr>
+            {/* Ligne Totale des réclamations reçus */}
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">Totale</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">
+                {(toNumber(recuesGP_M) + toNumber(recuesB2B_M)).toFixed(2)}
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">
+                {(toNumber(recuesGP_M1) + toNumber(recuesB2B_M1)).toFixed(2)}
+              </td>
+            </tr>
             {/* Ligne Réclamations traitées - GP */}
             <tr className="bg-gray-50">
-              <td rowSpan={2} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle">
+              <td rowSpan={3} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle">
                 Réclamations traitées
               </td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">GP</td>
@@ -369,6 +371,16 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
                 />
               </td>
             </tr>
+            {/* Ligne Totale des réclamations traitées */}
+            <tr className="bg-green-100 font-semibold">
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">Totale</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">
+                {(toNumber(traiteesGP_M) + toNumber(traiteesB2B_M)).toFixed(2)}
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">
+                {(toNumber(traiteesGP_M1) + toNumber(traiteesB2B_M1)).toFixed(2)}
+              </td>
+            </tr>
           </tbody>
           <tfoot>
             <tr className="bg-green-100">
@@ -399,69 +411,6 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
     </div>
   )
 }
-// ?? 6b. Réclamation GP ????????????????????????????????????????????????????????
-interface TabReclamationGpProps {
-  rows: ReclamationGpRow[]
-  setRows: React.Dispatch<React.SetStateAction<ReclamationGpRow[]>>
-  onSave: () => void
-  isSubmitting: boolean
-}
-function TabReclamationGp({ rows, setRows, onSave, isSubmitting }: TabReclamationGpProps) {
-  const update = (index: number, field: "recues" | "traitees", value: string) =>
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
-
-  const totalRecues   = rows.reduce((s, r) => s + num(r.recues),   0)
-  const totalTraitees = rows.reduce((s, r) => s + num(r.traitees), 0)
-
-  return (
-    <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Type de Reclamation GP</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b" colSpan={2}>M</th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Taux de traitement</th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Part des reclamations recus</th>
-            </tr>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b"></th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Recues</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Traitees</th>
-              <th className="px-3 py-2 border-b"></th>
-              <th className="px-3 py-2 border-b"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => {
-              const recues = num(row.recues), traitees = num(row.traitees)
-              return (
-                <tr key={`${row.label}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
-                  <td className="px-2 py-1 border-b"><AmountInput value={row.recues}   onChange={(e) => update(index, "recues",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-2 py-1 border-b"><AmountInput value={row.traitees} onChange={(e) => update(index, "traitees", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-3 py-2 border-b text-xs text-right font-semibold text-gray-700">{fmt(toPercent(traitees, recues))}</td>
-                  <td className="px-3 py-2 border-b text-xs text-right font-semibold text-gray-700">{fmt(toPercent(recues, totalRecues))}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="bg-green-100 font-semibold">
-              <td className="px-3 py-2 text-xs text-right border-t">Total</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(totalRecues)}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(totalTraitees)}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(totalTraitees, totalRecues))}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{totalRecues > 0 ? "100,00" : ""}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
-    </div>
-  )
-}
-
 // ?? 6c. E-Payement (bloc réutilisable + wrapper) ??????????????????????????????
 // ?? 6c. E-Payement (bloc réutilisable + wrapper) avec ligne de total ??????????
 interface EPayementBlockProps {
@@ -531,58 +480,16 @@ function TabEPayementSingle({ title, rows, setRows, onSave, isSubmitting }: TabE
 }
 
 // ?? 6e. Rechargement
-interface TabRechargementBlockProps {
-  title: string
-  rows: RechargementRow[]
-  setRows: React.Dispatch<React.SetStateAction<RechargementRow[]>>
-}
-function RechargementBlock({ title, rows, setRows }: TabRechargementBlockProps) {
-  const update = (index: number, field: "m" | "m1" | "taux", value: string) =>
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
-
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement PRP (Million DA)/ DR</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Taux</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${title}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{RECHARGEMENT_DR_LABELS[index] ?? row.canal}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.taux} onChange={(e) => update(index, "taux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-interface TabRechargementSingleProps {
-  title: string
+interface TabRechargementProps {
   rows: RechargementRow[]
   setRows: React.Dispatch<React.SetStateAction<RechargementRow[]>>
   onSave: () => void
   isSubmitting: boolean
 }
-function TabRechargementSingle({ title, rows, setRows, onSave, isSubmitting }: TabRechargementSingleProps) {
-  return (
-    <div className="space-y-4">
-      <RechargementBlock title={title} rows={rows} setRows={setRows} />
-      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
-    </div>
-  )
+function TabRechargement({ rows, setRows, onSave, isSubmitting }: TabRechargementProps) {
+  const update = (i: number, f: "m" | "m1" | "evol", v: string) =>
+    setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
+  return <SimpleEvolTable colHeader="Rechargement" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
 // ?? 6e. Situation Reseaux
@@ -627,92 +534,21 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
 
 // ?? 6d. Total Encaissement ????????????????????????????????????????????????????
 interface TabTotalEncaissementProps {
-  row: TotalEncaissementRow
-  setRow: React.Dispatch<React.SetStateAction<TotalEncaissementRow>>
+  rows: TotalEncaissementRow[]
+  setRows: React.Dispatch<React.SetStateAction<TotalEncaissementRow[]>>
   onSave: () => void
   isSubmitting: boolean
 }
 
-function TabTotalEncaissement({ row, setRow, onSave, isSubmitting }: TabTotalEncaissementProps) {
-  const update = (field: keyof TotalEncaissementRow, value: string) =>
-    setRow((prev) => ({ ...prev, [field]: value }))
-
-  return (
-    <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full text-sm">
-
-          <tbody>
-            {/* HEADER 1 */}
-            <tr className="bg-gray-50">
-              <td
-                rowSpan={3}
-                className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r align-middle"
-              >
-                Encaissement (MDA)
-              </td>
-
-              <td colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">
-                M-1
-              </td>
-              <td colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">
-                M
-              </td>
-              <td className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">
-                Evol
-              </td>
-            </tr>
-
-            {/* HEADER 2 */}
-            <tr className="bg-gray-50">
-              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</td>
-              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</td>
-              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</td>
-              <td className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</td>
-              <td className="px-3 py-1 border-b"></td>
-            </tr>
-
-            {/* INPUTS */}
-            <tr className="bg-white">
-              <td className="px-1 py-1 border-b">
-                <AmountInput value={row.mGp} onChange={(e) => update("mGp", e.target.value)} className="h-7 px-2 text-xs w-full" />
-              </td>
-              <td className="px-1 py-1 border-b">
-                <AmountInput value={row.mB2b} onChange={(e) => update("mB2b", e.target.value)} className="h-7 px-2 text-xs w-full" />
-              </td>
-              <td className="px-1 py-1 border-b">
-                <AmountInput value={row.m1Gp} onChange={(e) => update("m1Gp", e.target.value)} className="h-7 px-2 text-xs w-full" />
-              </td>
-              <td className="px-1 py-1 border-b">
-                <AmountInput value={row.m1B2b} onChange={(e) => update("m1B2b", e.target.value)} className="h-7 px-2 text-xs w-full" />
-              </td>
-              <td className="px-1 py-1 border-b">
-                <AmountInput value={row.evol} onChange={(e) => update("evol", e.target.value)} className="h-7 px-2 text-xs w-full" />
-              </td>
-            </tr>
-
-            {/* TOTAL */}
-            <tr className="bg-green-100 font-semibold">
-              <td className="px-3 py-2 border-b text-xs">Totale</td>
-              <td className="px-3 py-2 border-b text-right">{fmt(row.mGp || "0")}</td>
-              <td className="px-3 py-2 border-b text-right">{fmt(row.mB2b || "0")}</td>
-              <td className="px-3 py-2 border-b text-right">{fmt(row.m1Gp || "0")}</td>
-              <td className="px-3 py-2 border-b text-right">{fmt(row.m1B2b || "0")}</td>
-              <td className="px-3 py-2 border-b text-center">{row.evol || "-"}</td>
-            </tr>
-          </tbody>
-
-        </table>
-      </div>
-
-      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
-    </div>
-  )
+function TabTotalEncaissement({ rows, setRows, onSave, isSubmitting }: TabTotalEncaissementProps) {
+  const update = (i: number, f: "m" | "m1" | "evol", v: string) =>
+    setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
+  return <SimpleEvolTable colHeader="Encaissement (MDA)" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 // ?? 6e. Recouvrement ?????????????????????????????????????????????????????????
 interface TabRecouvrementProps { rows: RecouvrementRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementRow[]>>; onSave: () => void; isSubmitting: boolean }
 function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvrementProps) {
-  const update = (index: number, field: keyof Pick<RecouvrementRow, "mGp" | "mB2b" | "m1Gp" | "m1B2b">, value: string) =>
+  const update = (index: number, field: keyof RecouvrementRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
   return (
@@ -721,26 +557,25 @@ function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvremen
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th rowSpan={3} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement (MDA)</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement (MDA)</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
-           
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">B2B</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">GP</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">B2B</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Montant Recouvré</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Montant Mis en Recouvrement</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Montant Recouvré</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux de recouvrement</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={row.label} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mGp}   onChange={(e) => update(index, "mGp",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mB2b}  onChange={(e) => update(index, "mB2b",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Gp}  onChange={(e) => update(index, "m1Gp",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1B2b} onChange={(e) => update(index, "m1B2b", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+              <tr key={`${row.designation}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Recouvre} onChange={(e) => update(index, "m1Recouvre", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mMis}       onChange={(e) => update(index, "mMis",       e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRecouvre}  onChange={(e) => update(index, "mRecouvre",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux}      onChange={(e) => update(index, "mTaux",      e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
               </tr>
             ))}
           </tbody>
@@ -775,7 +610,7 @@ function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: Simp
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={row.designation} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+              <tr key={`${row.designation}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
@@ -790,28 +625,14 @@ function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: Simp
   )
 }
 
-// ?? 6f. Parc Abonnés B2B ?????????????????????????????????????????????????????
-interface TabParcAbonnesB2BProps { rows: ParcAbonnesB2BRow[]; setRows: React.Dispatch<React.SetStateAction<ParcAbonnesB2BRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabParcAbonnesB2B({ rows, setRows, onSave, isSubmitting }: TabParcAbonnesB2BProps) {
-  const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Parc Abonnes B2B" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
-}
-
-// ?? 6g. Parc Abonnés GP ??????????????????????????????????????????????????????
+// ?? 6f. Parc Abonnés GP ??????????????????????????????????????????????????????
 interface TabParcAbonnesGpProps { rows: ParcAbonnesGpRow[]; setRows: React.Dispatch<React.SetStateAction<ParcAbonnesGpRow[]>>; onSave: () => void; isSubmitting: boolean }
 function TabParcAbonnesGp({ rows, setRows, onSave, isSubmitting }: TabParcAbonnesGpProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
   return <SimpleEvolTable colHeader="Parc Abonnes GP" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
-// ?? 6h. Total Parc Abonnés ????????????????????????????????????????????????????
-interface TabTotalParcAbonnesProps { rows: TotalParcAbonnesRow[]; setRows: React.Dispatch<React.SetStateAction<TotalParcAbonnesRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabTotalParcAbonnes({ rows, setRows, onSave, isSubmitting }: TabTotalParcAbonnesProps) {
-  const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Total Parc Abonnes" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
-}
-
-// ?? 6i. Total Parc Abonnés par Technologie ???????????????????????????????????
+// ?? 6g. Total Parc Abonnés par Technologie ???????????????????????????????????
 interface TabTotalParcAbonnesTechnologieProps { rows: TotalParcAbonnesTechnologieRow[]; setRows: React.Dispatch<React.SetStateAction<TotalParcAbonnesTechnologieRow[]>>; onSave: () => void; isSubmitting: boolean }
 function TabTotalParcAbonnesTechnologie({ rows, setRows, onSave, isSubmitting }: TabTotalParcAbonnesTechnologieProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
@@ -825,14 +646,21 @@ function TabActivation({ rows, setRows, onSave, isSubmitting }: TabActivationPro
   return <SimpleEvolTable colHeader="Activation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
-// ?? 6k. Désactivation / Résiliation ??????????????????????????????????????????
-interface TabDesactivationResiliationProps { rows: DesactivationResiliationRow[]; setRows: React.Dispatch<React.SetStateAction<DesactivationResiliationRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabDesactivationResiliation({ rows, setRows, onSave, isSubmitting }: TabDesactivationResiliationProps) {
+// ?? 6k. Désactivation ?????????????????????????????????????????????????????????
+interface TabDesactivationProps { rows: DesactivationRow[]; setRows: React.Dispatch<React.SetStateAction<DesactivationRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabDesactivation({ rows, setRows, onSave, isSubmitting }: TabDesactivationProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Desactivation / Resiliation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Désactivation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
-// ?? 6l. Chiffre d'Affaires MDA ????????????????????????????????????????????????
+// ?? 6l. Résiliation ???????????????????????????????????????????????????????????
+interface TabResiliationProps { rows: ResiliationRow[]; setRows: React.Dispatch<React.SetStateAction<ResiliationRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabResiliation({ rows, setRows, onSave, isSubmitting }: TabResiliationProps) {
+  const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
+  return <SimpleEvolTable colHeader="Résiliation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+}
+
+// ?? 6m. Chiffre d'Affaires MDA ????????????????????????????????????????????????
 interface TabChiffreAffairesMdaProps {
   rows: ChiffreAffairesMdaRow[]
   setRows: React.Dispatch<React.SetStateAction<ChiffreAffairesMdaRow[]>>
@@ -852,10 +680,7 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
     mObjectif: rows.reduce((sum, r) => sum + toNumber(r.mObjectif), 0),
     mRealise: rows.reduce((sum, r) => sum + toNumber(r.mRealise), 0),
     mTaux: rows.reduce((sum, r) => sum + toNumber(r.mTaux), 0),
-
-    m1Objectif: rows.reduce((sum, r) => sum + toNumber(r.m1Objectif), 0),
     m1Realise: rows.reduce((sum, r) => sum + toNumber(r.m1Realise), 0),
-    m1Taux: rows.reduce((sum, r) => sum + toNumber(r.m1Taux), 0),
   }
 
   return (
@@ -867,7 +692,7 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">
                 Chiffre d'Affaires (MDA)
               </th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">
                 M-1
               </th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">
@@ -875,11 +700,9 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
               </th>
             </tr>
             <tr className="bg-gray-50">
-              {["Objectif", "Realise", "Taux"].map((h, i) => (
-                <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>
-                  {h}
-                </th>
-              ))}
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">
+                Realise
+              </th>
               {["Objectif", "Realise", "Taux"].map((h, i) => (
                 <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">
                   {h}
@@ -906,13 +729,7 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
                 </td>
 
                 <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" />
-                </td>
-                <td className="px-1 py-1 border-b">
                   <AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" />
-                </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m1Taux} onChange={(e) => update(index, "m1Taux", e.target.value)} className="h-7 px-2 text-xs" />
                 </td>
               </tr>
             ))}
@@ -927,9 +744,7 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
               <td className="px-3 py-2 border-b text-xs text-right">{totals.mRealise.toFixed(2)}</td>
               <td className="px-3 py-2 border-b text-xs text-right">{totals.mTaux.toFixed(2)}</td>
 
-              <td className="px-3 py-2 border-b text-xs text-right">{totals.m1Objectif.toFixed(2)}</td>
               <td className="px-3 py-2 border-b text-xs text-right">{totals.m1Realise.toFixed(2)}</td>
-              <td className="px-3 py-2 border-b text-xs text-right">{totals.m1Taux.toFixed(2)}</td>
             </tr>
           </tbody>
         </table>
@@ -945,60 +760,53 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
   { key: "reclamation",                    label: "Reclamation",                           color: PRIMARY_COLOR, title: "TABLEAU RECLAMATION" },
-  { key: "reclamation_gp",                 label: "Reclamation GP",                        color: PRIMARY_COLOR, title: "TABLEAU RECLAMATION GP" },
-  { key: "e_payement_pop",                 label: "E-PAYEMENT Pop",                        color: PRIMARY_COLOR, title: "E-PAYEMENT POP (MDA)" },
-  { key: "e_payement_prp",                 label: "E-PAYEMENT Prp",                        color: PRIMARY_COLOR, title: "E-PAYEMENT PRP (MDA)" },
-  { key: "total_encaissement",             label: "Totale des encaissements",                color: PRIMARY_COLOR, title: "TOTALE DES ENCAISSEMENTS" },
+  { key: "e_payement_pop",                 label: "E-PAYEMENT (MDA)",                      color: PRIMARY_COLOR, title: "E-PAYEMENT (MDA)" },
+  { key: "total_encaissement",             label: "Encaissement (MDA)",                      color: PRIMARY_COLOR, title: "ENCAISSEMENT (MDA)" },
   { key: "rechargement",                   label: "Rechargement",                          color: PRIMARY_COLOR, title: "RECHARGEMENT" },
   { key: "recouvrement",                   label: "Recouvrement",                          color: PRIMARY_COLOR, title: "RECOUVREMENT (MDA)" },
-  { key: "desactivation_resiliation",      label: "Desactivation / Resiliation",           color: PRIMARY_COLOR, title: "DESACTIVATION / RESILIATION" },
-  { key: "parc_abonnes_b2b",               label: "Parc Abonnes B2B",                      color: PRIMARY_COLOR, title: "PARC ABONNES B2B" },
   { key: "parc_abonnes_gp",                label: "Parc Abonnes GP",                       color: PRIMARY_COLOR, title: "PARC ABONNES GP" },
-  { key: "total_parc_abonnes",             label: "Total Parc Abonnes",                    color: PRIMARY_COLOR, title: "TOTAL PARC ABONNES" },
   { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnes par technologie",    color: PRIMARY_COLOR, title: "TOTAL PARC ABONNES PAR TECHNOLOGIE" },
   { key: "activation",                     label: "Activation",                            color: PRIMARY_COLOR, title: "ACTIVATION" },
+  { key: "desactivation",                  label: "Désactivation",                         color: PRIMARY_COLOR, title: "DÉSACTIVATION" },
+  { key: "resiliation",                    label: "Résiliation",                           color: PRIMARY_COLOR, title: "RÉSILIATION" },
   { key: "chiffre_affaires_mda",           label: "Chiffre d'Affaires (MDA)",              color: PRIMARY_COLOR, title: "CHIFFRE D'AFFAIRES (MDA)" },
 ]
 
 const KPI_TAB_KEYS = [
   "reclamation",
-  "reclamation_gp",
   "e_payement_pop",
-  "e_payement_prp",
   "total_encaissement",
   "rechargement",
   "recouvrement",
-  "desactivation_resiliation",
-  "parc_abonnes_b2b",
   "parc_abonnes_gp",
-  "total_parc_abonnes",
   "total_parc_abonnes_technologie",
   "activation",
+  "desactivation",
+  "resiliation",
   "chiffre_affaires_mda",
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
-  | "reclamation" | "reclamation_gp" | "e_payement_pop" | "e_payement_prp"
+  | "reclamation" | "e_payement_pop"
   | "total_encaissement" | "rechargement" | "situation_reseaux" | "recouvrement"
-  | "desactivation_resiliation"
-  | "parc_abonnes_b2b" | "parc_abonnes_gp" | "total_parc_abonnes" | "total_parc_abonnes_technologie"
-  | "activation" | "chiffre_affaires_mda"
+  | "parc_abonnes_gp" | "total_parc_abonnes_technologie"
+  | "activation" | "desactivation" | "resiliation" | "chiffre_affaires_mda"
 
 type tableauCategoryKey =
   | "reclamation" | "e_payment" | "rechargement" | "encaissement" | "recouvrement"
   | "parc_abonnes" | "activation_desactivation_sim" | "chiffre_affaires"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "reclamation",    label: "Reclamation",                  tabKeys: ["reclamation", "reclamation_gp"] },
-  { key: "e_payment",      label: "E-payment",                    tabKeys: ["e_payement_pop", "e_payement_prp"] },
-  { key: "rechargement",   label: "Rechargement",                 tabKeys: ["rechargement"] },
-  { key: "encaissement",   label: "Encaissement",                 tabKeys: ["total_encaissement"] },
-  { key: "recouvrement",   label: "Recouvrement",                 tabKeys: ["recouvrement"] },
-  { key: "parc_abonnes",   label: "Parc abonne",                  tabKeys: ["parc_abonnes_b2b", "parc_abonnes_gp", "total_parc_abonnes", "total_parc_abonnes_technologie"] },
-  { key: "activation_desactivation_sim", label: "Activation / Desactivation SIM", tabKeys: ["desactivation_resiliation", "activation"] },
   { key: "chiffre_affaires", label: "Chiffre d'affaires",          tabKeys: ["chiffre_affaires_mda"] },
+  { key: "parc_abonnes",   label: "Parc abonne",                  tabKeys: ["parc_abonnes_gp", "total_parc_abonnes_technologie"] },
+  { key: "activation_desactivation_sim", label: "Activation", tabKeys: ["activation", "desactivation", "resiliation"] },
+  { key: "reclamation",    label: "Reclamation",                  tabKeys: ["reclamation"] },
+  { key: "e_payment",      label: "E-payment",                    tabKeys: ["e_payement_pop"] },
+  { key: "encaissement",   label: "Encaissement",                 tabKeys: ["total_encaissement"] },
+  { key: "rechargement",   label: "Rechargement",                 tabKeys: ["rechargement"] },
+  { key: "recouvrement",   label: "Recouvrement",                 tabKeys: ["recouvrement"] },
 ]
 
 const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
@@ -1033,18 +841,15 @@ interface Savedtableau {
   mois: string
   annee: string
   reclamationRows?: ReclamationRow[]
-  reclamationGpRows?: ReclamationGpRow[]
   ePayementPopRows?: EPayementRow[]
-  ePayementPrpRows?: EPayementRow[]
   totalEncaissementRows?: TotalEncaissementRow[]
   rechargementRows?: RechargementRow[]
   recouvrementRows?: RecouvrementRow[]
-  desactivationResiliationRows?: DesactivationResiliationRow[]
-  parcAbonnesB2bRows?: ParcAbonnesB2BRow[]
   parcAbonnesGpRows?: ParcAbonnesGpRow[]
-  totalParcAbonnesRows?: TotalParcAbonnesRow[]
   totalParcAbonnesTechnologieRows?: TotalParcAbonnesTechnologieRow[]
   activationRows?: ActivationRow[]
+  desactivationRows?: DesactivationRow[]
+  resiliationRows?: ResiliationRow[]
   chiffreAffairesMdaRows?: ChiffreAffairesMdaRow[]
 }
 
@@ -1085,11 +890,6 @@ const normalizeReclamationRows = (rows?: ReclamationRow[]): ReclamationRow[] => 
   return normalized.length === 4 ? normalized : DEFAULT_RECLAMATION_ROWS.map((r) => ({ ...r }))
 }
 
-const normalizeReclamationGpRows = (rows?: ReclamationGpRow[]): ReclamationGpRow[] => {
-  const normalized = (rows ?? []).map((row, i) => ({ label: safeString(row.label) || RECLAMATION_GP_LABELS[i] || `Ligne ${i + 1}`, recues: safeString(row.recues), traitees: safeString(row.traitees) }))
-  return normalized.length === RECLAMATION_GP_LABELS.length ? normalized : DEFAULT_RECLAMATION_GP_ROWS.map((r) => ({ ...r }))
-}
-
 const normalizeEPayementRows = (rows?: EPayementRow[]): EPayementRow[] => {
   const src = Array.isArray(rows) ? rows : []
   return EPAYEMENT_CHANNELS.map((rechargement, i) => ({ rechargement, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
@@ -1097,43 +897,24 @@ const normalizeEPayementRows = (rows?: EPayementRow[]): EPayementRow[] => {
 
 const normalizeRechargementRows = (rows?: RechargementRow[]): RechargementRow[] => {
   const src = Array.isArray(rows) ? rows : []
-  return RECHARGEMENT_DR_LABELS.map((canal, i) => ({ canal, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), taux: safeString(src[i]?.taux) }))
+  return RECHARGEMENT_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
 }
 
-const normalizeTotalEncaissementRow = (row?: TotalEncaissementRow): TotalEncaissementRow => ({
-  mGp: safeString(row?.mGp), mB2b: safeString(row?.mB2b),
-  m1Gp: safeString(row?.m1Gp), m1B2b: safeString(row?.m1B2b),
-  evol: safeString(row?.evol) || "-",
-})
-
 const normalizeTotalEncaissementRows = (rows?: TotalEncaissementRow[]): TotalEncaissementRow[] => {
-  const firstRow = Array.isArray(rows) && rows.length > 0 ? rows[0] : undefined
-  return [normalizeTotalEncaissementRow(firstRow)]
+  const src = Array.isArray(rows) ? rows : []
+  return TOTAL_ENCAISSEMENT_LABELS.map((designation, i) => ({
+    designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol),
+  }))
 }
 
 const normalizeRecouvrementRows = (rows?: RecouvrementRow[]): RecouvrementRow[] => {
   const src = Array.isArray(rows) ? rows : []
-  return RECOUVREMENT_LABELS.map((label, i) => ({ label, mGp: safeString(src[i]?.mGp), mB2b: safeString(src[i]?.mB2b), m1Gp: safeString(src[i]?.m1Gp), m1B2b: safeString(src[i]?.m1B2b) }))
-}
-
-const normalizeDesactivationResiliationRows = (rows?: DesactivationResiliationRow[]): DesactivationResiliationRow[] => {
-  const src = Array.isArray(rows) ? rows : []
-  return DESACTIVATION_RESILIATION_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
-}
-
-const normalizeParcAbonnesB2BRows = (rows?: ParcAbonnesB2BRow[]): ParcAbonnesB2BRow[] => {
-  const src = Array.isArray(rows) ? rows : []
-  return PARC_ABONNES_B2B_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
+  return RECOUVREMENT_LABELS.map((designation, i) => ({ designation, m1Recouvre: safeString(src[i]?.m1Recouvre), mMis: safeString(src[i]?.mMis), mRecouvre: safeString(src[i]?.mRecouvre), mTaux: safeString(src[i]?.mTaux) }))
 }
 
 const normalizeParcAbonnesGpRows = (rows?: ParcAbonnesGpRow[]): ParcAbonnesGpRow[] => {
   const src = Array.isArray(rows) ? rows : []
   return PARC_ABONNES_GP_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
-}
-
-const normalizeTotalParcAbonnesRows = (rows?: TotalParcAbonnesRow[]): TotalParcAbonnesRow[] => {
-  const src = Array.isArray(rows) ? rows : []
-  return TOTAL_PARC_ABONNES_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
 }
 
 const normalizeTotalParcAbonnesTechnologieRows = (rows?: TotalParcAbonnesTechnologieRow[]): TotalParcAbonnesTechnologieRow[] => {
@@ -1146,25 +927,32 @@ const normalizeActivationRows = (rows?: ActivationRow[]): ActivationRow[] => {
   return ACTIVATION_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
 }
 
+const normalizeDesactivationRows = (rows?: DesactivationRow[]): DesactivationRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return DESACTIVATION_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
+}
+
+const normalizeResiliationRows = (rows?: ResiliationRow[]): ResiliationRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return RESILIATION_LABELS.map((designation, i) => ({ designation, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1), evol: safeString(src[i]?.evol) }))
+}
+
 const normalizeChiffreAffairesMdaRows = (rows?: ChiffreAffairesMdaRow[]): ChiffreAffairesMdaRow[] => {
   const src = Array.isArray(rows) ? rows : []
-  return CHIFFRE_AFFAIRES_MDA_LABELS.map((designation, i) => ({ designation, mObjectif: safeString(src[i]?.mObjectif), mRealise: safeString(src[i]?.mRealise), mTaux: safeString(src[i]?.mTaux), m1Objectif: safeString(src[i]?.m1Objectif), m1Realise: safeString(src[i]?.m1Realise), m1Taux: safeString(src[i]?.m1Taux) }))
+  return CHIFFRE_AFFAIRES_MDA_LABELS.map((designation, i) => ({ designation, mObjectif: safeString(src[i]?.mObjectif), mRealise: safeString(src[i]?.mRealise), mTaux: safeString(src[i]?.mTaux), m1Realise: safeString(src[i]?.m1Realise) }))
 }
 
 const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
   if ((decl.reclamationRows?.length ?? 0) > 0) return "reclamation"
-  if ((decl.reclamationGpRows?.length ?? 0) > 0) return "reclamation_gp"
   if ((decl.ePayementPopRows?.length ?? 0) > 0) return "e_payement_pop"
-  if ((decl.ePayementPrpRows?.length ?? 0) > 0) return "e_payement_prp"
   if ((decl.totalEncaissementRows?.length ?? 0) > 0) return "total_encaissement"
   if ((decl.rechargementRows?.length ?? 0) > 0) return "rechargement"
   if ((decl.recouvrementRows?.length ?? 0) > 0) return "recouvrement"
-  if ((decl.desactivationResiliationRows?.length ?? 0) > 0) return "desactivation_resiliation"
-  if ((decl.parcAbonnesB2bRows?.length ?? 0) > 0) return "parc_abonnes_b2b"
   if ((decl.parcAbonnesGpRows?.length ?? 0) > 0) return "parc_abonnes_gp"
-  if ((decl.totalParcAbonnesRows?.length ?? 0) > 0) return "total_parc_abonnes"
   if ((decl.totalParcAbonnesTechnologieRows?.length ?? 0) > 0) return "total_parc_abonnes_technologie"
   if ((decl.activationRows?.length ?? 0) > 0) return "activation"
+  if ((decl.desactivationRows?.length ?? 0) > 0) return "desactivation"
+  if ((decl.resiliationRows?.length ?? 0) > 0) return "resiliation"
   if ((decl.chiffreAffairesMdaRows?.length ?? 0) > 0) return "chiffre_affaires_mda"
   return "reclamation"
 }
@@ -1175,7 +963,7 @@ function CommercialPageContent() {
   const { user, isLoading, status } = useAuth({ requireAuth: true, redirectTo: "/login" })
   const { toast } = useToast()
   const router = useRouter()
-  const { navigateToNextStep } = useTableauStepNavigation("commercial")
+  useTableauStepNavigation("commercial")
   const printRef = useRef<HTMLDivElement>(null)
   const [editQuery, setEditQuery] = useState<{ editId: string; tab: string }>({ editId: "", tab: "" })
 
@@ -1233,18 +1021,15 @@ function CommercialPageContent() {
 
   // Tab data (lifted) - TABLEAUX CONSERVéS
   const [reclamationRows, setReclamationRows] = useState<ReclamationRow[]>(DEFAULT_RECLAMATION_ROWS.map((row) => ({ ...row })))
-  const [reclamationGpRows, setReclamationGpRows] = useState<ReclamationGpRow[]>(DEFAULT_RECLAMATION_GP_ROWS.map((row) => ({ ...row })))
   const [ePayementPopRows, setEPayementPopRows] = useState<EPayementRow[]>(createDefaultEPayementRows())
-  const [ePayementPrpRows, setEPayementPrpRows] = useState<EPayementRow[]>(createDefaultEPayementRows())
-  const [totalEncaissementRows, setTotalEncaissementRows] = useState<TotalEncaissementRow[]>([{ ...EMPTY_TOTAL_ENCAISSEMENT_ROW }])
-  const [rechargementRows, setRechargementRows] = useState<RechargementRow[]>(createDefaultRechargementRows())
+  const [totalEncaissementRows, setTotalEncaissementRows] = useState<TotalEncaissementRow[]>(DEFAULT_TOTAL_ENCAISSEMENT_ROWS.map((row) => ({ ...row })))
+  const [rechargementRows, setRechargementRows] = useState<RechargementRow[]>(DEFAULT_RECHARGEMENT_ROWS.map((row) => ({ ...row })))
   const [recouvrementRows, setRecouvrementRows] = useState<RecouvrementRow[]>(DEFAULT_RECOUVREMENT_ROWS.map((row) => ({ ...row })))
-  const [desactivationResiliationRows, setDesactivationResiliationRows] = useState<DesactivationResiliationRow[]>(DEFAULT_DESACTIVATION_RESILIATION_ROWS.map((row) => ({ ...row })))
-  const [parcAbonnesB2bRows, setParcAbonnesB2bRows] = useState<ParcAbonnesB2BRow[]>(DEFAULT_PARC_ABONNES_B2B_ROWS.map((row) => ({ ...row })))
   const [parcAbonnesGpRows, setParcAbonnesGpRows] = useState<ParcAbonnesGpRow[]>(DEFAULT_PARC_ABONNES_GP_ROWS.map((row) => ({ ...row })))
-  const [totalParcAbonnesRows, setTotalParcAbonnesRows] = useState<TotalParcAbonnesRow[]>(DEFAULT_TOTAL_PARC_ABONNES_ROWS.map((row) => ({ ...row })))
   const [totalParcAbonnesTechnologieRows, setTotalParcAbonnesTechnologieRows] = useState<TotalParcAbonnesTechnologieRow[]>(DEFAULT_TOTAL_PARC_ABONNES_TECHNOLOGIE_ROWS.map((row) => ({ ...row })))
   const [activationRows, setActivationRows] = useState<ActivationRow[]>(DEFAULT_ACTIVATION_ROWS.map((row) => ({ ...row })))
+  const [desactivationRows, setDesactivationRows] = useState<DesactivationRow[]>(DEFAULT_DESACTIVATION_ROWS.map((row) => ({ ...row })))
+  const [resiliationRows, setResiliationRows] = useState<ResiliationRow[]>(DEFAULT_RESILIATION_ROWS.map((row) => ({ ...row })))
   const [chiffreAffairesMdaRows, setChiffreAffairesMdaRows] = useState<ChiffreAffairesMdaRow[]>(DEFAULT_CHIFFRE_AFFAIRES_MDA_ROWS.map((row) => ({ ...row })))
   const [tableauDeclarations, settableauDeclarations] = useState<Apitableautableau[]>([])
 
@@ -1293,13 +1078,6 @@ function CommercialPageContent() {
       }
     }))
 
-    const reclamationGpLabels = getLabels("reclamation_gp", RECLAMATION_GP_LABELS)
-    setReclamationGpRows((prev) => reclamationGpLabels.map((label, i) => ({
-      label,
-      recues: safeString(prev[i]?.recues),
-      traitees: safeString(prev[i]?.traitees),
-    })))
-
     const ePayementPopLabels = getLabels("e_payement_pop", EPAYEMENT_CHANNELS)
     setEPayementPopRows((prev) => ePayementPopLabels.map((rechargement, i) => ({
       rechargement,
@@ -1308,69 +1086,27 @@ function CommercialPageContent() {
       evol: safeString(prev[i]?.evol),
     })))
 
-    const ePayementPrpLabels = getLabels("e_payement_prp", EPAYEMENT_CHANNELS)
-    setEPayementPrpRows((prev) => ePayementPrpLabels.map((rechargement, i) => ({
-      rechargement,
-      m: safeString(prev[i]?.m),
-      m1: safeString(prev[i]?.m1),
-      evol: safeString(prev[i]?.evol),
+    const totalEncaissementLabels = getLabels("total_encaissement", TOTAL_ENCAISSEMENT_LABELS)
+    setTotalEncaissementRows((prev) => totalEncaissementLabels.map((designation, i) => ({
+      designation, m: safeString(prev[i]?.m), m1: safeString(prev[i]?.m1), evol: safeString(prev[i]?.evol),
     })))
 
-    const totalEncaissementLabels = getLabels("total_encaissement", ["Total"])
-    setTotalEncaissementRows((prev) => {
-      const count = Math.max(1, totalEncaissementLabels.length)
-      return Array.from({ length: count }, (_, i) => ({
-        mGp: safeString(prev[i]?.mGp),
-        mB2b: safeString(prev[i]?.mB2b),
-        m1Gp: safeString(prev[i]?.m1Gp),
-        m1B2b: safeString(prev[i]?.m1B2b),
-        evol: safeString(prev[i]?.evol) || "-",
-      }))
-    })
-
-    const rechargementLabels = getLabels("rechargement", RECHARGEMENT_DR_LABELS)
-    setRechargementRows((prev) => rechargementLabels.map((canal, i) => ({
-      canal,
-      m: safeString(prev[i]?.m),
-      m1: safeString(prev[i]?.m1),
-      taux: safeString(prev[i]?.taux),
+    const rechargementLabels = getLabels("rechargement", RECHARGEMENT_LABELS)
+    setRechargementRows((prev) => rechargementLabels.map((designation, i) => ({
+      designation, m: safeString(prev[i]?.m), m1: safeString(prev[i]?.m1), evol: safeString(prev[i]?.evol),
     })))
 
     const recouvrementLabels = getLabels("recouvrement", RECOUVREMENT_LABELS)
-    setRecouvrementRows((prev) => recouvrementLabels.map((label, i) => ({
-      label,
-      mGp: safeString(prev[i]?.mGp),
-      mB2b: safeString(prev[i]?.mB2b),
-      m1Gp: safeString(prev[i]?.m1Gp),
-      m1B2b: safeString(prev[i]?.m1B2b),
-    })))
-
-    const desactivationLabels = getLabels("desactivation_resiliation", DESACTIVATION_RESILIATION_LABELS)
-    setDesactivationResiliationRows((prev) => desactivationLabels.map((designation, i) => ({
+    setRecouvrementRows((prev) => recouvrementLabels.map((designation, i) => ({
       designation,
-      m: safeString(prev[i]?.m),
-      m1: safeString(prev[i]?.m1),
-      evol: safeString(prev[i]?.evol),
-    })))
-
-    const parcB2bLabels = getLabels("parc_abonnes_b2b", PARC_ABONNES_B2B_LABELS)
-    setParcAbonnesB2bRows((prev) => parcB2bLabels.map((designation, i) => ({
-      designation,
-      m: safeString(prev[i]?.m),
-      m1: safeString(prev[i]?.m1),
-      evol: safeString(prev[i]?.evol),
+      m1Recouvre: safeString(prev[i]?.m1Recouvre),
+      mMis: safeString(prev[i]?.mMis),
+      mRecouvre: safeString(prev[i]?.mRecouvre),
+      mTaux: safeString(prev[i]?.mTaux),
     })))
 
     const parcGpLabels = getLabels("parc_abonnes_gp", PARC_ABONNES_GP_LABELS)
     setParcAbonnesGpRows((prev) => parcGpLabels.map((designation, i) => ({
-      designation,
-      m: safeString(prev[i]?.m),
-      m1: safeString(prev[i]?.m1),
-      evol: safeString(prev[i]?.evol),
-    })))
-
-    const totalParcLabels = getLabels("total_parc_abonnes", TOTAL_PARC_ABONNES_LABELS)
-    setTotalParcAbonnesRows((prev) => totalParcLabels.map((designation, i) => ({
       designation,
       m: safeString(prev[i]?.m),
       m1: safeString(prev[i]?.m1),
@@ -1393,15 +1129,29 @@ function CommercialPageContent() {
       evol: safeString(prev[i]?.evol),
     })))
 
+    const desactivationLabels = getLabels("desactivation", DESACTIVATION_LABELS)
+    setDesactivationRows((prev) => desactivationLabels.map((designation, i) => ({
+      designation,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
+    const resiliationLabels = getLabels("resiliation", RESILIATION_LABELS)
+    setResiliationRows((prev) => resiliationLabels.map((designation, i) => ({
+      designation,
+      m: safeString(prev[i]?.m),
+      m1: safeString(prev[i]?.m1),
+      evol: safeString(prev[i]?.evol),
+    })))
+
     const chiffreLabels = getLabels("chiffre_affaires_mda", CHIFFRE_AFFAIRES_MDA_LABELS)
     setChiffreAffairesMdaRows((prev) => chiffreLabels.map((designation, i) => ({
       designation,
       mObjectif: safeString(prev[i]?.mObjectif),
       mRealise: safeString(prev[i]?.mRealise),
       mTaux: safeString(prev[i]?.mTaux),
-      m1Objectif: safeString(prev[i]?.m1Objectif),
       m1Realise: safeString(prev[i]?.m1Realise),
-      m1Taux: safeString(prev[i]?.m1Taux),
     })))
   }, [kpiRows])
   
@@ -1455,7 +1205,6 @@ function CommercialPageContent() {
   )
   
   const hasFiscalTabAccess = declarationTabs.length > 0
-  const isActiveTabDisabled = disabledTabKeys.has(activeTab)
 
   const resolveDirectionForRole = useCallback(
     (fallbackDirection = "") => {
@@ -1508,6 +1257,16 @@ function CommercialPageContent() {
     if (declarationCategoryOptions.some((category) => category.key === selectedCategoryKey)) return
     setSelectedCategoryKey(declarationCategoryOptions[0]?.key ?? "reclamation")
   }, [declarationCategoryOptions, selectedCategoryKey])
+
+  const handleStepClick = (pointKey: string) => {
+    const step = getDomainProgressSteps("commercial").find((s) =>
+      s.points.some((p) => p.key === pointKey)
+    )
+    if (step) {
+      setSelectedCategoryKey(step.key as tableauCategoryKey)
+    }
+    setActiveTab(pointKey)
+  }
 
   useEffect(() => {
     if (!selectableYears.includes(annee)) {
@@ -1609,18 +1368,15 @@ function CommercialPageContent() {
       setEditingSourceAnnee(loadedAnnee)
       // Chargement des données des tableaux conservés
       setReclamationRows(normalizeReclamationRows(declaration.reclamationRows))
-      setReclamationGpRows(normalizeReclamationGpRows(declaration.reclamationGpRows))
       setEPayementPopRows(normalizeEPayementRows(declaration.ePayementPopRows))
-      setEPayementPrpRows(normalizeEPayementRows(declaration.ePayementPrpRows))
       setTotalEncaissementRows(normalizeTotalEncaissementRows(declaration.totalEncaissementRows))
       setRechargementRows(normalizeRechargementRows(declaration.rechargementRows))
       setRecouvrementRows(normalizeRecouvrementRows(declaration.recouvrementRows))
-      setDesactivationResiliationRows(normalizeDesactivationResiliationRows(declaration.desactivationResiliationRows))
-      setParcAbonnesB2bRows(normalizeParcAbonnesB2BRows(declaration.parcAbonnesB2bRows))
       setParcAbonnesGpRows(normalizeParcAbonnesGpRows(declaration.parcAbonnesGpRows))
-      setTotalParcAbonnesRows(normalizeTotalParcAbonnesRows(declaration.totalParcAbonnesRows))
       setTotalParcAbonnesTechnologieRows(normalizeTotalParcAbonnesTechnologieRows(declaration.totalParcAbonnesTechnologieRows))
       setActivationRows(normalizeActivationRows(declaration.activationRows))
+      setDesactivationRows(normalizeDesactivationRows(declaration.desactivationRows))
+      setResiliationRows(normalizeResiliationRows(declaration.resiliationRows))
       setChiffreAffairesMdaRows(normalizeChiffreAffairesMdaRows(declaration.chiffreAffairesMdaRows))
     } catch {
       toast({
@@ -1631,6 +1387,47 @@ function CommercialPageContent() {
     }
   }, [canManageTabForDirection, editQuery.editId, editQuery.tab, isAdminRole, isLoading, resolveDirectionForRole, router, status, user, toast])
 
+  const completedTabKeys = useMemo(() => {
+    const keys = new Set<string>()
+    const periodMois = safeString(mois).trim()
+    const periodAnnee = safeString(annee).trim()
+    const periodDirection = safeString(effectiveDirection).trim()
+
+    tableauDeclarations.forEach((decl) => {
+      if (
+        safeString(decl.mois).trim() === periodMois &&
+        safeString(decl.annee).trim() === periodAnnee &&
+        safeString(decl.direction).trim() === periodDirection &&
+        istableauTabKey(decl.tabKey)
+      ) {
+        keys.add(decl.tabKey)
+      }
+    })
+
+    if (typeof window !== "undefined") {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("fiscal_declarations") ?? "[]")
+        const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
+        declarations.forEach((decl) => {
+          if (
+            safeString(decl.mois).trim() === periodMois &&
+            safeString(decl.annee).trim() === periodAnnee &&
+            safeString(decl.direction).trim() === periodDirection
+          ) {
+            const tabKey = resolveDeclarationTabKey(decl)
+            if (istableauTabKey(tabKey)) {
+              keys.add(tabKey)
+            }
+          }
+        })
+      } catch {
+        return keys
+      }
+    }
+
+    return keys
+  }, [annee, effectiveDirection, mois, tableauDeclarations])
+
   if (isLoading || !user || status !== "authenticated") {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -1639,11 +1436,11 @@ function CommercialPageContent() {
     )
   }
 
-  const handleSave = async () => {
+  const handleSave = async (tabKey: tableauTabKey) => {
     const saveDirection = effectiveDirection
     const isAdminEditing = isAdminRole && !!editingDeclarationId
     
-    if (!isAdminEditing && !canManageTabForDirection(activeTab, saveDirection)) {
+    if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
         title: "Acces refuse",
         description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
@@ -1652,7 +1449,7 @@ function CommercialPageContent() {
       return
     }
 
-    if (isActiveTabDisabled) {
+    if (disabledTabKeys.has(tabKey)) {
       toast({
         title: "Tableau desactive",
         description: "Le tableau selectionne est desactive par l'administration.",
@@ -1700,70 +1497,40 @@ function CommercialPageContent() {
 
     // Validation des champs pour les tableaux conservés
     let validationError = false
-    switch (activeTab) {
+    switch (tabKey) {
       case "reclamation":
         if (reclamationRows.some((r) => !r.mGp && !r.mB2b && !r.m1Gp && !r.m1B2b)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Reclamation.", variant: "destructive" })
           validationError = true
         }
         break
-      case "reclamation_gp":
-        if (reclamationGpRows.some((r) => !r.recues || !r.traitees)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Reclamation GP.", variant: "destructive" })
-          validationError = true
-        }
-        break
       case "e_payement_pop":
         if (ePayementPopRows.some((row) => !row.m || !row.m1 || !row.evol)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau E-PAYEMENT Pop.", variant: "destructive" })
-          validationError = true
-        }
-        break
-      case "e_payement_prp":
-        if (ePayementPrpRows.some((row) => !row.m || !row.m1 || !row.evol)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau E-PAYEMENT Prp.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau E-PAYEMENT (MDA).", variant: "destructive" })
           validationError = true
         }
         break
       case "total_encaissement":
-        if (totalEncaissementRows.some((row) => !row.mGp || !row.mB2b || !row.m1Gp || !row.m1B2b || !row.evol)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les valeurs du tableau Totale des encaissements.", variant: "destructive" })
+        if (totalEncaissementRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les valeurs du tableau Encaissement (MDA).", variant: "destructive" })
           validationError = true
         }
         break
       case "rechargement":
-        if (rechargementRows.some((row) => !row.m || !row.m1 || !row.taux)) {
+        if (rechargementRows.some((row) => !row.m || !row.m1 || !row.evol)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Rechargement.", variant: "destructive" })
           validationError = true
         }
         break
       case "recouvrement":
-        if (recouvrementRows.some((row) => !row.mGp || !row.mB2b || !row.m1Gp || !row.m1B2b)) {
+        if (recouvrementRows.some((row) => !row.m1Recouvre || !row.mMis || !row.mRecouvre || !row.mTaux)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Recouvrement.", variant: "destructive" })
-          validationError = true
-        }
-        break
-      case "desactivation_resiliation":
-        if (desactivationResiliationRows.some((row) => !row.m || !row.m1 || !row.evol)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Desactivation / Resiliation.", variant: "destructive" })
-          validationError = true
-        }
-        break
-      case "parc_abonnes_b2b":
-        if (parcAbonnesB2bRows.some((row) => !row.m || !row.m1 || !row.evol)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Parc Abonnes B2B.", variant: "destructive" })
           validationError = true
         }
         break
       case "parc_abonnes_gp":
         if (parcAbonnesGpRows.some((row) => !row.m || !row.m1 || !row.evol)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Parc Abonnes GP.", variant: "destructive" })
-          validationError = true
-        }
-        break
-      case "total_parc_abonnes":
-        if (totalParcAbonnesRows.some((row) => !row.m || !row.m1 || !row.evol)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Total Parc Abonnes.", variant: "destructive" })
           validationError = true
         }
         break
@@ -1779,8 +1546,20 @@ function CommercialPageContent() {
           validationError = true
         }
         break
+      case "desactivation":
+        if (desactivationRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Désactivation.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "resiliation":
+        if (resiliationRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Résiliation.", variant: "destructive" })
+          validationError = true
+        }
+        break
       case "chiffre_affaires_mda":
-        if (chiffreAffairesMdaRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Objectif || !row.m1Realise || !row.m1Taux)) {
+        if (chiffreAffairesMdaRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Chiffre d'Affaires (MDA).", variant: "destructive" })
           validationError = true
         }
@@ -1809,33 +1588,24 @@ function CommercialPageContent() {
       mois,
       annee,
       reclamationRows: [],
-      reclamationGpRows: [],
       ePayementPopRows: [],
-      ePayementPrpRows: [],
       totalEncaissementRows: [],
       rechargementRows: [],
       recouvrementRows: [],
-      desactivationResiliationRows: [],
-      parcAbonnesB2bRows: [],
       parcAbonnesGpRows: [],
-      totalParcAbonnesRows: [],
       totalParcAbonnesTechnologieRows: [],
       activationRows: [],
+      desactivationRows: [],
+      resiliationRows: [],
       chiffreAffairesMdaRows: [],
     }
     
-    switch (activeTab) {
+    switch (tabKey) {
       case "reclamation":
         baseDecl.reclamationRows = reclamationRows
         break
-      case "reclamation_gp":
-        baseDecl.reclamationGpRows = reclamationGpRows
-        break
       case "e_payement_pop":
         baseDecl.ePayementPopRows = ePayementPopRows
-        break
-      case "e_payement_prp":
-        baseDecl.ePayementPrpRows = ePayementPrpRows
         break
       case "total_encaissement":
         baseDecl.totalEncaissementRows = totalEncaissementRows
@@ -1846,23 +1616,20 @@ function CommercialPageContent() {
       case "recouvrement":
         baseDecl.recouvrementRows = recouvrementRows
         break
-      case "desactivation_resiliation":
-        baseDecl.desactivationResiliationRows = desactivationResiliationRows
-        break
-      case "parc_abonnes_b2b":
-        baseDecl.parcAbonnesB2bRows = parcAbonnesB2bRows
-        break
       case "parc_abonnes_gp":
         baseDecl.parcAbonnesGpRows = parcAbonnesGpRows
-        break
-      case "total_parc_abonnes":
-        baseDecl.totalParcAbonnesRows = totalParcAbonnesRows
         break
       case "total_parc_abonnes_technologie":
         baseDecl.totalParcAbonnesTechnologieRows = totalParcAbonnesTechnologieRows
         break
       case "activation":
         baseDecl.activationRows = activationRows
+        break
+      case "desactivation":
+        baseDecl.desactivationRows = desactivationRows
+        break
+      case "resiliation":
+        baseDecl.resiliationRows = resiliationRows
         break
       case "chiffre_affaires_mda":
         baseDecl.chiffreAffairesMdaRows = chiffreAffairesMdaRows
@@ -1885,24 +1652,21 @@ function CommercialPageContent() {
       const apiBase = API_BASE
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       let tabData: unknown = {}
-      switch (activeTab) {
+      switch (tabKey) {
         case "reclamation": tabData = { reclamationRows }; break
-        case "reclamation_gp": tabData = { reclamationGpRows }; break
         case "e_payement_pop": tabData = { ePayementPopRows }; break
-        case "e_payement_prp": tabData = { ePayementPrpRows }; break
         case "total_encaissement": tabData = { totalEncaissementRows }; break
         case "rechargement": tabData = { rechargementRows }; break
         case "recouvrement": tabData = { recouvrementRows }; break
-        case "desactivation_resiliation": tabData = { desactivationResiliationRows }; break
-        case "parc_abonnes_b2b": tabData = { parcAbonnesB2bRows }; break
         case "parc_abonnes_gp": tabData = { parcAbonnesGpRows }; break
-        case "total_parc_abonnes": tabData = { totalParcAbonnesRows }; break
         case "total_parc_abonnes_technologie": tabData = { totalParcAbonnesTechnologieRows }; break
         case "activation": tabData = { activationRows }; break
+        case "desactivation": tabData = { desactivationRows }; break
+        case "resiliation": tabData = { resiliationRows }; break
         case "chiffre_affaires_mda": tabData = { chiffreAffairesMdaRows }; break
       }
       const requestPayload = {
-        tabKey: activeTab,
+        tabKey,
         mois,
         annee,
         direction: saveDirection,
@@ -1931,7 +1695,13 @@ function CommercialPageContent() {
       })
 
       if (!createResponse.ok) {
-        throw new Error("Erreur lors de l'enregistrement")
+        const errorText = await createResponse.text().catch(() => "")
+        const cleanText = errorText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+        const details = cleanText.slice(0, 200)
+        const message = details
+          ? `Erreur lors de l'enregistrement: ${details}`
+          : `Erreur lors de l'enregistrement (HTTP ${createResponse.status})`
+        throw new Error(message)
       }
     } catch (error) {
       setIsSubmitting(false)
@@ -1943,13 +1713,13 @@ function CommercialPageContent() {
       return
     }
     
-    const tabLabel = TABS.find((t) => t.key === activeTab)?.label ?? activeTab
+    const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
       title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
       description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
     })
     setIsSubmitting(false)
-    navigateToNextStep(activeTab, mois, annee)
+    setActiveTab(tabKey)
   }
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
@@ -1963,6 +1733,192 @@ function CommercialPageContent() {
     }
     return ""
   })()
+
+  const renderDisabledNotice = (tabKey: tableauTabKey) =>
+    disabledTabKeys.has(tabKey) ? (
+      <p className="mb-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
+        Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
+      </p>
+    ) : null
+
+  const getExistingDeclarationForTab = (tabKey: tableauTabKey): Savedtableau | null => {
+    try {
+      const parsed = JSON.parse(typeof localStorage !== "undefined" ? localStorage.getItem("fiscal_declarations") ?? "[]" : "[]")
+      const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
+      return declarations.find(decl => {
+        if (decl.mois !== mois || decl.annee !== annee || decl.direction !== effectiveDirection) return false
+        if (editingDeclarationId && safeString(decl.id) === editingDeclarationId) return false
+        return resolveDeclarationTabKey(decl) === tabKey
+      }) ?? null
+    } catch {
+      return null
+    }
+  }
+
+  const renderExistingWarning = (tabKey: tableauTabKey) => {
+    const existing = getExistingDeclarationForTab(tabKey)
+    return existing ? (
+      <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+        Ce tableau a deja ete enregistre pour la periode {existing.mois}/{existing.annee}. Vous etes sur le point de le modifier.
+      </p>
+    ) : null
+  }
+
+  const renderTabCard = (tabKey: tableauTabKey) => {
+    switch (tabKey) {
+      case "reclamation":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Tableau Reclamation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabReclamation rows={reclamationRows} setRows={setReclamationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "e_payement_pop":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>E-PAYEMENT (MDA)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabEPayementSingle
+                title="E-PAYEMENT (MDA)"
+                rows={ePayementPopRows}
+                setRows={setEPayementPopRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+          </Card>
+        )
+      case "total_encaissement":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Encaissement (MDA)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabTotalEncaissement rows={totalEncaissementRows} setRows={setTotalEncaissementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "rechargement":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Rechargement</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabRechargement rows={rechargementRows} setRows={setRechargementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "recouvrement":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Recouvrement (MDA)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "parc_abonnes_gp":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Parc Abonnes GP</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabParcAbonnesGp rows={parcAbonnesGpRows} setRows={setParcAbonnesGpRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "total_parc_abonnes_technologie":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Total Parc Abonnes parc technologie</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabTotalParcAbonnesTechnologie rows={totalParcAbonnesTechnologieRows} setRows={setTotalParcAbonnesTechnologieRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "activation":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Activation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabActivation rows={activationRows} setRows={setActivationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "desactivation":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Désactivation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabDesactivation rows={desactivationRows} setRows={setDesactivationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "resiliation":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Résiliation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabResiliation rows={resiliationRows} setRows={setResiliationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      case "chiffre_affaires_mda":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Chiffre d'Affaires (MDA)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabChiffreAffairesMda rows={chiffreAffairesMdaRows} setRows={setChiffreAffairesMdaRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+            </CardContent>
+          </Card>
+        )
+      default:
+        return null
+    }
+  }
 
   return (
     <LayoutWrapper user={user}>
@@ -1981,21 +1937,13 @@ function CommercialPageContent() {
               title="Tableaux Commercial"
               domain="commercial"
               currentTabKey={activeTab}
+              completedTabKeys={completedTabKeys}
               mois={mois}
               annee={annee}
               onBackClick={() => router.push("/dashbord")}
+              onStepClick={handleStepClick}
               layout="horizontal"
             />
-
-            <Tabs value={selectedCategoryKey} onValueChange={(value) => setSelectedCategoryKey(value as tableauCategoryKey)} className="w-full">
-              <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-nowrap [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar]:bg-gray-200 [&::-webkit-scrollbar-thumb]:bg-gray-400 rounded">
-                {declarationCategoryOptions.map((category) => (
-                  <TabsTrigger key={category.key} value={category.key} className="text-xs px-3 py-2 whitespace-nowrap">
-                    {category.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
 
             <Card className="border border-gray-200">
               <CardContent className="pt-4 pb-3">
@@ -2025,33 +1973,7 @@ function CommercialPageContent() {
                       className="h-10 w-[120px] rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
                     />
                   </div>
-                  <div className="space-y-1 flex-1 min-w-[220px]">
-                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tableau</label>
-                    <Select value={activeTab} onValueChange={(value) => {
-                      if (disabledTabKeys.has(value)) return
-                      setActiveTab(value)
-                      setSelectedCategoryKey(findtableauCategoryKeyForTab(value))
-                    }}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="Selectionner un tableau" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredDeclarationTabs.length === 0
-                          ? <SelectItem value="no-tables" disabled>Aucun tableau disponible pour cette categorie</SelectItem>
-                          : filteredDeclarationTabs.map((t) => (
-                              <SelectItem key={t.key} value={t.key} disabled={t.isDisabled} className={t.isDisabled ? "text-muted-foreground" : ""}>
-                                {t.label}{t.isDisabled ? " (desactive)" : ""}
-                              </SelectItem>
-                            ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
-                {isActiveTabDisabled && (
-                  <p className="mt-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
-                    Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
-                  </p>
-                )}
                 {currentPeriodLockMessage && (
                   <p className="mt-3 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
                     {currentPeriodLockMessage}
@@ -2060,172 +1982,8 @@ function CommercialPageContent() {
               </CardContent>
             </Card>
 
-            <div>
-              {activeTab === "reclamation" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Tableau Reclamation</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabReclamation rows={reclamationRows} setRows={setReclamationRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "reclamation_gp" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Tableau Reclamation GP</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabReclamationGp rows={reclamationGpRows} setRows={setReclamationGpRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "e_payement_pop" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>E-PAYEMENT Pop (MDA)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabEPayementSingle
-                      title="E-PAYEMENT Pop (MDA)"
-                      rows={ePayementPopRows}
-                      setRows={setEPayementPopRows}
-                      onSave={handleSave}
-                      isSubmitting={isSubmitting}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "e_payement_prp" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>E-PAYEMENT Prp (MDA)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabEPayementSingle
-                      title="E-PAYEMENT Prp (MDA)"
-                      rows={ePayementPrpRows}
-                      setRows={setEPayementPrpRows}
-                      onSave={handleSave}
-                      isSubmitting={isSubmitting}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "total_encaissement" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Totale des encaissements</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabTotalEncaissement
-                      row={totalEncaissementRows[0] ?? EMPTY_TOTAL_ENCAISSEMENT_ROW}
-                      setRow={(updater) => {
-                        if (typeof updater === "function") {
-                          setTotalEncaissementRows((prev) => [
-                            (updater as (value: TotalEncaissementRow) => TotalEncaissementRow)(prev[0] ?? EMPTY_TOTAL_ENCAISSEMENT_ROW),
-                          ])
-                        } else {
-                          setTotalEncaissementRows([updater])
-                        }
-                      }}
-                      onSave={handleSave}
-                      isSubmitting={isSubmitting}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "rechargement" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Rechargement</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabRechargementSingle title="Rechargement" rows={rechargementRows} setRows={setRechargementRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "recouvrement" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Recouvrement (MDA)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "desactivation_resiliation" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Desactivation / Resiliation</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabDesactivationResiliation rows={desactivationResiliationRows} setRows={setDesactivationResiliationRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "parc_abonnes_b2b" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Parc Abonnes B2B</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabParcAbonnesB2B rows={parcAbonnesB2bRows} setRows={setParcAbonnesB2bRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "parc_abonnes_gp" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Parc Abonnes GP</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabParcAbonnesGp rows={parcAbonnesGpRows} setRows={setParcAbonnesGpRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "total_parc_abonnes" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Total Parc Abonnes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabTotalParcAbonnes rows={totalParcAbonnesRows} setRows={setTotalParcAbonnesRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "total_parc_abonnes_technologie" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Total Parc Abonnes parc technologie</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabTotalParcAbonnesTechnologie rows={totalParcAbonnesTechnologieRows} setRows={setTotalParcAbonnesTechnologieRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "activation" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Activation</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabActivation rows={activationRows} setRows={setActivationRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === "chiffre_affaires_mda" && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Chiffre d'Affaires (MDA)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TabChiffreAffairesMda rows={chiffreAffairesMdaRows} setRows={setChiffreAffairesMdaRows} onSave={handleSave} isSubmitting={isSubmitting} />
-                  </CardContent>
-                </Card>
-              )}
+            <div className="space-y-4">
+              {filteredDeclarationTabs.map((tab) => renderTabCard(tab.key as tableauTabKey))}
             </div>
           </div>
         </>

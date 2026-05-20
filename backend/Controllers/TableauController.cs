@@ -471,7 +471,14 @@ public class TableauController : ControllerBase
         _context.Tableaus.Add(decl);
         await _context.SaveChangesAsync();
 
-        await _normalizedPersistenceService.PersistAsync(request, targetDirection);
+        try
+        {
+            await _normalizedPersistenceService.PersistAsync(request, targetDirection);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Normalized persistence failed: {ex.Message}");
+        }
 
         await _auditService.LogAction(userId, "tableau_SAVE", "Tableau", decl.Id,
             new { decl.TabKey, decl.Mois, decl.Annee, action = "create" });
@@ -527,7 +534,14 @@ public class TableauController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        await _normalizedPersistenceService.PersistAsync(request, targetDirection);
+        try
+        {
+            await _normalizedPersistenceService.PersistAsync(request, targetDirection);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Normalized persistence failed: {ex.Message}");
+        }
 
         await _auditService.LogAction(userId, "tableau_SAVE", "Tableau", decl.Id,
             new { decl.TabKey, decl.Mois, decl.Annee, action = "update", modifiedByUserId = userId });

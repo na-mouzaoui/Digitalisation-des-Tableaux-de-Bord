@@ -9,6 +9,7 @@ interface StepNavProps {
   domain: DomainKey
   currentTabKey?: string
   completedTabKeys?: Set<string>
+  onStepClick?: (pointKey: string) => void
 }
 
 type StepStatus = "completed" | "current" | "pending"
@@ -21,40 +22,27 @@ const getProgressIndexes = (domain: DomainKey, currentTabKey?: string) => {
     ? steps.findIndex((step) => step.points.some((point) => point.key === currentTabKey))
     : -1
 
-  const currentPointIndex =
-    currentGroupIndex >= 0
-      ? steps[currentGroupIndex].points.findIndex((point) => point.key === currentTabKey)
-      : -1
-
-  return { steps, currentGroupIndex, currentPointIndex }
+  return { steps, currentGroupIndex }
 }
 
 const getStepStatus = (
-  groupIndex: number,
-  currentGroupIndex: number,
-  completedTabKeys: Set<string>,
-  stepKey: string
+  stepPoints: { key: string }[],
+  currentTabKey: string | undefined,
+  completedTabKeys: Set<string>
 ): StepStatus => {
-  if (completedTabKeys.has(stepKey)) return "completed"
-  if (groupIndex < currentGroupIndex) return "completed"
-  if (groupIndex === currentGroupIndex) return "current"
+  const isCompleted = stepPoints.length > 0 && stepPoints.every((point) => completedTabKeys.has(point.key))
+  if (isCompleted) return "completed"
+  if (currentTabKey && stepPoints.some((point) => point.key === currentTabKey)) return "current"
   return "pending"
 }
 
 const getPointStatus = (
-  groupIndex: number,
-  pointIndex: number,
-  currentGroupIndex: number,
-  currentPointIndex: number,
-  completedTabKeys: Set<string>,
-  pointKey: string
+  pointKey: string,
+  currentTabKey: string | undefined,
+  completedTabKeys: Set<string>
 ): PointStatus => {
   if (completedTabKeys.has(pointKey)) return "completed"
-  if (groupIndex < currentGroupIndex) return "completed"
-  if (groupIndex === currentGroupIndex) {
-    if (pointIndex < currentPointIndex) return "completed"
-    if (pointIndex === currentPointIndex) return "current"
-  }
+  if (currentTabKey === pointKey) return "current"
   return "pending"
 }
 
@@ -64,14 +52,13 @@ function ProgressContent({
   completedTabKeys = new Set(),
   compact = false,
 }: StepNavProps & { compact?: boolean }) {
-  const { steps, currentGroupIndex, currentPointIndex } = getProgressIndexes(domain, currentTabKey)
+  const { steps, currentGroupIndex } = getProgressIndexes(domain, currentTabKey)
 
   const totalPoints = steps.reduce((count, step) => count + step.points.length, 0)
-  const completedPoints = steps.reduce((count, step, groupIndex) => {
-    if (groupIndex < currentGroupIndex) return count + step.points.length
-    if (groupIndex === currentGroupIndex) return count + Math.max(currentPointIndex, 0)
-    return count
-  }, 0)
+  const completedPoints = steps.reduce(
+    (count, step) => count + step.points.filter((point) => completedTabKeys.has(point.key)).length,
+    0
+  )
   const progressPercentage = totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0
 
   return (
@@ -97,7 +84,9 @@ function ProgressContent({
 
         <div className={compact ? "flex gap-3 min-w-max" : "space-y-3"}>
           {steps.map((step, groupIndex) => {
-            const stepStatus = getStepStatus(groupIndex, currentGroupIndex, completedTabKeys, step.key)
+            const stepStatus = getStepStatus(step.points, currentTabKey, completedTabKeys)
+            const isStepCompleted = stepStatus === "completed"
+            const isActiveStep = step.points.some((point) => point.key === currentTabKey)
             const isCurrentStep = groupIndex === currentGroupIndex
 
             return (
@@ -108,10 +97,10 @@ function ProgressContent({
                 <div className="flex items-start gap-3">
                   <div
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-                      stepStatus === "current"
-                        ? "bg-blue-500 text-white ring-2 ring-blue-100"
-                        : stepStatus === "completed"
-                        ? "bg-green-500 text-white"
+                      isStepCompleted
+                        ? `bg-green-500 text-white${isCurrentStep ? " ring-2 ring-green-200" : ""}`
+                        : stepStatus === "current"
+                        ? "bg-white text-green-700 ring-2 ring-green-200"
                         : "bg-gray-200 text-gray-500"
                     }`}
                   >
@@ -122,9 +111,9 @@ function ProgressContent({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p
-                          className={`text-sm font-semibold ${
+                          className={`text-sm font-semibold whitespace-nowrap ${
                             stepStatus === "current"
-                              ? "text-blue-700"
+                              ? "text-green-700"
                               : stepStatus === "completed"
                               ? "text-green-700"
                               : "text-gray-700"
@@ -136,7 +125,7 @@ function ProgressContent({
                       </div>
 
                       {isCurrentStep && (
-                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                        <span className="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">
                           Onglet actif
                         </span>
                       )}
@@ -144,41 +133,36 @@ function ProgressContent({
 
                     <div className={`mt-3 grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
                       {step.points.map((point, pointIndex) => {
-                        const pointStatus = getPointStatus(
-                          groupIndex,
-                          pointIndex,
-                          currentGroupIndex,
-                          currentPointIndex,
-                          completedTabKeys,
-                          point.key
-                        )
+                        const pointStatus = getPointStatus(point.key, currentTabKey, completedTabKeys)
+                        const isPointCompleted = pointStatus === "completed"
+                        const isActivePoint = currentTabKey === point.key
 
                         return (
                           <div
                             key={point.key}
                             className={`flex items-start gap-3 rounded-xl border px-3 py-2 transition-colors ${
-                              pointStatus === "current"
-                                ? "border-blue-200 bg-blue-50"
-                                : pointStatus === "completed"
+                              isPointCompleted
                                 ? "border-green-200 bg-green-50"
+                                : isActivePoint
+                                ? "border-green-200 bg-gray-50"
                                 : "border-gray-200 bg-gray-50"
                             }`}
                           >
                             <span
                               className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                                pointStatus === "current"
-                                  ? "bg-blue-500"
-                                  : pointStatus === "completed"
-                                  ? "bg-green-500"
+                                isPointCompleted
+                                  ? `bg-green-500${isActivePoint ? " ring-2 ring-green-300" : ""}`
+                                  : isActivePoint
+                                  ? "bg-gray-400 ring-2 ring-green-300"
                                   : "bg-gray-400"
                               }`}
                             />
                             <div className="min-w-0">
                               <p
                                 className={`text-xs font-semibold leading-snug ${
-                                  pointStatus === "current"
-                                    ? "text-blue-700"
-                                    : pointStatus === "completed"
+                                  pointStatus === "completed"
+                                    ? "text-green-700"
+                                    : pointStatus === "current"
                                     ? "text-green-700"
                                     : "text-gray-700"
                                 }`}
@@ -206,8 +190,9 @@ export function TableauStepNav({
   domain,
   currentTabKey,
   completedTabKeys = new Set(),
+  onStepClick,
 }: StepNavProps) {
-  const { steps, currentGroupIndex, currentPointIndex } = getProgressIndexes(domain, currentTabKey)
+  const { steps } = getProgressIndexes(domain, currentTabKey)
 
   return (
     <div className="w-full">
@@ -240,17 +225,23 @@ export function TableauStepNav({
 
           {/* Cercles avec timeline */}
           {steps.map((step, groupIndex) => {
-            const stepStatus = getStepStatus(groupIndex, currentGroupIndex, completedTabKeys, step.key)
+            const stepStatus = getStepStatus(step.points, currentTabKey, completedTabKeys)
+            const isStepCompleted = stepStatus === "completed"
+            const isActiveStep = step.points.some((point) => point.key === currentTabKey)
 
             return (
-              <div key={step.key} className="relative z-10 flex flex-col items-center gap-3">
+              <div
+                key={step.key}
+                className={`relative z-10 flex flex-col items-center gap-3 ${onStepClick ? "cursor-pointer" : ""}`}
+                onClick={() => onStepClick?.(step.points[0].key)}
+              >
                 {/* Grand cercle pour l'onglet */}
                 <div
                   className={`relative flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold transition-all flex-shrink-0 ${
-                    stepStatus === "current"
-                      ? "bg-blue-500 text-white ring-4 ring-blue-200 shadow-lg"
-                      : stepStatus === "completed"
-                      ? "bg-green-500 text-white shadow-md"
+                    isStepCompleted
+                      ? `bg-green-500 text-white shadow-md${isActiveStep ? " ring-4 ring-green-200" : ""}`
+                      : stepStatus === "current"
+                      ? "bg-white text-green-700 ring-4 ring-green-200 shadow-lg"
                       : "bg-gray-200 text-gray-600 shadow-sm"
                   }`}
                 >
@@ -260,9 +251,9 @@ export function TableauStepNav({
                 {/* Nom de l'onglet */}
                 <div className="text-center">
                   <p
-                    className={`text-xs font-semibold leading-tight max-w-[90px] ${
+                    className={`text-xs font-semibold leading-tight max-w-[90px] whitespace-nowrap ${
                       stepStatus === "current"
-                        ? "text-blue-700"
+                        ? "text-green-700"
                         : stepStatus === "completed"
                         ? "text-green-700"
                         : "text-gray-600"
@@ -275,23 +266,18 @@ export function TableauStepNav({
                 {/* Points (tableaux) en dessous sans texte */}
                 <div className="flex flex-wrap gap-1.5 justify-center">
                   {step.points.map((point, pointIndex) => {
-                    const pointStatus = getPointStatus(
-                      groupIndex,
-                      pointIndex,
-                      currentGroupIndex,
-                      currentPointIndex,
-                      completedTabKeys,
-                      point.key
-                    )
+                    const pointStatus = getPointStatus(point.key, currentTabKey, completedTabKeys)
+                    const isPointCompleted = pointStatus === "completed"
+                    const isActivePoint = currentTabKey === point.key
 
                     return (
                       <div
                         key={point.key}
                         className={`h-2 w-2 rounded-full transition-all ${
-                          pointStatus === "current"
-                            ? "bg-blue-500 ring-1 ring-blue-300 scale-110"
-                            : pointStatus === "completed"
-                            ? "bg-green-500"
+                          isPointCompleted
+                            ? `bg-green-500${isActivePoint ? " ring-2 ring-green-300 scale-110" : ""}`
+                            : isActivePoint
+                            ? "bg-gray-300 ring-2 ring-green-300 scale-110"
                             : "bg-gray-300"
                         }`}
                         title={point.label}
@@ -313,7 +299,7 @@ export function TableauStepNavHorizontal({
   currentTabKey,
   completedTabKeys = new Set(),
 }: StepNavProps) {
-  const { steps, currentGroupIndex, currentPointIndex } = getProgressIndexes(domain, currentTabKey)
+  const { steps } = getProgressIndexes(domain, currentTabKey)
 
   return (
     <div className="overflow-x-auto pb-6 relative">
@@ -341,17 +327,19 @@ export function TableauStepNavHorizontal({
         </svg>
 
         {steps.map((step, groupIndex) => {
-          const stepStatus = getStepStatus(groupIndex, currentGroupIndex, completedTabKeys, step.key)
+          const stepStatus = getStepStatus(step.points, currentTabKey, completedTabKeys)
+          const isStepCompleted = stepStatus === "completed"
+          const isActiveStep = step.points.some((point) => point.key === currentTabKey)
 
           return (
             <div key={step.key} className="flex flex-col items-center gap-2 relative z-10">
               {/* Grand cercle pour l'onglet */}
               <div
                 className={`relative flex h-14 w-14 items-center justify-center rounded-full text-base font-bold transition-all flex-shrink-0 ${
-                  stepStatus === "current"
-                    ? "bg-blue-500 text-white ring-4 ring-blue-200 shadow-lg"
-                    : stepStatus === "completed"
-                    ? "bg-green-500 text-white shadow-md"
+                  isStepCompleted
+                    ? `bg-green-500 text-white shadow-md${isActiveStep ? " ring-4 ring-green-200" : ""}`
+                    : stepStatus === "current"
+                    ? "bg-white text-green-700 ring-4 ring-green-200 shadow-lg"
                     : "bg-gray-200 text-gray-600 shadow-sm"
                 }`}
               >
@@ -362,11 +350,11 @@ export function TableauStepNavHorizontal({
               <p
                 className={`text-xs font-semibold text-center leading-tight max-w-[70px] ${
                   stepStatus === "current"
-                    ? "text-blue-700"
+                    ? "text-green-700"
                     : stepStatus === "completed"
                     ? "text-green-700"
                     : "text-gray-600"
-                }`}
+                } overflow-hidden text-ellipsis`}
               >
                 {step.label}
               </p>
@@ -374,23 +362,18 @@ export function TableauStepNavHorizontal({
               {/* Points (tableaux) */}
               <div className="flex flex-wrap gap-1 justify-center">
                 {step.points.map((point, pointIndex) => {
-                  const pointStatus = getPointStatus(
-                    groupIndex,
-                    pointIndex,
-                    currentGroupIndex,
-                    currentPointIndex,
-                    completedTabKeys,
-                    point.key
-                  )
+                  const pointStatus = getPointStatus(point.key, currentTabKey, completedTabKeys)
+                  const isPointCompleted = pointStatus === "completed"
+                  const isActivePoint = currentTabKey === point.key
 
                   return (
                     <div
                       key={point.key}
                       className={`h-2 w-2 rounded-full transition-all ${
-                        pointStatus === "current"
-                          ? "bg-blue-500 ring-1 ring-blue-300 scale-110"
-                          : pointStatus === "completed"
-                          ? "bg-green-500"
+                        isPointCompleted
+                          ? `bg-green-500${isActivePoint ? " ring-2 ring-green-300 scale-110" : ""}`
+                          : isActivePoint
+                          ? "bg-gray-300 ring-2 ring-green-300 scale-110"
                           : "bg-gray-300"
                       }`}
                       title={point.label}
