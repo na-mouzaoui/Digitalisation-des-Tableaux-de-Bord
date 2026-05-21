@@ -233,6 +233,42 @@ namespace CheckFillingAPI.Migrations
                     b.ToTable("SousKpis", (string)null);
                 });
 
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.StepComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Annee")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Mois")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TabKey")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StepComments");
+                });
+
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Tableau", b =>
                 {
                     b.Property<int>("Id")
@@ -325,6 +361,9 @@ namespace CheckFillingAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -356,6 +395,7 @@ namespace CheckFillingAPI.Migrations
                             Email = "test@gmail.com",
                             FirstName = "Test",
                             LastName = "User",
+                            MustChangePassword = false,
                             PasswordHash = "$2a$11$3f1y0aSd2iVFhKoWi60oVuwBiNQb913o5x94e0pYXB9eaqvHXW1By",
                             PhoneNumber = "0661000000",
                             Role = "admin"
@@ -368,6 +408,7 @@ namespace CheckFillingAPI.Migrations
                             Email = "admin@test.com",
                             FirstName = "Admin",
                             LastName = "Test",
+                            MustChangePassword = false,
                             PasswordHash = "$2a$11$3f1y0aSd2iVFhKoWi60oVuwBiNQb913o5x94e0pYXB9eaqvHXW1By",
                             PhoneNumber = "0661999999",
                             Role = "admin"
@@ -380,6 +421,7 @@ namespace CheckFillingAPI.Migrations
                             Email = "admin@gmail.com",
                             FirstName = "Admin",
                             LastName = "Gmail",
+                            MustChangePassword = false,
                             PasswordHash = "$2a$11$3f1y0aSd2iVFhKoWi60oVuwBiNQb913o5x94e0pYXB9eaqvHXW1By",
                             PhoneNumber = "0661999998",
                             Role = "admin"

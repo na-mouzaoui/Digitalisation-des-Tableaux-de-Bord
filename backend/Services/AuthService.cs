@@ -19,17 +19,17 @@ public class AuthService : IAuthService
         _configuration = configuration;
     }
 
-    public async Task<(bool Success, string? Token, User? User)> LoginAsync(string email, string password)
+    public async Task<(bool Success, string? Token, User? User, bool MustChangePassword)> LoginAsync(string email, string password)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         
         if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
         {
-            return (false, null, null);
+            return (false, null, null, false);
         }
 
         var token = GenerateJwtToken(user);
-        return (true, token, user);
+        return (true, token, user, user.MustChangePassword);
     }
 
     public async Task<(bool Success, User? User)> RegisterAsync(string email, string password)
@@ -60,11 +60,11 @@ public class AuthService : IAuthService
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim("role", user.Role ?? "comptabilite")
+            new Claim("role", user.Role ?? "utilisateur")
         };
 
         // Add region claim for regionale users
-        if (user.Role == "regionale" && !string.IsNullOrEmpty(user.Region))
+        if (user.Role == "divisionnaire" && !string.IsNullOrEmpty(user.Region))
         {
             claims.Add(new Claim("region", user.Region));
         }
@@ -97,6 +97,7 @@ public class AuthService : IAuthService
         }
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.MustChangePassword = false;
         await _context.SaveChangesAsync();
         return true;
     }

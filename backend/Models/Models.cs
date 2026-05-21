@@ -9,8 +9,9 @@ public class User
     public string LastName { get; set; } = string.Empty;
     public string Direction { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
-    public string Role { get; set; } = "comptabilite"; // direction, comptabilite, regionale, admin
-    public string? Region { get; set; } // nord, sud, est, ouest (pour role regionale uniquement)
+    public string Role { get; set; } = "utilisateur"; // utilisateur, directeur, divisionnaire, admin
+    public string? Region { get; set; } // nord, sud, est, ouest (pour role divisionnaire uniquement)
+    public bool MustChangePassword { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
@@ -61,6 +62,17 @@ public class Tableau
 
     public User User { get; set; } = null!;
     public User? ApprovedByUser { get; set; }
+}
+
+public class StepComment
+{
+    public int Id { get; set; }
+    public string TabKey { get; set; } = string.Empty;
+    public string Mois { get; set; } = string.Empty;
+    public string Annee { get; set; } = string.Empty;
+    public string Direction { get; set; } = string.Empty;
+    public string Comment { get; set; } = string.Empty;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class AdminSetting
@@ -127,7 +139,7 @@ public class CreateUserRequest
     public string LastName { get; set; } = string.Empty;
     public string Direction { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
-    public string Role { get; set; } = "comptabilite";
+    public string Role { get; set; } = "utilisateur";
     public string? Region { get; set; }
 }
 

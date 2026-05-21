@@ -20,7 +20,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var (success, token, user) = await _authService.LoginAsync(request.Email, request.Password);
+        var (success, token, user, mustChangePassword) = await _authService.LoginAsync(request.Email, request.Password);
 
         if (!success)
         {
@@ -40,6 +40,7 @@ public class AuthController : ControllerBase
         {
             success = true,
             token,
+            mustChangePassword,
             user = new
             {
                 id = user!.Id,
@@ -107,6 +108,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
+            mustChangePassword = user.MustChangePassword,
             user = new
             {
                 id = user.Id,
@@ -145,8 +147,8 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        // Vérifier le mot de passe actuel
-        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+        // Vérifier le mot de passe actuel (sauf si changement forcé)
+        if (!user.MustChangePassword && !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
         {
             return BadRequest(new { message = "Mot de passe actuel incorrect" });
         }

@@ -27,10 +27,10 @@ const normalizeDirection = (direction?: string | null) => (direction ?? "").trim
 const normalizeTabKey = (tabKey?: string | null) => (tabKey ?? "").trim().toLowerCase()
 
 export const isAdmintableauRole = (role?: string | null) => normalizeRole(role) === "admin"
-export const isRegionaltableauRole = (role?: string | null) => normalizeRole(role) === "regionale"
+export const isRegionaltableauRole = (role?: string | null) => normalizeRole(role) === "divisionnaire"
 export const isFinancetableauRole = (role?: string | null) => {
   const normalizedRole = normalizeRole(role)
-  return normalizedRole === "comptabilite" || normalizedRole === "finance"
+  return normalizedRole === "utilisateur"
 }
 
 export const isHeadOfficeDirection = (direction?: string | null) => {

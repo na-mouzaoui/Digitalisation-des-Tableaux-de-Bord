@@ -11,5 +11,6 @@ export interface User {
   isRegionalApprover?: boolean
   isFinanceApprover?: boolean
   accessModules?: string
+  mustChangePassword?: boolean
   createdAt: string
 }

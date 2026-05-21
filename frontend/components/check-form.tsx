@@ -297,7 +297,7 @@ export function CheckForm({ user }: CheckFormProps) {
 
     // Load region data for regional users
     const loadRegionData = async () => {
-      if (user.role === "regionale" && user.region) {
+      if (user.role === "divisionnaire" && user.region) {
         setIsRegionalUser(true)
         try {
           const response = await requestWithAuth(`${API_BASE}/api/regions`)

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { Plus, Trash2, Save } from "lucide-react"
+import { Plus, Trash2, Save, ArrowRight } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
@@ -954,6 +954,7 @@ const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
   if ((decl.desactivationRows?.length ?? 0) > 0) return "desactivation"
   if ((decl.resiliationRows?.length ?? 0) > 0) return "resiliation"
   if ((decl.chiffreAffairesMdaRows?.length ?? 0) > 0) return "chiffre_affaires_mda"
+  if ((decl as any).desactivationResiliationRows?.length > 0) return "desactivation"
   return "reclamation"
 }
 
@@ -1012,6 +1013,7 @@ function CommercialPageContent() {
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCommentSubmitting, setIsCommentSubmitting] = useState(false)
   const [editingDeclarationId, setEditingDeclarationId] = useState<string | null>(null)
   const [editingCreatedAt, setEditingCreatedAt] = useState("")
   const [editingSourceMois, setEditingSourceMois] = useState("")
@@ -1032,6 +1034,7 @@ function CommercialPageContent() {
   const [resiliationRows, setResiliationRows] = useState<ResiliationRow[]>(DEFAULT_RESILIATION_ROWS.map((row) => ({ ...row })))
   const [chiffreAffairesMdaRows, setChiffreAffairesMdaRows] = useState<ChiffreAffairesMdaRow[]>(DEFAULT_CHIFFRE_AFFAIRES_MDA_ROWS.map((row) => ({ ...row })))
   const [tableauDeclarations, settableauDeclarations] = useState<Apitableautableau[]>([])
+  const [tabComment, setTabComment] = useState("")
 
   const userRole = user?.role ?? ""
   const isAdminRole = isAdmintableauRole(userRole)
@@ -1387,6 +1390,26 @@ function CommercialPageContent() {
     }
   }, [canManageTabForDirection, editQuery.editId, editQuery.tab, isAdminRole, isLoading, resolveDirectionForRole, router, status, user, toast])
 
+  useEffect(() => {
+    if (!activeTab || !mois || !annee || !effectiveDirection) return
+    let cancelled = false
+    const loadComment = async () => {
+      try {
+        const token = localStorage.getItem("jwt")
+        const res = await fetch(`${API_BASE}/api/step-comment?tabKey=${encodeURIComponent(activeTab)}&mois=${encodeURIComponent(mois)}&annee=${encodeURIComponent(annee)}&direction=${encodeURIComponent(effectiveDirection)}`, {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        if (res.ok && !cancelled) {
+          const data = await res.json()
+          setTabComment(data.comment ?? "")
+        }
+      } catch { /* ignore */ }
+    }
+    loadComment()
+    return () => { cancelled = true }
+  }, [activeTab, mois, annee, effectiveDirection])
+
   const completedTabKeys = useMemo(() => {
     const keys = new Set<string>()
     const periodMois = safeString(mois).trim()
@@ -1403,27 +1426,6 @@ function CommercialPageContent() {
         keys.add(decl.tabKey)
       }
     })
-
-    if (typeof window !== "undefined") {
-      try {
-        const parsed = JSON.parse(localStorage.getItem("fiscal_declarations") ?? "[]")
-        const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
-        declarations.forEach((decl) => {
-          if (
-            safeString(decl.mois).trim() === periodMois &&
-            safeString(decl.annee).trim() === periodAnnee &&
-            safeString(decl.direction).trim() === periodDirection
-          ) {
-            const tabKey = resolveDeclarationTabKey(decl)
-            if (istableauTabKey(tabKey)) {
-              keys.add(tabKey)
-            }
-          }
-        })
-      } catch {
-        return keys
-      }
-    }
 
     return keys
   }, [annee, effectiveDirection, mois, tableauDeclarations])
@@ -1684,6 +1686,22 @@ function CommercialPageContent() {
         })
       }
 
+      await fetch(`${apiBase}/api/step-comment`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          tabKey,
+          mois,
+          annee,
+          direction: saveDirection,
+          comment: tabComment,
+        }),
+      })
+
       const createResponse = await fetch(`${apiBase}/api/fiscal`, {
         method: "POST",
         credentials: "include",
@@ -1703,6 +1721,22 @@ function CommercialPageContent() {
           : `Erreur lors de l'enregistrement (HTTP ${createResponse.status})`
         throw new Error(message)
       }
+
+      const created = await createResponse.json().catch(() => ({}))
+      const newId = Number((created as { id?: unknown }).id ?? 0)
+      if (newId) {
+        settableauDeclarations((prev) => {
+          const filtered = prev.filter((d) => !(d.mois === mois && d.annee === annee && d.direction === saveDirection && d.tabKey === tabKey))
+          return [...filtered, {
+            id: newId,
+            tabKey,
+            mois,
+            annee,
+            direction: saveDirection,
+            dataJson: JSON.stringify(tabData),
+          }]
+        })
+      }
     } catch (error) {
       setIsSubmitting(false)
       toast({
@@ -1720,6 +1754,31 @@ function CommercialPageContent() {
     })
     setIsSubmitting(false)
     setActiveTab(tabKey)
+  }
+
+  const handleSaveComment = async () => {
+    if (!activeTab || !mois || !annee || !effectiveDirection) return
+    setIsCommentSubmitting(true)
+    try {
+      const apiBase = API_BASE
+      const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
+      await fetch(`${apiBase}/api/step-comment`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          tabKey: activeTab,
+          mois,
+          annee,
+          direction: effectiveDirection,
+          comment: tabComment,
+        }),
+      })
+    } catch { /* ignore */ }
+    setIsCommentSubmitting(false)
   }
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
@@ -1743,13 +1802,22 @@ function CommercialPageContent() {
 
   const getExistingDeclarationForTab = (tabKey: tableauTabKey): Savedtableau | null => {
     try {
-      const parsed = JSON.parse(typeof localStorage !== "undefined" ? localStorage.getItem("fiscal_declarations") ?? "[]" : "[]")
-      const declarations: Savedtableau[] = Array.isArray(parsed) ? parsed : []
-      return declarations.find(decl => {
-        if (decl.mois !== mois || decl.annee !== annee || decl.direction !== effectiveDirection) return false
-        if (editingDeclarationId && safeString(decl.id) === editingDeclarationId) return false
-        return resolveDeclarationTabKey(decl) === tabKey
-      }) ?? null
+      const decl = tableauDeclarations.find(d =>
+        d.mois === mois &&
+        d.annee === annee &&
+        d.direction === effectiveDirection &&
+        d.tabKey === tabKey
+      )
+      if (!decl) return null
+      const parsedData = JSON.parse(decl.dataJson)
+      return {
+        id: String(decl.id),
+        createdAt: "",
+        direction: decl.direction,
+        mois: decl.mois,
+        annee: decl.annee,
+        ...parsedData,
+      } as Savedtableau
     } catch {
       return null
     }
@@ -1776,6 +1844,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabReclamation rows={reclamationRows} setRows={setReclamationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1795,6 +1864,7 @@ function CommercialPageContent() {
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
               />
+
             </CardContent>
           </Card>
         )
@@ -1808,6 +1878,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabTotalEncaissement rows={totalEncaissementRows} setRows={setTotalEncaissementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1821,6 +1892,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabRechargement rows={rechargementRows} setRows={setRechargementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1834,6 +1906,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1847,6 +1920,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabParcAbonnesGp rows={parcAbonnesGpRows} setRows={setParcAbonnesGpRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1860,6 +1934,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabTotalParcAbonnesTechnologie rows={totalParcAbonnesTechnologieRows} setRows={setTotalParcAbonnesTechnologieRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1873,6 +1948,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabActivation rows={activationRows} setRows={setActivationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1886,6 +1962,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabDesactivation rows={desactivationRows} setRows={setDesactivationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1899,6 +1976,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabResiliation rows={resiliationRows} setRows={setResiliationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1912,6 +1990,7 @@ function CommercialPageContent() {
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
               <TabChiffreAffairesMda rows={chiffreAffairesMdaRows} setRows={setChiffreAffairesMdaRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+
             </CardContent>
           </Card>
         )
@@ -1925,7 +2004,7 @@ function CommercialPageContent() {
       {!hasFiscalTabAccess ? (
         <AccessDeniedDialog
           title="Acces refuse"
-          message={user.role === "direction"
+          message={user.role === "directeur"
             ? "Votre role ne vous permet pas de creer des declarations fiscales."
             : "Votre role ne vous permet pas de gerer les tableaux fiscaux."}
           redirectTo="/dashbord"
@@ -1983,7 +2062,28 @@ function CommercialPageContent() {
             </Card>
 
             <div className="space-y-4">
-              {filteredDeclarationTabs.map((tab) => renderTabCard(tab.key as tableauTabKey))}
+              {filteredDeclarationTabs.map((tab) => {
+              const key = tab.key as tableauTabKey
+              return (
+                <div key={key}>
+                  {renderTabCard(key)}
+                </div>
+              )
+            })}
+            </div>
+            <div className="mt-4 space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Commentaire</label>
+              <textarea
+                className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                placeholder="Ajouter un commentaire..."
+                value={tabComment}
+                onChange={(e) => setTabComment(e.target.value)}
+              />
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSaveComment} disabled={isCommentSubmitting} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Enregistrer le commentaire">
+                  <ArrowRight size={14} />
+                </Button>
+              </div>
             </div>
           </div>
         </>

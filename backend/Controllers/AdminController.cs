@@ -193,6 +193,7 @@ public class AdminController : ControllerBase
                 u.PhoneNumber,
                 u.Role,
                 u.Region,
+                u.MustChangePassword,
                 u.CreatedAt
             })
             .ToListAsync();
@@ -223,6 +224,7 @@ public class AdminController : ControllerBase
             user.PhoneNumber,
             user.Role,
             user.Region,
+            user.MustChangePassword,
             user.CreatedAt
         });
     }
@@ -253,8 +255,9 @@ public class AdminController : ControllerBase
             LastName = request.LastName ?? "",
             Direction = request.Direction ?? "",
             PhoneNumber = request.PhoneNumber ?? "",
-            Role = request.Role ?? "comptabilite",
-            Region = request.Role == "regionale" ? request.Region : null,
+            Role = request.Role ?? "utilisateur",
+            Region = request.Role == "divisionnaire" ? request.Region : null,
+            MustChangePassword = true,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -305,7 +308,7 @@ public class AdminController : ControllerBase
         if (!string.IsNullOrWhiteSpace(request.Role))
         {
             user.Role = request.Role;
-            user.Region = request.Role == "regionale" ? request.Region : null;
+            user.Region = request.Role == "divisionnaire" ? request.Region : null;
         }
 
         if (!string.IsNullOrWhiteSpace(request.Password))
@@ -365,6 +368,7 @@ public class AdminController : ControllerBase
             return Forbid();
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456789");
+        user.MustChangePassword = true;
         await _context.SaveChangesAsync();
 
         await _auditService.LogAction(
@@ -376,6 +380,97 @@ public class AdminController : ControllerBase
         );
 
         return Ok(new { message = "Mot de passe réinitialisé" });
+    }
+
+    // ?????????????????????????????????????????????
+    // IMPORT USERS FROM EXCEL
+    // ?????????????????????????????????????????????
+
+    public class ImportUserItem
+    {
+        public string Nom { get; set; } = string.Empty;
+        public string Prenom { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Direction { get; set; } = string.Empty;
+        public string Tel { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+    }
+
+    [HttpPost("users/import")]
+    public async Task<IActionResult> ImportUsers([FromBody] List<ImportUserItem> users)
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        if (users == null || users.Count == 0)
+            return BadRequest("Aucun utilisateur é importer");
+
+        var validRoles = new[] { "utilisateur", "directeur", "divisionnaire" };
+        var created = 0;
+        var errors = new List<string>();
+
+        foreach (var item in users)
+        {
+            var email = (item.Email ?? "").Trim().ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                errors.Add($"Email manquant pour {item.Prenom} {item.Nom}");
+                continue;
+            }
+
+            if (await _context.Users.AnyAsync(u => u.Email == email))
+            {
+                errors.Add($"Email déjé utilisé: {email}");
+                continue;
+            }
+
+            if (!Regex.IsMatch(item.Tel ?? "", @"^0\d{9}$"))
+            {
+                errors.Add($"Téléphone invalide pour {email}: {item.Tel}");
+                continue;
+            }
+
+            var normalizedRole = (item.Role ?? "").Trim().ToLowerInvariant();
+            if (!string.IsNullOrWhiteSpace(normalizedRole) && !validRoles.Contains(normalizedRole))
+            {
+                errors.Add($"Réle invalide pour {email}: {item.Role}. Réles acceptés: {string.Join(", ", validRoles)}");
+                continue;
+            }
+
+            var user = new User
+            {
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456789"),
+                FirstName = (item.Prenom ?? "").Trim(),
+                LastName = (item.Nom ?? "").Trim(),
+                Direction = (item.Direction ?? "").Trim(),
+                PhoneNumber = (item.Tel ?? "").Trim(),
+                Role = normalizedRole,
+                MustChangePassword = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            await _auditService.LogAction(
+                GetCurrentUserId(),
+                "IMPORT_USER",
+                "User",
+                user.Id,
+                new { user.Email, user.Role, source = "excel_import" }
+            );
+
+            created++;
+        }
+
+        return Ok(new
+        {
+            message = $"{created} utilisateur(s) créé(s) avec succés",
+            created,
+            errors = errors.Count > 0 ? errors : null
+        });
     }
 
     // ?????????????????????????????????????????????

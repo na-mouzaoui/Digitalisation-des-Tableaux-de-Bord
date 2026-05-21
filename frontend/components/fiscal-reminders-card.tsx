@@ -74,7 +74,7 @@ export function RemindersCard({
   const [selectedDirection, setSelectedDirection] = useState("all")
   const normalizedRole = userRole.trim().toLowerCase()
   const isAdmin = normalizedRole === "admin"
-  const isGlobalRole = normalizedRole === "direction" || normalizedRole === "global" || normalizedRole === "globale"
+  const isGlobalRole = normalizedRole === "directeur" || normalizedRole === "global" || normalizedRole === "globale"
 
   const availableDirectionOptions = useMemo(
     () =>

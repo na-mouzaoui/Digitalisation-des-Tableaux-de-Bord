@@ -102,10 +102,10 @@ public class TableauController : ControllerBase
             return normalizedUserDirection;
         }
 
-        if (normalizedRole is "comptabilite" or "finance")
+        if (normalizedRole is "utilisateur")
             return "Siége";
 
-        if (normalizedRole == "regionale")
+        if (normalizedRole == "divisionnaire")
         {
             if (!string.IsNullOrWhiteSpace(normalizedUserRegion))
                 return normalizedUserRegion;
@@ -245,28 +245,25 @@ public class TableauController : ControllerBase
             return true;
 
         // Vérification par réle et direction
-        if (userRole == "regionale")
+        if (userRole == "divisionnaire")
         {
-            // Un utilisateur régional peut accéder aux tableaux de sa région
             if (!string.IsNullOrWhiteSpace(userDirection) && 
                 (
                     userDirection == tableauDirection
                     || (string.IsNullOrWhiteSpace(tableauDirection)
-                        && tableauOwnerRole == "regionale"
+                        && tableauOwnerRole == "divisionnaire"
                         && tableauOwnerRegion == userDirection)
                 ))
             {
                 return true;
             }
         }
-        else if (userRole == "finance" || userRole == "comptabilite")
+        else if (userRole == "utilisateur" || userRole == "directeur")
         {
-            // Finance peut accéder aux tableaux du siége
             if (IsHeadOfficeDirection(tableauDirection)
                 || (string.IsNullOrWhiteSpace(tableauDirection)
-                    && (tableauOwnerRole == "finance"
-                        || tableauOwnerRole == "comptabilite"
-                        || tableauOwnerRole == "direction"
+                    && (tableauOwnerRole == "utilisateur"
+                        || tableauOwnerRole == "directeur"
                         || tableauOwnerRole == "admin")))
             {
                 return true;
@@ -282,9 +279,9 @@ public class TableauController : ControllerBase
         var roleLabel = normalizedRole switch
         {
             "admin" => "admin",
-            "regionale" => "régionale",
-            "comptabilite" => "finance",
-            "finance" => "finance",
+            "divisionnaire" => "divisionnaire",
+            "directeur" => "directeur",
+            "utilisateur" => "utilisateur",
             _ => "inconnu"
         };
 
@@ -365,14 +362,12 @@ public class TableauController : ControllerBase
         {
             // Admin voit tous les tableaux
         }
-        else if (currentUserRole == "regionale")
+        else if (currentUserRole == "divisionnaire")
         {
-            // Les comptes regionale ne voient que leurs propres tableaux
             query = query.Where(d => d.UserId == userId);
         }
-        else if (currentUserRole is "finance" or "comptabilite" or "direction")
+        else if (currentUserRole is "utilisateur" or "directeur")
         {
-            // Les comptes finance/comptabilite/global(direction) voient tous les tableaux
         }
         else
         {
@@ -560,8 +555,8 @@ public class TableauController : ControllerBase
         var currentUserRole = (currentUserContext.Role ?? "").Trim().ToLowerInvariant();
 
         var canApproveAsAdmin = currentUserRole == "admin";
-        var canApproveAsRegional = currentUserRole == "regionale";
-        var canApproveAsFinance = currentUserRole == "finance" || currentUserRole == "comptabilite";
+        var canApproveAsRegional = currentUserRole == "divisionnaire";
+        var canApproveAsFinance = currentUserRole == "utilisateur";
 
         if (!canApproveAsAdmin && !canApproveAsRegional && !canApproveAsFinance)
             return StatusCode(403, new { message = "Ce compte n'a pas le droit d'approbation." });
@@ -587,12 +582,11 @@ public class TableauController : ControllerBase
             || tableauDirection.Contains("siége")
             || tableauDirection.Contains("siege")
             || (string.IsNullOrWhiteSpace(decl.Direction)
-                && (tableauOwnerRole == "finance"
-                    || tableauOwnerRole == "comptabilite"
-                    || tableauOwnerRole == "direction"
+                && (tableauOwnerRole == "utilisateur"
+                    || tableauOwnerRole == "directeur"
                     || tableauOwnerRole == "admin"));
 
-        if (!canApproveAsAdmin && !isSelfTableau && canApproveAsRegional && (tableauOwnerRole != "regionale" || tableauOwnerRegion != approverRegion))
+        if (!canApproveAsAdmin && !isSelfTableau && canApproveAsRegional && (tableauOwnerRole != "divisionnaire" || tableauOwnerRegion != approverRegion))
         {
             return StatusCode(403, new
             {

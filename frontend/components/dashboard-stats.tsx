@@ -54,7 +54,7 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
 
   // Le backend filtre déjé les chéques par région pour les profils régionaux.
   // Le frontend garde la méme logique: méme région, indépendamment du réle de l'émetteur.
-  let filteredChecks = normalizedCurrentRole === "regionale" && normalizedCurrentRegion
+  let filteredChecks = normalizedCurrentRole === "divisionnaire" && normalizedCurrentRegion
     ? checks.filter(check => {
         const checkUser = users.find(u => String(u.id) === String(check.userId))
         // Si l'utilisateur n'est pas trouvé dans la liste, on fait confiance au backend

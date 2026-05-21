@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<Categorie> Categories { get; set; }
     public DbSet<Kpi> Kpis { get; set; }
     public DbSet<SousKpi> SousKpis { get; set; }
+    public DbSet<StepComment> StepComments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -202,6 +203,7 @@ public class AppDbContext : DbContext
                 Direction = "Test",
                 PhoneNumber = "0661000000",
                 Role = "admin",
+                MustChangePassword = false,
                 CreatedAt = seedCreatedAt
             },
             new User
@@ -214,6 +216,7 @@ public class AppDbContext : DbContext
                 Direction = "Administration",
                 PhoneNumber = "0661999999",
                 Role = "admin",
+                MustChangePassword = false,
                 CreatedAt = seedCreatedAt
             },
             new User
@@ -226,6 +229,7 @@ public class AppDbContext : DbContext
                 Direction = "Administration",
                 PhoneNumber = "0661999998",
                 Role = "admin",
+                MustChangePassword = false,
                 CreatedAt = seedCreatedAt
             }
         );

@@ -31,40 +31,41 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, Eye, EyeOff, KeyRound, Info } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, EyeOff, KeyRound, Info, Upload } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import * as XLSX from "xlsx";
 
 const ROLE_OPTIONS = [
   {
-    value: "direction",
-    label: "Global",
+    value: "utilisateur",
+    label: "Utilisateur",
     privileges: [
-      "Accés complet é toutes les régions",
-      "Accés aux tableaux tableaus de toutes les directions",
-      "Supervision des workflows tableauux",
+      "Accés aux fonctionnalités de base",
+      "Gestion de ses propres tableaux",
+      "Consultation des tableaux siége",
     ],
   },
   {
-    value: "comptabilite",
-    label: "Finance",
+    value: "directeur",
+    label: "Directeur",
     privileges: [
-      "Accés aux fonctionnalités financiéres",
-      "Gestion des tableaux tableaus",
-      "Validation des tableaux siége",
+      "Accés complet é toutes les directions",
+      "Consultation de tous les tableaux",
+      "Supervision des workflows",
     ],
   },
   {
-    value: "regionale",
-    label: "Régionale",
+    value: "divisionnaire",
+    label: "Divisionnaire",
     privileges: [
-      "Accés limité é sa région assignée uniquement",
-      "Consultation de l'historique de sa région",
-      "Validation des tableaux régionales",
+      "Accés limité é sa région/division assignée",
+      "Consultation de sa région/division",
+      "Validation des tableaux de sa région/division",
     ],
   },
 ];
@@ -73,12 +74,12 @@ const getRoleLabel = (role: string) => {
   switch ((role ?? "").trim().toLowerCase()) {
     case "admin":
       return "Admin"
-    case "comptabilite":
-      return "Finance"
-    case "regionale":
-      return "Regionale"
-    case "direction":
-      return "Global"
+    case "utilisateur":
+      return "Utilisateur"
+    case "divisionnaire":
+      return "Divisionnaire"
+    case "directeur":
+      return "Directeur"
     default:
       return role || "Utilisateur"
   }
@@ -132,6 +133,7 @@ interface User {
   direction: string;
   phoneNumber: string;
   role: string;
+  region?: string;
   createdAt: string;
 }
 
@@ -159,7 +161,7 @@ export default function AdminUserManagement() {
     lastName: "",
     direction: "",
     phoneNumber: "",
-    role: "comptabilite",
+    role: "utilisateur",
     region: "",
   });
 
@@ -167,6 +169,87 @@ export default function AdminUserManagement() {
     fetchUsers();
     fetchRegions();
   }, []);
+
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importData, setImportData] = useState<any[]>([]);
+  const [importFileName, setImportFileName] = useState("");
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as any[];
+
+      const mapped = json.map((row: any) => ({
+        Nom: row["nom"] || row["Nom"] || "",
+        Prenom: row["prenom"] || row["Prenom"] || "",
+        Email: row["adresse mail"] || row["Adresse mail"] || row["email"] || row["Email"] || "",
+        Direction: row["direction"] || row["Direction"] || "",
+        Tel: row["tel"] || row["Tel"] || row["téléphone"] || row["Téléphone"] || "",
+        Role: (row["role"] || row["Role"] || "").toString().toLowerCase(),
+      }));
+      setImportData(mapped);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const confirmImport = async () => {
+    if (importData.length === 0) return;
+    const mappedData = importData.map((u) => ({
+      ...u,
+      Role: mapRoleForImport(u.Role),
+    }));
+    try {
+      const token = localStorage.getItem("jwt");
+      const response = await fetch(`${API_BASE}/api/admin/users/import`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(mappedData),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Erreur lors de l'import");
+      }
+      const result = await response.json();
+      toast({
+        title: "Succés",
+        description: result.message + (result.errors ? ` (${result.errors.length} erreur(s))` : ""),
+      });
+      setIsImportOpen(false);
+      setImportData([]);
+      setImportFileName("");
+      fetchUsers();
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "échec de l'import",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const mapRoleForImport = (role: string): string => {
+    const roleMap: Record<string, string> = {
+      "utilisateur": "utilisateur",
+      "par défaut": "utilisateur",
+      "default": "utilisateur",
+      "directeur": "directeur",
+      "director": "directeur",
+      "divisionnaire": "divisionnaire",
+      "divisional": "divisionnaire",
+    };
+    return roleMap[role.trim().toLowerCase()] || "utilisateur";
+  };
 
   const fetchUsers = async () => {
     try {
@@ -225,8 +308,8 @@ export default function AdminUserManagement() {
       return;
     }
 
-    // Validate region for regionale role
-    if (formData.role === "regionale" && !formData.region) {
+    // Validate region for divisionnaire role
+    if (formData.role === "divisionnaire" && !formData.region) {
       toast({
         title: "Erreur de validation",
         description: "La région est obligatoire pour le role régionale",
@@ -390,7 +473,7 @@ export default function AdminUserManagement() {
       lastName: "",
       direction: "",
       phoneNumber: "",
-      role: "comptabilite",
+      role: "utilisateur",
       region: "",
     });
     setShowPassword(false);
@@ -400,11 +483,11 @@ export default function AdminUserManagement() {
     switch (role) {
       case "admin":
         return "destructive";
-      case "comptabilite":
+      case "utilisateur":
         return "default";
-      case "regionale":
+      case "divisionnaire":
         return "secondary";
-      case "direction":
+      case "directeur":
         return "outline";
       default:
         return "default";
@@ -417,7 +500,73 @@ export default function AdminUserManagement() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Upload className="mr-2 h-4 w-4" />
+              Importer Excel
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Importer des utilisateurs depuis Excel</DialogTitle>
+              <DialogDescription>
+                Sélectionnez un fichier Excel (.xlsx) avec les colonnes: nom, prenom, adresse mail, direction, tel, role
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <Input type="file" accept=".xlsx,.xls" onChange={handleImportExcel} />
+              {importFileName && (
+                <p className="text-sm text-muted-foreground">Fichier: {importFileName}</p>
+              )}
+              {importData.length > 0 && (
+                <div className="border rounded-lg max-h-60 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left">Nom</th>
+                        <th className="p-2 text-left">Prénom</th>
+                        <th className="p-2 text-left">Email</th>
+                        <th className="p-2 text-left">Direction</th>
+                        <th className="p-2 text-left">Tél</th>
+                        <th className="p-2 text-left">Rôle</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importData.slice(0, 50).map((u, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="p-2">{u.Nom}</td>
+                          <td className="p-2">{u.Prenom}</td>
+                          <td className="p-2">{u.Email}</td>
+                          <td className="p-2">{u.Direction}</td>
+                          <td className="p-2">{u.Tel}</td>
+                          <td className="p-2">{mapRoleForImport(u.Role)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {importData.length > 50 && (
+                    <p className="p-2 text-sm text-muted-foreground">
+                      ...et {importData.length - 50} autre(s)
+                    </p>
+                  )}
+                  <p className="p-2 text-sm font-medium">
+                    Total: {importData.length} utilisateur(s)
+                  </p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setIsImportOpen(false); setImportData([]); setImportFileName(""); }}>
+                Annuler
+              </Button>
+              <Button onClick={confirmImport} disabled={importData.length === 0}>
+                Importer {importData.length > 0 ? `(${importData.length})` : ""}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -509,7 +658,7 @@ export default function AdminUserManagement() {
                   onChange={(value) => setFormData({ ...formData, role: value })}
                 />
               </div>
-              {formData.role === "regionale" && (
+              {formData.role === "divisionnaire" && (
                 <div className="space-y-2">
                   <Label htmlFor="region">Région *</Label>
                   <Select value={formData.region} onValueChange={(value) => setFormData({ ...formData, region: value })}>
@@ -665,7 +814,7 @@ export default function AdminUserManagement() {
                 Tableau
               </div>
             </div>
-            {formData.role === "regionale" && (
+            {formData.role === "divisionnaire" && (
               <div className="space-y-2">
                 <Label htmlFor="edit-region">Région</Label>
                 <Select value={formData.region} onValueChange={(value) => setFormData({ ...formData, region: value })}>

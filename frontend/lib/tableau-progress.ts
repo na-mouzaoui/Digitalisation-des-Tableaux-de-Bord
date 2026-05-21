@@ -72,8 +72,9 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
       key: "activation_desactivation_sim",
       label: "Activation",
       points: [
-        { key: "desactivation_resiliation", label: "Désactivation / Résiliation" },
-        { key: "activation", label: "Activation SIM" },
+        { key: "activation", label: "Activation" },
+        { key: "desactivation", label: "Désactivation" },
+        { key: "resiliation", label: "Résiliation" },
       ],
     },
     {

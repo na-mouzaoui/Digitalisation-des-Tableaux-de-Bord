@@ -30,12 +30,12 @@ const getRoleLabel = (role: string) => {
   switch ((role ?? "").trim().toLowerCase()) {
     case "admin":
       return "Admin"
-    case "comptabilite":
-      return "Finance"
-    case "regionale":
-      return "Regionale"
-    case "direction":
-      return "Global"
+    case "utilisateur":
+      return "Utilisateur"
+    case "divisionnaire":
+      return "Divisionnaire"
+    case "directeur":
+      return "Directeur"
     default:
       return role || "Utilisateur"
   }
@@ -149,11 +149,11 @@ export default function UserProfileMenu() {
     switch (role) {
       case "admin":
         return "destructive";
-      case "comptabilite":
+      case "utilisateur":
         return "default";
-      case "regionale":
+      case "divisionnaire":
         return "secondary";
-      case "direction":
+      case "directeur":
         return "outline";
       default:
         return "default";

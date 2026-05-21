@@ -86,7 +86,9 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthResult {
       }
 
       const payload = await response.json().catch(() => ({}))
-      const nextUser: User | null = payload?.user ?? null
+      const nextUser: User | null = payload?.user
+        ? { ...payload.user, mustChangePassword: payload.mustChangePassword ?? false }
+        : null
 
       if (!mountedRef.current) {
         return nextUser

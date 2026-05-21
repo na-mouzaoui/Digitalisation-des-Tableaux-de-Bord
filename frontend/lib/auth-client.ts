@@ -22,7 +22,7 @@ export async function login(email: string, password: string) {
       // ignore storage errors
     }
   }
-  return { success: true }
+  return { success: true, mustChangePassword: data?.mustChangePassword ?? false }
 }
 
 export async function logout() {

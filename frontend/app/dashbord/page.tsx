@@ -493,6 +493,9 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     case "activation":
       tableau.activationRows = toArray<ActivationRow>(parsedData.activationRows)
       break
+    case "desactivation_resiliation":
+      tableau.desactivationRows = toArray<any>(parsedData.desactivationResiliationRows ?? parsedData.desactivationRows) as DesactivationRow[]
+      break
     case "desactivation":
       tableau.desactivationRows = toArray<DesactivationRow>(parsedData.desactivationRows)
       break
@@ -2402,6 +2405,7 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
       return <SimpleEvolTableDisplay title="Total Parc Abonnes par Technologie" rows={decl.totalParcAbonnesTechnologieRows ?? []} />
     case "activation":
       return <SimpleEvolTableDisplay title="Activation" rows={decl.activationRows ?? []} />
+    case "desactivation_resiliation":
     case "desactivation":
       return <SimpleEvolTableDisplay title="Désactivation" rows={decl.desactivationRows ?? []} />
     case "resiliation":
@@ -2578,6 +2582,7 @@ export default function tableauDashboardPage() {
   const [viewRecap, setViewRecap] = useState<SavedRecap | null>(null)
   const [printDecl, setPrintDecl] = useState<Savedtableau | null>(null)
   const [showDialog, setShowDialog] = useState(false)
+  const [stepComment, setStepComment] = useState("")
   const [showRecapDialog, setShowRecapDialog] = useState(false)
   const [showRecapFilters, setShowRecapFilters] = useState(false)
   const consultTableContainerRef = useRef<HTMLDivElement | null>(null)
@@ -2600,9 +2605,9 @@ export default function tableauDashboardPage() {
   const [refreshRevision, setRefreshRevision] = useState(0)
   const normalizedRole = (user?.role ?? "").trim().toLowerCase()
   const normalizedRegion = (user?.region ?? "").trim().toLowerCase()
-  const isFinanceRole = normalizedRole === "finance" || normalizedRole === "comptabilite"
+  const isFinanceRole = normalizedRole === "utilisateur"
   const isAdminRole = normalizedRole === "admin"
-  const canApproveRegionaltableaux = normalizedRole === "regionale" && !!user?.isRegionalApprover
+  const canApproveRegionaltableaux = normalizedRole === "divisionnaire" && !!user?.isRegionalApprover
   const canApproveFinancetableaux = isFinanceRole && !!user?.isFinanceApprover
 
 
@@ -2791,6 +2796,15 @@ export default function tableauDashboardPage() {
     setViewDecl(decl)
     setViewTabKey(tabKey)
     setShowDialog(true)
+    setStepComment("")
+    const token = getStoredToken()
+    fetch(`${API_BASE}/api/step-comment?tabKey=${encodeURIComponent(tabKey)}&mois=${encodeURIComponent(decl.mois)}&annee=${encodeURIComponent(decl.annee)}&direction=${encodeURIComponent(decl.direction)}`, {
+      credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => r.json().catch(() => ({})))
+      .then((data) => { if (data.comment) setStepComment(data.comment) })
+      .catch(() => {})
   }
 
   const handlePrint = (decl: Savedtableau, tabKey: string) => {
@@ -4050,6 +4064,12 @@ export default function tableauDashboardPage() {
                   <Printer size={13} /> Imprimer
                 </Button>
               </div>
+              {stepComment && (
+                <div className="mt-4 rounded-xl border bg-white p-4 shadow-sm">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">Commentaire</p>
+                  <p className="text-sm whitespace-pre-wrap">{stepComment}</p>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
