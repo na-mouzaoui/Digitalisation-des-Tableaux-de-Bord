@@ -24,81 +24,25 @@ public class AdminController : ControllerBase
         _auditService = auditService;
     }
 
-    private static readonly string[] ManagedTableauKeys =
+    private static readonly Dictionary<string, string> DomainDisplayNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "chiffre_affaires_mda",
-        "parc_abonnes_gp",
-        "total_parc_abonnes",
-        "total_parc_abonnes_technologie",
-        "parc_abonnes_b2b",
-        "activation",
-        "desactivation_resiliation",
-        "reclamation",
-        "reclamation_gp",
-        "e_payement_pop",
-        "e_payement_prp",
-        "total_encaissement",
-        "rechargement",
-        "recouvrement",
-        "realisation_technique_reseau",
-        "situation_reseau",
-        "trafic_data",
-        "amelioration_qualite",
-        "couverture_reseau",
-        "action_notable_reseau",
-        "disponibilite_reseau",
-        "mttr",
-        "creances_contentieuses",
-        "frais_personnel",
-        "effectif_gsp",
-        "absenteisme",
-        "mouvement_effectifs",
-        "mouvement_effectifs_domaine",
-        "effectifs_formes_gsp",
-        "formations_domaines",
-        "compte_resultat",
+        ["commercial"] = "Commerciale",
+        ["commerciale"] = "Commerciale",
+        ["dvdrs"] = "DVDRS",
+        ["dqrpc"] = "DQRPC",
+        ["support"] = "Support",
+        ["finance"] = "Finances",
+        ["finances"] = "Finances",
+        ["regionale"] = "Regionale",
     };
-
-    private static readonly Dictionary<string, string> ManagedTableauLabels = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["chiffre_affaires_mda"] = "1 - Chiffre d'Affaires (MDA)",
-        ["parc_abonnes_gp"] = "2 - Parc Abonnés GP",
-        ["total_parc_abonnes"] = "3 - Total Parc Abonnés",
-        ["total_parc_abonnes_technologie"] = "4 - Total Parc Abonnés par technologie",
-        ["parc_abonnes_b2b"] = "5 - Parc Abonnés B2B",
-        ["activation"] = "6 - Activation",
-        ["desactivation_resiliation"] = "7 - Désactivation / Résiliation",
-        ["reclamation"] = "8 - Réclamation",
-        ["reclamation_gp"] = "9 - Réclamation GP",
-        ["e_payement_pop"] = "10 - E-PAYEMENT Pop",
-        ["e_payement_prp"] = "11 - E-PAYEMENT Prp",
-        ["total_encaissement"] = "12 - Totale des encaissement",
-        ["rechargement"] = "13 - Rechargement",
-        ["recouvrement"] = "14 - Recouvrement",
-        ["realisation_technique_reseau"] = "15 - Réalisation technique réseau",
-        ["situation_reseau"] = "16 - Situation réseau",
-        ["trafic_data"] = "17 - Trafic Data",
-        ["amelioration_qualite"] = "18 - Amélioration qualité",
-        ["couverture_reseau"] = "19 - Couverture réseau",
-        ["action_notable_reseau"] = "20 - Action notable sur le réseau",
-        ["disponibilite_reseau"] = "21 - Disponibilité réseau",
-        ["mttr"] = "22 - MTTR",
-        ["creances_contentieuses"] = "23 - Créances contentieuses",
-        ["frais_personnel"] = "24 - Frais personnel",
-        ["effectif_gsp"] = "25 - Effectif par GSP",
-        ["absenteisme"] = "26 - Absentéisme",
-        ["mouvement_effectifs"] = "27 - Mouvement des effectifs",
-        ["mouvement_effectifs_domaine"] = "28 - Mouvement des effectifs par domaine",
-        ["effectifs_formes_gsp"] = "29 - Effectifs formés par GSP",
-        ["formations_domaines"] = "30 - Formations réalisées par domaines",
-        ["compte_resultat"] = "31 - Compte de résultat",
-    };
-
-    private static readonly HashSet<string> ManagedTableauKeySet =
-        new(ManagedTableauKeys, StringComparer.OrdinalIgnoreCase);
 
     private static string NormalizeTabKey(string? tabKey) => (tabKey ?? "").Trim().ToLowerInvariant();
     private static string NormalizeKpiName(string? name) => (name ?? "").Trim().ToLowerInvariant();
+    private static string? ResolveDomainDisplayName(string? domain)
+    {
+        var normalized = (domain ?? "").Trim().ToLowerInvariant();
+        return DomainDisplayNames.TryGetValue(normalized, out var displayName) ? displayName : null;
+    }
 
     private static List<string> ParseDisabledTabKeys(string? raw)
     {
@@ -110,7 +54,7 @@ public class AdminController : ControllerBase
             var parsed = JsonSerializer.Deserialize<List<string>>(raw) ?? new List<string>();
             return parsed
                 .Select(NormalizeTabKey)
-                .Where(key => !string.IsNullOrWhiteSpace(key) && ManagedTableauKeySet.Contains(key))
+                .Where(key => !string.IsNullOrWhiteSpace(key))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
@@ -124,7 +68,7 @@ public class AdminController : ControllerBase
     {
         var normalized = keys
             .Select(NormalizeTabKey)
-            .Where(key => !string.IsNullOrWhiteSpace(key) && ManagedTableauKeySet.Contains(key))
+            .Where(key => !string.IsNullOrWhiteSpace(key))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         return JsonSerializer.Serialize(normalized);
@@ -516,15 +460,22 @@ public class AdminController : ControllerBase
         var setting = await GetOrCreateAdminSettingAsync();
         var disabledTabKeys = ParseDisabledTabKeys(setting.DisabledTabKeysJson);
 
-        var existingTabKeys = await _context.Tableaus
+        var kpiKeys = await _context.Kpis
+            .AsNoTracking()
+            .Select(k => k.Nom)
+            .Distinct()
+            .OrderBy(k => k)
+            .ToListAsync();
+
+        var tableauKeys = await _context.Tableaus
             .AsNoTracking()
             .Select(t => t.TabKey)
             .Distinct()
-            .OrderBy(t => t)
             .ToListAsync();
 
-        var allKeys = existingTabKeys.Concat(ManagedTableauKeys)
+        var allKeys = kpiKeys.Concat(tableauKeys)
             .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(k => k)
             .ToList();
 
         return Ok(new
@@ -534,10 +485,36 @@ public class AdminController : ControllerBase
             tabs = allKeys.Select(key => new
             {
                 key,
-                label = ManagedTableauLabels.TryGetValue(key, out var label) ? label : key,
+                label = GenerateTableauLabel(key),
                 isEnabled = !disabledTabKeys.Contains(key, StringComparer.OrdinalIgnoreCase),
             }),
         });
+    }
+
+    private static string GenerateTableauLabel(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return key ?? "";
+
+        var specialUpper = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "mda", "gp", "b2b", "mttr", "gsp", "dvdrs", "dqrpc"
+        };
+
+        var parts = key.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (specialUpper.Contains(parts[i]))
+            {
+                parts[i] = parts[i].ToUpperInvariant();
+            }
+            else if (parts[i].Length > 0)
+            {
+                parts[i] = char.ToUpperInvariant(parts[i][0]) + parts[i].Substring(1);
+            }
+        }
+
+        return string.Join(" ", parts);
     }
 
     [HttpPut("tableau-settings/tabs")]
@@ -584,7 +561,7 @@ public class AdminController : ControllerBase
     // ?????????????????????????????????????????????
 
     [HttpGet("kpis/by-name/{name}")]
-    public async Task<IActionResult> GetKpiByName(string name)
+    public async Task<IActionResult> GetKpiByName(string name, [FromQuery] string? domain = null)
     {
         if (!await IsAdmin())
             return Forbid();
@@ -593,10 +570,20 @@ public class AdminController : ControllerBase
         if (string.IsNullOrWhiteSpace(normalizedName))
             return BadRequest(new { message = "Nom KPI invalide." });
 
-        var kpi = await _context.Kpis
+        var domainDisplayName = ResolveDomainDisplayName(domain);
+        var kpisQuery = _context.Kpis
+            .Include(k => k.SousDomaine)
+                .ThenInclude(sd => sd.Domaine)
             .Include(k => k.SousKpis)
             .AsNoTracking()
-            .FirstOrDefaultAsync(k => k.Nom == normalizedName);
+            .Where(k => k.Nom == normalizedName);
+
+        if (!string.IsNullOrWhiteSpace(domainDisplayName))
+        {
+            kpisQuery = kpisQuery.Where(k => k.SousDomaine.Domaine.Designation == domainDisplayName || k.SousDomaine.Designation == domainDisplayName);
+        }
+
+        var kpi = await kpisQuery.FirstOrDefaultAsync();
 
         if (kpi == null)
         {
@@ -617,12 +604,62 @@ public class AdminController : ControllerBase
         {
             id = kpi.Id,
             name = kpi.Nom,
+            sousDomaineId = kpi.SousDomaineId,
+            sousDomaine = kpi.SousDomaine.Designation,
             rows,
         });
     }
 
+    [HttpGet("hierarchy")]
+    public async Task<IActionResult> GetHierarchy()
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        var domaines = await _context.Domaines
+            .AsNoTracking()
+            .Include(d => d.SousDomaines)
+                .ThenInclude(sd => sd.Kpis)
+                    .ThenInclude(k => k.SousKpis)
+            .OrderBy(d => d.Designation)
+            .ToListAsync();
+
+        var hierarchy = domaines.Select(d => new
+        {
+            id = d.Id,
+            designation = d.Designation,
+            sousDomaines = d.SousDomaines
+                .OrderBy(sd => sd.Designation)
+                .Select(sd => new
+                {
+                    id = sd.Id,
+                    designation = sd.Designation,
+                    kpis = sd.Kpis
+                        .OrderBy(k => k.Nom)
+                        .Select(k => new
+                        {
+                            id = k.Id,
+                            name = k.Nom,
+                            rows = k.SousKpis
+                                .OrderBy(row => row.Order)
+                                .Select(row => new
+                                {
+                                    id = row.Id,
+                                    designation = row.Designation,
+                                    order = row.Order,
+                                })
+                                .ToArray(),
+                        })
+                        .ToArray(),
+                })
+                .ToArray(),
+        }).ToArray();
+
+        return Ok(hierarchy);
+    }
+
     [HttpPut("kpis/by-name/{name}")]
-    public async Task<IActionResult> UpsertKpiRows(string name, [FromBody] KpiRowsRequest request)
+    public async Task<IActionResult> UpsertKpiRows(string name, [FromBody] KpiRowsRequest request, [FromQuery] string? domain = null)
     {
         if (!await IsAdmin())
             return Forbid();
@@ -636,13 +673,33 @@ public class AdminController : ControllerBase
             .Where(d => !string.IsNullOrWhiteSpace(d))
             .ToList();
 
-        var kpi = await _context.Kpis
+        var domainDisplayName = ResolveDomainDisplayName(domain);
+        var kpisQuery = _context.Kpis
+            .Include(k => k.SousDomaine)
+                .ThenInclude(sd => sd.Domaine)
             .Include(k => k.SousKpis)
-            .FirstOrDefaultAsync(k => k.Nom == normalizedName);
+            .Where(k => k.Nom == normalizedName);
+
+        if (!string.IsNullOrWhiteSpace(domainDisplayName))
+        {
+            kpisQuery = kpisQuery.Where(k => k.SousDomaine.Domaine.Designation == domainDisplayName || k.SousDomaine.Designation == domainDisplayName);
+        }
+
+        var kpi = await kpisQuery.FirstOrDefaultAsync();
 
         if (kpi == null)
         {
-            kpi = new Kpi { Nom = normalizedName };
+            if (string.IsNullOrWhiteSpace(domainDisplayName))
+                return BadRequest(new { message = "Le domaine du KPI est requis pour créer ce tableau." });
+
+            var sousDomaine = await _context.SousDomaines
+                .Include(sd => sd.Domaine)
+                .FirstOrDefaultAsync(sd => sd.Domaine.Designation == domainDisplayName || sd.Designation == domainDisplayName);
+
+            if (sousDomaine == null)
+                return BadRequest(new { message = "Sous-domaine introuvable." });
+
+            kpi = new Kpi { Nom = normalizedName, SousDomaineId = sousDomaine.Id };
             _context.Kpis.Add(kpi);
         }
 
@@ -669,6 +726,8 @@ public class AdminController : ControllerBase
         {
             id = kpi.Id,
             name = kpi.Nom,
+            sousDomaineId = kpi.SousDomaineId,
+            sousDomaine = kpi.SousDomaine?.Designation,
             rows = cleanedRows,
         });
     }

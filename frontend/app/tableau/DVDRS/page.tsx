@@ -712,7 +712,7 @@ function DVDRSPageContent() {
   useEffect(() => {
     let cancelled = false
     const loadKpis = async () => {
-      const map = await fetchKpiRowsMap(KPI_TAB_KEYS)
+      const map = await fetchKpiRowsMap(KPI_TAB_KEYS, "DVDRS")
       if (!cancelled) {
         setKpiRows(map)
       }

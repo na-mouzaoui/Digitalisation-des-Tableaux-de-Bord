@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/hooks/use-auth"
 import AdminUserManagement from "@/components/admin-user-management"
 import AdminAuditLogs from "@/components/admin-audit-logs"
-import AdmintableauSettings from "@/components/admin-fiscal-settings"
 import AdminRegionConfig from "@/components/admin-region-config"
 import AdminTableauRows from "@/components/admin-tableau-rows"
 import { logout } from "@/lib/auth-client"
@@ -86,15 +85,6 @@ export default function AdminPage() {
 
           {/* TABLEAUX */}
           <TabsContent value="tableaux" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Activation des tableaux</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AdmintableauSettings />
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Gestion des lignes des tableaux</CardTitle>

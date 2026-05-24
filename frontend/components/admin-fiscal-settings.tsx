@@ -119,10 +119,7 @@ export default function AdmintableauSettings() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-muted-foreground">
-        Activez ou desactivez chaque tableau individuellement. Les tableaux desactives apparaitront en grise dans la saisie et seront bloques a l'enregistrement.
-      </div>
-
+     
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {tabs.map((tab, index) => {
           const checkboxId = `table-toggle-${tab.key}`

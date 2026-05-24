@@ -497,7 +497,7 @@ function RegionalePageContent() {
     useEffect(() => {
       let cancelled = false
       const loadKpis = async () => {
-        const map = await fetchKpiRowsMap(KPI_TAB_KEYS)
+        const map = await fetchKpiRowsMap(KPI_TAB_KEYS, "Regionale")
         if (!cancelled) {
           setKpiRows(map)
         }

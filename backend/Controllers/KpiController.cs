@@ -19,17 +19,45 @@ public class KpiController : ControllerBase
 
     private static string NormalizeKpiName(string? name) => (name ?? "").Trim().ToLowerInvariant();
 
+    private static readonly Dictionary<string, string> DomainDisplayNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["commercial"] = "Commerciale",
+        ["commerciale"] = "Commerciale",
+        ["dvdrs"] = "DVDRS",
+        ["dqrpc"] = "DQRPC",
+        ["support"] = "Support",
+        ["finance"] = "Finances",
+        ["finances"] = "Finances",
+        ["regionale"] = "Regionale",
+    };
+
+    private static string? ResolveDomainDisplayName(string? domain)
+    {
+        var normalized = (domain ?? "").Trim().ToLowerInvariant();
+        return DomainDisplayNames.TryGetValue(normalized, out var displayName) ? displayName : null;
+    }
+
     [HttpGet("by-name/{name}")]
-    public async Task<IActionResult> GetKpiByName(string name)
+    public async Task<IActionResult> GetKpiByName(string name, [FromQuery] string? domain = null)
     {
         var normalizedName = NormalizeKpiName(name);
         if (string.IsNullOrWhiteSpace(normalizedName))
             return BadRequest(new { message = "Nom KPI invalide." });
 
-        var kpi = await _context.Kpis
+        var domainDisplayName = ResolveDomainDisplayName(domain);
+        var query = _context.Kpis
+            .Include(k => k.SousDomaine)
+                .ThenInclude(sd => sd.Domaine)
             .Include(k => k.SousKpis)
             .AsNoTracking()
-            .FirstOrDefaultAsync(k => k.Nom == normalizedName);
+            .Where(k => k.Nom == normalizedName);
+
+        if (!string.IsNullOrWhiteSpace(domainDisplayName))
+        {
+            query = query.Where(k => k.SousDomaine.Domaine.Designation == domainDisplayName || k.SousDomaine.Designation == domainDisplayName);
+        }
+
+        var kpi = await query.FirstOrDefaultAsync();
 
         if (kpi == null)
         {
@@ -50,6 +78,8 @@ public class KpiController : ControllerBase
         {
             id = kpi.Id,
             name = kpi.Nom,
+            sousDomaineId = kpi.SousDomaineId,
+            sousDomaine = kpi.SousDomaine.Designation,
             rows,
         });
     }
