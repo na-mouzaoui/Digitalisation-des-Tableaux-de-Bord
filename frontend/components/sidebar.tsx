@@ -82,15 +82,22 @@ export function Sidebar({ user }: SidebarProps) {
   return (
     <div className="relative flex h-full flex-col border-r bg-white w-64">
       
-      {/* Logo */}
+      {/* Logo: prefer attached custom logo, fallback to `logo_doc.png` */}
       <div className="border-b p-4 flex items-center justify-center">
-        <Image
-          src="/logo.png"
+        {/* Use a normal img with onError fallback so developers can drop a file named
+            logo-attached.png into frontend/public/ to override the logo without code changes. */}
+        <img
+          src="/logo-attached.png"
           alt="Logo"
           width={180}
           height={60}
           className="object-contain"
-          priority
+          onError={(e) => {
+            const img = e.currentTarget as HTMLImageElement
+            if (img.src.endsWith('/logo-attached.png')) {
+              img.src = '/logo_doc.png'
+            }
+          }}
         />
       </div>
 

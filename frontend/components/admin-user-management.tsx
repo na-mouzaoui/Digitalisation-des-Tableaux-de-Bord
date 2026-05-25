@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, Eye, EyeOff, KeyRound, Info, Upload } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, EyeOff, KeyRound, Info, Upload, Download } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -197,6 +197,17 @@ export default function AdminUserManagement() {
       setImportData(mapped);
     };
     reader.readAsArrayBuffer(file);
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = ["Nom", "Prenom", "Adresse mail", "Direction", "Tel", "Role"];
+    const example = ["Dupont", "Jean", "jean.dupont@email.com", "Commerciale", "0550123456", "utilisateur"];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    const colWidths = headers.map((h) => ({ wch: Math.max(h.length, 20) }));
+    ws["!cols"] = colWidths;
+    XLSX.utils.book_append_sheet(wb, ws, "Utilisateurs");
+    XLSX.writeFile(wb, "modele_import_utilisateurs.xlsx");
   };
 
   const confirmImport = async () => {
@@ -512,11 +523,16 @@ export default function AdminUserManagement() {
             <DialogHeader>
               <DialogTitle>Importer des utilisateurs depuis Excel</DialogTitle>
               <DialogDescription>
-                Sélectionnez un fichier Excel (.xlsx) avec les colonnes: nom, prenom, adresse mail, direction, tel, role
+                Sélectionnez un fichier Excel (.xlsx) avec les colonnes: Nom, Prenom, Adresse mail, Direction, Tel, Role
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <Input type="file" accept=".xlsx,.xls" onChange={handleImportExcel} />
+              <div className="flex items-center gap-2">
+                <Input type="file" accept=".xlsx,.xls" onChange={handleImportExcel} className="flex-1" />
+                <Button type="button" variant="outline" size="icon" onClick={handleDownloadTemplate} title="Télécharger le modèle Excel">
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
               {importFileName && (
                 <p className="text-sm text-muted-foreground">Fichier: {importFileName}</p>
               )}
