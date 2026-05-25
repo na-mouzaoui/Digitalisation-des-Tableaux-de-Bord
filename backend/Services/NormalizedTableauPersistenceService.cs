@@ -117,6 +117,18 @@ public class NormalizedTableauPersistenceService : INormalizedTableauPersistence
             case "frequence_formation":
                 await SaveFreqFormationAsync(periodId, root, cancellationToken);
                 break;
+            case "genie_civil":
+                await SaveGenieCivilAsync(periodId, root, cancellationToken);
+                break;
+            case "maintenance_equipement":
+                await SaveMaintenanceEquipementAsync(periodId, root, cancellationToken);
+                break;
+            case "nouveaux_sites":
+                await SaveNouveauxSitesAsync(periodId, root, cancellationToken);
+                break;
+            case "commerciale_dr":
+                await SaveCommercialeDrAsync(periodId, root, cancellationToken);
+                break;
             default:
                 break;
         }
@@ -544,5 +556,52 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
 
         await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[FreqFormation] WHERE [Id_Periode] = {periodId}", ct);
         await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[FreqFormation]([Id_Periode],[M_1_Objectif],[M_1_Realise],[M_1_Taux],[M_Objectif],[M_Realise],[M_Taux]) VALUES ({periodId},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Taux"))},{ParseDecimal(GetString(row, "mObjectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
+    }
+
+    private async Task SaveGenieCivilAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[GenieCivil] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "genieCivilRows"))
+        {
+            var ligne = GetString(row, "label");
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[GenieCivil]([Id_Periode],[Ligne],[M_1_Realise],[M_1_Objectif],[M_Realise],[M_Taux]) VALUES ({periodId},{ligne},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
+        }
+    }
+
+    private async Task SaveMaintenanceEquipementAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[MaintenanceEquipement] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "maintenanceEquipementRows"))
+        {
+            var ligne = GetString(row, "label");
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[MaintenanceEquipement]([Id_Periode],[Ligne],[M_1_Realise],[M_1_Objectif],[M_Realise],[M_Taux]) VALUES ({periodId},{ligne},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
+        }
+    }
+
+    private async Task SaveNouveauxSitesAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[NouveauxSites] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "nouveauxSitesRows"))
+        {
+            var ligne = GetString(row, "label");
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[NouveauxSites]([Id_Periode],[Ligne],[M_1_Realise],[M_1_Objectif],[M_Realise],[M_Taux]) VALUES ({periodId},{ligne},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
+        }
+    }
+
+    private async Task SaveCommercialeDrAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[CommercialeDR] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "commercialeDrRows"))
+        {
+            var ligne = GetString(row, "label");
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[CommercialeDR]([Id_Periode],[Ligne],[M_1_Realise],[M_1_Objectif],[M_Realise],[M_Taux]) VALUES ({periodId},{ligne},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
+        }
+
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[ReseauDistribution] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "reseauDistributionRows"))
+        {
+            var ligne = GetString(row, "label");
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[ReseauDistribution]([Id_Periode],[Ligne],[M_1_Recrute],[M_1_Realise],[M_Recrute],[M_Realise],[M_Ecart],[Situation]) VALUES ({periodId},{ligne},{ParseDecimal(GetString(row, "m1Recrute"))},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "mRecrute"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mEcart"))},{ParseDecimal(GetString(row, "situation"))})", ct);
+        }
     }
 }

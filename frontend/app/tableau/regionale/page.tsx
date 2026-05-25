@@ -108,22 +108,62 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 // 5. TYPES DE DONNéES (TABLEAUX CONSERVéS UNIQUEMENT)
 // ?????????????????????????????????????????????????????????????????????????????
 
-// ?? Réalisation Technique Réseau ?????????????????????????????????????????????
-type RealisationTechniqueReseauRow = { label: string; m: string; m1: string }
-const REALISATION_TECHNIQUE_RESEAU_LABELS = ["sites acquis", "site en cours de construction", "sites construits"] as const
-const DEFAULT_REALISATION_TECHNIQUE_RESEAU_ROWS: RealisationTechniqueReseauRow[] =
-  REALISATION_TECHNIQUE_RESEAU_LABELS.map((label) => ({ label, m: "", m1: "" }))
+// ?? Commerciale DR ??????????????????????????????????????????????????
+type CommercialeDrRow = { label: string; m1Realise: string; m1Objectif: string; mRealise: string; mTaux: string }
+const COMMERCIALE_DR_LABELS = ["Chiffre d'Affaires", "Activation SIM", "Stock SIM", "Stock Carte de Recharge"] as const
+const DEFAULT_COMMERCIALE_DR_ROWS: CommercialeDrRow[] =
+  COMMERCIALE_DR_LABELS.map((label) => ({ label, m1Realise: "", m1Objectif: "", mRealise: "", mTaux: "" }))
 
-// ?? Amélioration Qualité (Débit MBPS / WILAYA) ????????????????????????????????
-type AmeliorationQualiteRow = { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }
-const EMPTY_AMELIORATION_QUALITE_ROW: AmeliorationQualiteRow = { wilaya: "", mObjectif: "", mRealise: "", m1Objectif: "", m1Realise: "", ecart: "" }
+// ?? Reseau de Distribution ??????????????????????????????????????????
+type ReseauDistributionRow = { label: string; m1Recrute: string; m1Realise: string; mRecrute: string; mRealise: string; mEcart: string; situation: string }
 
-// ?? MTTR ??????????????????????????????????????????????????????????????????????
-type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; wilayaM1: string; objectifM1: string; realiseM1: string; ecart: string }
-type MttrRegionRow = { region: string; cities: MttrCityRow[] }
-const MTTR_REGIONS = ["DR Alger", "DR Oran", "DR Constantine", "DR Setif", "DR Ouargla", "DR Bechar", "DR Annaba", "DR Chlef"] as const
-const EMPTY_MTTR_CITY_ROW: MttrCityRow = { wilayaM: "", objectifM: "", realiseM: "", wilayaM1: "", objectifM1: "", realiseM1: "", ecart: "" }
-const DEFAULT_MTTR_ROWS: MttrRegionRow[] = MTTR_REGIONS.map((region) => ({ region, cities: [{ ...EMPTY_MTTR_CITY_ROW }] }))
+// ?? Genie Civil & Environnement ??????????????????????????????????????
+type GenieCivilRow = { label: string; m1Realise: string; m1Objectif: string; mRealise: string; mTaux: string }
+const GENIE_CIVIL_LABELS = ["Acquisition des nouveaux sites", "Notes de calculs", "Acquisition des nouveaux sites SUCE", "Construction GC des nouveaux sites SUCES", "Construction GC de nouveaux sites", "Renforcement GC"] as const
+const DEFAULT_GENIE_CIVIL_ROWS: GenieCivilRow[] =
+  GENIE_CIVIL_LABELS.map((label) => ({ label, m1Realise: "", m1Objectif: "", mRealise: "", mTaux: "" }))
+
+// ?? Maintenance & Equipements ????????????????????????????????????????
+type MaintenanceEquipementRow = { label: string; m1Realise: string; m1Objectif: string; mRealise: string; mTaux: string }
+const MAINTENANCE_EQUIPEMENT_LABELS = ["Maintenance curative des sites", "Maintenance preventive des sites", "Acquisition de 100 groupes electrogenes de differentes puissances", "Equipements electriques (transfos MT-BT)", "Alimentation des sites SUCE par une solution solaire", "Acquisition des climatiseurs split-systeme pour les sites techniques"] as const
+const DEFAULT_MAINTENANCE_EQUIPEMENT_ROWS: MaintenanceEquipementRow[] =
+  MAINTENANCE_EQUIPEMENT_LABELS.map((label) => ({ label, m1Realise: "", m1Objectif: "", mRealise: "", mTaux: "" }))
+
+// ?? Nouveaux Sites & Extension Radio ?????????????????????????????????
+type NouveauxSitesRow = { label: string; m1Realise: string; m1Objectif: string; mRealise: string; mTaux: string }
+const NOUVEAUX_SITES_LABELS = ["Nouveaux Sites ON AIR", "Densification du LTE_30Mhz (1800_15+2100_15)", "Ajout de la couche LTE TDD 2300", "Modernisation Module RADIO", "Introduction de la nouvelle technologie 5G + Implementation de la couche LTE TDD 2600", "Ajout de la couche LTE 900", "Nouveaux sites SUCE"] as const
+const DEFAULT_NOUVEAUX_SITES_ROWS: NouveauxSitesRow[] =
+  NOUVEAUX_SITES_LABELS.map((label) => ({ label, m1Realise: "", m1Objectif: "", mRealise: "", mTaux: "" }))
+
+const RESEAU_DISTRIBUTION_LABELS = ["Nombre Agence", "Nombre Point de vente Agree", "Nombre Point de Vente Arsseli", "Nombre Point de Presence VI"] as const
+const DEFAULT_RESEAU_DISTRIBUTION_ROWS: ReseauDistributionRow[] =
+  RESEAU_DISTRIBUTION_LABELS.map((label) => ({ label, m1Recrute: "", m1Realise: "", mRecrute: "", mRealise: "", mEcart: "", situation: "" }))
+
+// ?? MTTR & Débit Internet ?????????????????????????????????????????
+type MttrDebitRow = { wilaya: string; mttrObjectif: string; mttrRealise: string; mttrEcart: string; debitObjectif: string; debitRealise: string; debitEcart: string }
+const EMPTY_MTTR_DEBIT_ROW: MttrDebitRow = { wilaya: "", mttrObjectif: "", mttrRealise: "", mttrEcart: "", debitObjectif: "", debitRealise: "", debitEcart: "" }
+
+// ?? Acquisition Terrain & Location Immeuble ?????????????????????????
+type AcquisitionTerrainRow = { wilaya: string; terrain: string; location: string }
+const EMPTY_ACQUISITION_TERRAIN_ROW: AcquisitionTerrainRow = { wilaya: "", terrain: "", location: "" }
+
+// ?? Recouvrement Contentieux ??????????????????????????????????????
+type RecouvrementContentieuxRow = { label: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
+const RECOUVREMENT_CONTENTIEUX_LABELS = ["Envoi LMD"] as const
+const DEFAULT_RECOUVREMENT_CONTENTIEUX_ROWS: RecouvrementContentieuxRow[] =
+  RECOUVREMENT_CONTENTIEUX_LABELS.map((label) => ({ label, m1Realise: "", mObjectif: "", mRealise: "", mTaux: "" }))
+
+// ?? Ressources Humaines ????????????????????????????????????????????
+type RessourcesHumainesRow = { label: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
+const RESSOURCES_HUMAINES_LABELS = ["Personnel Technique", "Personnel Commerciale", "Personnel Support", "Effectifs Total", "Taux d'Absentéisme"] as const
+const DEFAULT_RESSOURCES_HUMAINES_ROWS: RessourcesHumainesRow[] =
+  RESSOURCES_HUMAINES_LABELS.map((label) => ({ label, m1Realise: "", mObjectif: "", mRealise: "", mTaux: "" }))
+
+// ?? Formation ??????????????????????????????????????????????????????
+type FormationRow = { label: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
+const FORMATION_LABELS = ["Nombre Effectifs Formés", "Nombre de Formations Réalisées"] as const
+const DEFAULT_FORMATION_ROWS: FormationRow[] =
+  FORMATION_LABELS.map((label) => ({ label, m1Realise: "", mObjectif: "", mRealise: "", mTaux: "" }))
 
 
 // ?????????????????????????????????????????????????????????????????????????????
@@ -141,10 +181,10 @@ function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting
   )
 }
 
-// ?? 6a. Réalisation Technique Réseau ?????????????????????????????????????????
-interface TabRealisationTechniqueReseauProps { rows: RealisationTechniqueReseauRow[]; setRows: React.Dispatch<React.SetStateAction<RealisationTechniqueReseauRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabRealisationTechniqueReseau({ rows, setRows, onSave, isSubmitting }: TabRealisationTechniqueReseauProps) {
-  const update = (index: number, field: "m" | "m1", value: string) =>
+// ?? 6d. Commerciale DR ??????????????????????????????????????????????
+interface TabCommercialeDrProps { rows: CommercialeDrRow[]; setRows: React.Dispatch<React.SetStateAction<CommercialeDrRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabCommercialeDr({ rows, setRows, onSave, isSubmitting }: TabCommercialeDrProps) {
+  const update = (index: number, field: "m1Realise" | "m1Objectif" | "mRealise" | "mTaux", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
   return (
@@ -153,17 +193,25 @@ function TabRealisationTechniqueReseau({ rows, setRows, onSave, isSubmitting }: 
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Realisations techniques</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Realisations Commerciales</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
               <tr key={row.label} className="bg-white">
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m}  onChange={(e) => update(index, "m",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
               </tr>
             ))}
           </tbody>
@@ -174,55 +222,221 @@ function TabRealisationTechniqueReseau({ rows, setRows, onSave, isSubmitting }: 
   )
 }
 
-// ?? 6b. Amélioration Qualité (Débit MBPS / WILAYA) ????????????????????????????
-interface TabAmeliorationQualiteProps { rows: AmeliorationQualiteRow[]; setRows: React.Dispatch<React.SetStateAction<AmeliorationQualiteRow[]>>; onSave: () => void; isSubmitting: boolean }
 
-// Composant générique pour tableau dynamique (wilaya + objectif/réalisé)
-interface DynamicWilayaTableProps<T extends { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }> {
-  colHeader: string
-  rows: T[]
-  onAdd: () => void
-  onRemove: (i: number) => void
-  update: (i: number, field: keyof T, value: string) => void
-  onSave: () => void
-  isSubmitting: boolean
+// ?? 6e. Reseau de Distribution ??????????????????????????????????????
+interface TabReseauDistributionProps { rows: ReseauDistributionRow[]; setRows: React.Dispatch<React.SetStateAction<ReseauDistributionRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabReseauDistribution({ rows, setRows, onSave, isSubmitting }: TabReseauDistributionProps) {
+  const update = (index: number, field: keyof ReseauDistributionRow, value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Reseau de Distribution</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Situation Actuelle</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Recrute</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Recrute</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Recrute} onChange={(e) => update(index, "m1Recrute", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRecrute} onChange={(e) => update(index, "mRecrute", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mEcart} onChange={(e) => update(index, "mEcart", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.situation} onChange={(e) => update(index, "situation", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
 }
-function DynamicWilayaTable<T extends { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }>({
-  colHeader, rows, onAdd, onRemove, update, onSave, isSubmitting,
-}: DynamicWilayaTableProps<T>) {
+
+
+// ?? 6f. Genie Civil & Environnement ??????????????????????????????????
+interface TabGenieCivilProps { rows: GenieCivilRow[]; setRows: React.Dispatch<React.SetStateAction<GenieCivilRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabGenieCivil({ rows, setRows, onSave, isSubmitting }: TabGenieCivilProps) {
+  const update = (index: number, field: "m1Realise" | "m1Objectif" | "mRealise" | "mTaux", value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Genie Civil & Environnement</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+// ?? 6g. Maintenance & Equipements ???????????????????????????????????
+interface TabMaintenanceEquipementProps { rows: MaintenanceEquipementRow[]; setRows: React.Dispatch<React.SetStateAction<MaintenanceEquipementRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabMaintenanceEquipement({ rows, setRows, onSave, isSubmitting }: TabMaintenanceEquipementProps) {
+  const update = (index: number, field: "m1Realise" | "m1Objectif" | "mRealise" | "mTaux", value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Maintenance & Equipements</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+
+// ?? 6h. Nouveaux Sites & Extension Radio ?????????????????????????????
+interface TabNouveauxSitesProps { rows: NouveauxSitesRow[]; setRows: React.Dispatch<React.SetStateAction<NouveauxSitesRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabNouveauxSites({ rows, setRows, onSave, isSubmitting }: TabNouveauxSitesProps) {
+  const update = (index: number, field: "m1Realise" | "m1Objectif" | "mRealise" | "mTaux", value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Nouveaux Sites & Extension Radio</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+
+// ?? 6i. MTTR & Débit Internet ?????????????????????????????????????
+interface TabMttrDebitProps { rows: MttrDebitRow[]; setRows: React.Dispatch<React.SetStateAction<MttrDebitRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabMttrDebit({ rows, setRows, onSave, isSubmitting }: TabMttrDebitProps) {
+  const update = (i: number, field: keyof MttrDebitRow, value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
+  const addRow = () => setRows((prev) => [...prev, { ...EMPTY_MTTR_DEBIT_ROW }])
+  const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i))
+
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <Button size="sm" variant="outline" onClick={onAdd} className="gap-1"><Plus size={12} /> Ajouter une ligne</Button>
+        <Button size="sm" variant="outline" onClick={addRow} className="gap-1"><Plus size={12} /> Ajouter une wilaya</Button>
       </div>
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Wilaya</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">MTTR</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Débit Internet</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Écart</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Écart</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
               <tr key={index} className="bg-white">
-                <td className="px-1 py-1 border-b"><Input value={row.wilaya} onChange={(e) => update(index, "wilaya" as keyof T, e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif}  onChange={(e) => update(index, "mObjectif"  as keyof T, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise}   onChange={(e) => update(index, "mRealise"   as keyof T, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif" as keyof T, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise}  onChange={(e) => update(index, "m1Realise"  as keyof T, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.ecart}      onChange={(e) => update(index, "ecart"      as keyof T, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><Input value={row.wilaya} onChange={(e) => update(index, "wilaya", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mttrObjectif} onChange={(e) => update(index, "mttrObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mttrRealise}  onChange={(e) => update(index, "mttrRealise",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mttrEcart}    onChange={(e) => update(index, "mttrEcart",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.debitObjectif} onChange={(e) => update(index, "debitObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.debitRealise}  onChange={(e) => update(index, "debitRealise",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.debitEcart}    onChange={(e) => update(index, "debitEcart",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                 <td className="px-1 py-1 border-b text-center">
-                  <Button type="button" size="icon" variant="ghost" onClick={() => onRemove(index)} disabled={rows.length <= 1} className="h-7 w-7 text-red-600"><Trash2 size={12} /></Button>
+                  <Button type="button" size="icon" variant="ghost" onClick={() => removeRow(index)} disabled={rows.length <= 1} className="h-7 w-7 text-red-600"><Trash2 size={12} /></Button>
                 </td>
               </tr>
             ))}
@@ -234,27 +448,55 @@ function DynamicWilayaTable<T extends { wilaya: string; mObjectif: string; mReal
   )
 }
 
-function TabAmeliorationQualite({ rows, setRows, onSave, isSubmitting }: TabAmeliorationQualiteProps) {
-  const update = (i: number, field: keyof AmeliorationQualiteRow, value: string) =>
+
+// ?? 6j. Acquisition Terrain & Location Immeuble ?????????????????????
+interface TabAcquisitionTerrainProps { rows: AcquisitionTerrainRow[]; setRows: React.Dispatch<React.SetStateAction<AcquisitionTerrainRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabAcquisitionTerrain({ rows, setRows, onSave, isSubmitting }: TabAcquisitionTerrainProps) {
+  const update = (i: number, field: keyof AcquisitionTerrainRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
-  return <DynamicWilayaTable colHeader="Debit MBPS/Wilaya" rows={rows} onAdd={() => setRows((p) => [...p, { ...EMPTY_AMELIORATION_QUALITE_ROW }])} onRemove={(i) => setRows((p) => p.filter((_, idx) => idx !== i))} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  const addRow = () => setRows((prev) => [...prev, { ...EMPTY_ACQUISITION_TERRAIN_ROW }])
+  const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i))
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={addRow} className="gap-1"><Plus size={12} /> Ajouter une wilaya</Button>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Wilaya</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Situation Terrain</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Situation Location Immeuble</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={index} className="bg-white">
+                <td className="px-1 py-1 border-b"><Input value={row.wilaya} onChange={(e) => update(index, "wilaya", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.terrain} onChange={(e) => update(index, "terrain", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.location} onChange={(e) => update(index, "location", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b text-center">
+                  <Button type="button" size="icon" variant="ghost" onClick={() => removeRow(index)} disabled={rows.length <= 1} className="h-7 w-7 text-red-600"><Trash2 size={12} /></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
 }
 
-// ?? 6c. MTTR ?????????????????????????????????????????????????????????????????
-interface TabMttrProps { rows: MttrRegionRow[]; setRows: React.Dispatch<React.SetStateAction<MttrRegionRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
-  const updateCity = (regionIndex: number, cityIndex: number, field: keyof MttrCityRow, value: string) =>
-    setRows((prev) => prev.map((region, rIdx) => rIdx !== regionIndex ? region : {
-      ...region,
-      cities: region.cities.map((city, cIdx) => (cIdx === cityIndex ? { ...city, [field]: value } : city)),
-    }))
-  const addCity = (regionIndex: number) =>
-    setRows((prev) => prev.map((region, rIdx) => rIdx === regionIndex ? { ...region, cities: [...region.cities, { ...EMPTY_MTTR_CITY_ROW }] } : region))
-  const removeCity = (regionIndex: number, cityIndex: number) =>
-    setRows((prev) => prev.map((region, rIdx) => {
-      if (rIdx !== regionIndex || region.cities.length <= 1) return region
-      return { ...region, cities: region.cities.filter((_, cIdx) => cIdx !== cityIndex) }
-    }))
+
+// ?? 6k. Recouvrement Contentieux ??????????????????????????????????
+interface TabRecouvrementContentieuxProps { rows: RecouvrementContentieuxRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementContentieuxRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabRecouvrementContentieux({ rows, setRows, onSave, isSubmitting }: TabRecouvrementContentieuxProps) {
+  const update = (index: number, field: "m1Realise" | "mObjectif" | "mRealise" | "mTaux", value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
   return (
     <div className="space-y-3">
@@ -262,46 +504,111 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement Contentieux</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              {["WILAYA", "Objectif", "Realise"].map((h, i) => (
-                <th key={i} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
-              ))}
-              {["WILAYA", "Objectif", "Realise"].map((h, i) => (
-                <th key={i + 3} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
-              ))}
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((region, regionIndex) =>
-              region.cities.map((city, cityIndex) => (
-                <tr key={`mttr-${regionIndex}-${cityIndex}`} className="bg-white">
-                  {cityIndex === 0 && (
-                    <td rowSpan={region.cities.length} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">
-                      <div className="flex items-center justify-between gap-2">
-                        <span>{region.region}</span>
-                        <Button type="button" size="icon" variant="ghost" onClick={() => addCity(regionIndex)} className="h-6 w-6 text-green-700"><Plus size={11} /></Button>
-                      </div>
-                    </td>
-                  )}
-                  <td className="px-1 py-1 border-b"><Input value={city.wilayaM}  onChange={(e) => updateCity(regionIndex, cityIndex, "wilayaM",  e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
-                  <td className="px-1 py-1 border-b"><AmountInput value={city.objectifM} onChange={(e) => updateCity(regionIndex, cityIndex, "objectifM", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-1 py-1 border-b"><AmountInput value={city.realiseM}  onChange={(e) => updateCity(regionIndex, cityIndex, "realiseM",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-1 py-1 border-b"><Input value={city.wilayaM1} onChange={(e) => updateCity(regionIndex, cityIndex, "wilayaM1", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
-                  <td className="px-1 py-1 border-b"><AmountInput value={city.objectifM1} onChange={(e) => updateCity(regionIndex, cityIndex, "objectifM1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-1 py-1 border-b"><AmountInput value={city.realiseM1}  onChange={(e) => updateCity(regionIndex, cityIndex, "realiseM1",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-1 py-1 border-b"><AmountInput value={city.ecart}      onChange={(e) => updateCity(regionIndex, cityIndex, "ecart",      e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-1 py-1 border-b text-center">
-                    <Button type="button" size="icon" variant="ghost" onClick={() => removeCity(regionIndex, cityIndex)} disabled={region.cities.length <= 1} className="h-7 w-7 text-red-600"><Trash2 size={12} /></Button>
-                  </td>
-                </tr>
-              ))
-            )}
+            {rows.map((row, index) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+
+// ?? 6k. Ressources Humaines ?????????????????????????????????????????
+interface TabRessourcesHumainesProps { rows: RessourcesHumainesRow[]; setRows: React.Dispatch<React.SetStateAction<RessourcesHumainesRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabRessourcesHumaines({ rows, setRows, onSave, isSubmitting }: TabRessourcesHumainesProps) {
+  const update = (index: number, field: "m1Realise" | "mObjectif" | "mRealise" | "mTaux", value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Ressources Humaines</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+
+// ?? 6l. Formation ???????????????????????????????????????????????????
+interface TabFormationProps { rows: FormationRow[]; setRows: React.Dispatch<React.SetStateAction<FormationRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabFormation({ rows, setRows, onSave, isSubmitting }: TabFormationProps) {
+  const update = (index: number, field: "m1Realise" | "mObjectif" | "mRealise" | "mTaux", value: string) =>
+    setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Formation</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={row.label} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -315,29 +622,51 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
 // 7. CONFIGURATION DES ONGLETS (TABLEAUX CONSERVéS UNIQUEMENT)
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "realisation_technique_reseau",   label: "Realisation technique Reseau",          color: PRIMARY_COLOR, title: "REALISATION TECHNIQUE RESEAU" },
-  { key: "amelioration_qualite",           label: "Amelioration qualite",                  color: PRIMARY_COLOR, title: "AMELIORATION QUALITE (DEBIT MBPS/WILAYA)" },
-  { key: "mttr",                           label: "MTTR",                                  color: PRIMARY_COLOR, title: "MTTR / DR" },
+  { key: "genie_civil",                    label: "Genie Civil & Environnement",           color: PRIMARY_COLOR, title: "GENIE CIVIL & ENVIRONNEMENT" },
+  { key: "maintenance_equipement",         label: "Maintenance & Equipements",              color: PRIMARY_COLOR, title: "MAINTENANCE & EQUIPEMENTS" },
+  { key: "nouveaux_sites",                 label: "Nouveaux Sites & Extension Radio",       color: PRIMARY_COLOR, title: "NOUVEAUX SITES & EXTENSION RADIO" },
+  { key: "mttr_debit",                     label: "MTTR & Debit Internet",                  color: PRIMARY_COLOR, title: "MTTR & DEBIT INTERNET" },
+  { key: "recouvrement_contentieux",       label: "Recouvrement Contentieux",               color: PRIMARY_COLOR, title: "RECOUVREMENT CONTENTIEUX" },
+  { key: "ressources_humaines",            label: "Ressources Humaines",                    color: PRIMARY_COLOR, title: "RESSOURCES HUMAINES" },
+  { key: "formation",                      label: "Formation",                              color: PRIMARY_COLOR, title: "FORMATION" },
+  { key: "acquisition_terrain",            label: "Acquisition Terrain & Location Immeuble", color: PRIMARY_COLOR, title: "ACQUISITION TERRAIN & LOCATION IMMEUBLE" },
+  { key: "commerciale_dr",                 label: "Commercial",                             color: PRIMARY_COLOR, title: "COMMERCIALE DR" },
 ]
 
 const CUSTOM_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type TabKey =
-  | "realisation_technique_reseau"
-  | "amelioration_qualite"
-  | "mttr"
+  | "genie_civil"
+  | "maintenance_equipement"
+  | "nouveaux_sites"
+  | "mttr_debit"
+  | "recouvrement_contentieux"
+  | "ressources_humaines"
+  | "formation"
+  | "acquisition_terrain"
+  | "commerciale_dr"
 
-type CategoryKey = "reseau" | "all"
+type CategoryKey = "reseau" | "commerciale" | "support" | "csm" | "all"
 
 const CATEGORY_OPTIONS: Array<{ key: CategoryKey; label: string; tabKeys: TabKey[] }> = [
-  { key: "all", label: "Tous",        tabKeys: ["realisation_technique_reseau", "amelioration_qualite", "mttr"] },
-  { key: "reseau", label: "Reseau",   tabKeys: ["realisation_technique_reseau", "amelioration_qualite", "mttr"] },
+  { key: "commerciale", label: "Commerciale", tabKeys: ["commerciale_dr"] },
+  { key: "reseau", label: "Technique",   tabKeys: ["genie_civil", "maintenance_equipement", "nouveaux_sites", "mttr_debit"] },
+  { key: "support", label: "Support",    tabKeys: ["recouvrement_contentieux", "ressources_humaines", "formation"] },
+  { key: "csm", label: "CSM",           tabKeys: ["acquisition_terrain"] },
+  { key: "all", label: "Tous",        tabKeys: ["genie_civil", "maintenance_equipement", "nouveaux_sites", "mttr_debit", "recouvrement_contentieux", "ressources_humaines", "formation", "acquisition_terrain", "commerciale_dr"] },
 ]
 
 const KPI_TAB_KEYS = [
-  "realisation_technique_reseau",
-  "amelioration_qualite",
-  "mttr",
+  "genie_civil",
+  "maintenance_equipement",
+  "nouveaux_sites",
+  "mttr_debit",
+  "recouvrement_contentieux",
+  "ressources_humaines",
+  "formation",
+  "acquisition_terrain",
+  "commerciale_dr",
+  "reseau_distribution",
 ]
 
 const findCategoryKeyForTab = (tabKey: string): CategoryKey =>
@@ -370,9 +699,16 @@ interface SavedData {
   direction: string
   mois: string
   annee: string
-  realisationTechniqueReseauRows?: RealisationTechniqueReseauRow[]
-  ameliorationQualiteRows?: AmeliorationQualiteRow[]
-  mttrRows?: MttrRegionRow[]
+  genieCivilRows?: GenieCivilRow[]
+  maintenanceEquipementRows?: MaintenanceEquipementRow[]
+  nouveauxSitesRows?: NouveauxSitesRow[]
+  mttrDebitRows?: MttrDebitRow[]
+  recouvrementContentieuxRows?: RecouvrementContentieuxRow[]
+  ressourcesHumainesRows?: RessourcesHumainesRow[]
+  formationRows?: FormationRow[]
+  acquisitionTerrainRows?: AcquisitionTerrainRow[]
+  commercialeDrRows?: CommercialeDrRow[]
+  reseauDistributionRows?: ReseauDistributionRow[]
 }
 
 // ?? 8b. Type retourné par l'API ??????????????????????????????????????????????
@@ -399,35 +735,118 @@ const normalizeYearValue = (value: string) =>
   YEARS.includes(value) ? value : String(CURRENT_YEAR)
 
 // ?? 8d. Fonctions de normalisation par tableau ????????????????????????????????
-const normalizeRealisationTechniqueReseauRows = (rows?: RealisationTechniqueReseauRow[]): RealisationTechniqueReseauRow[] => {
+const normalizeCommercialeDrRows = (rows?: CommercialeDrRow[]): CommercialeDrRow[] => {
   const src = Array.isArray(rows) ? rows : []
-  return REALISATION_TECHNIQUE_RESEAU_LABELS.map((label, i) => ({ label, m: safeString(src[i]?.m), m1: safeString(src[i]?.m1) }))
+  return COMMERCIALE_DR_LABELS.map((label, i) => ({
+    label,
+    m1Realise: safeString(src[i]?.m1Realise),
+    m1Objectif: safeString(src[i]?.m1Objectif),
+    mRealise: safeString(src[i]?.mRealise),
+    mTaux: safeString(src[i]?.mTaux),
+  }))
 }
 
-const normalizeAmeliorationQualiteRows = (rows?: AmeliorationQualiteRow[]): AmeliorationQualiteRow[] => {
+const normalizeReseauDistributionRows = (rows?: ReseauDistributionRow[]): ReseauDistributionRow[] => {
   const src = Array.isArray(rows) ? rows : []
-  if (src.length === 0) return [{ ...EMPTY_AMELIORATION_QUALITE_ROW }]
-  return src.map((r) => ({ wilaya: safeString(r.wilaya), mObjectif: safeString(r.mObjectif), mRealise: safeString(r.mRealise), m1Objectif: safeString(r.m1Objectif), m1Realise: safeString(r.m1Realise), ecart: safeString(r.ecart) }))
+  return RESEAU_DISTRIBUTION_LABELS.map((label, i) => ({
+    label,
+    m1Recrute: safeString(src[i]?.m1Recrute),
+    m1Realise: safeString(src[i]?.m1Realise),
+    mRecrute: safeString(src[i]?.mRecrute),
+    mRealise: safeString(src[i]?.mRealise),
+    mEcart: safeString(src[i]?.mEcart),
+    situation: safeString(src[i]?.situation),
+  }))
 }
 
-const normalizeMttrRows = (rows?: MttrRegionRow[]): MttrRegionRow[] => {
+const normalizeGenieCivilRows = (rows?: GenieCivilRow[]): GenieCivilRow[] => {
   const src = Array.isArray(rows) ? rows : []
-  return MTTR_REGIONS.map((regionName, i) => {
-    const sourceCities = Array.isArray(src[i]?.cities) ? src[i].cities : []
-    return {
-      region: regionName,
-      cities: sourceCities.length > 0
-        ? sourceCities.map((city) => ({ wilayaM: safeString(city.wilayaM), objectifM: safeString(city.objectifM), realiseM: safeString(city.realiseM), wilayaM1: safeString(city.wilayaM1), objectifM1: safeString(city.objectifM1), realiseM1: safeString(city.realiseM1), ecart: safeString(city.ecart) }))
-        : [{ ...EMPTY_MTTR_CITY_ROW }],
-    }
-  })
+  return GENIE_CIVIL_LABELS.map((label, i) => ({
+    label,
+    m1Realise: safeString(src[i]?.m1Realise),
+    m1Objectif: safeString(src[i]?.m1Objectif),
+    mRealise: safeString(src[i]?.mRealise),
+    mTaux: safeString(src[i]?.mTaux),
+  }))
+}
+
+const normalizeMaintenanceEquipementRows = (rows?: MaintenanceEquipementRow[]): MaintenanceEquipementRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return MAINTENANCE_EQUIPEMENT_LABELS.map((label, i) => ({
+    label,
+    m1Realise: safeString(src[i]?.m1Realise),
+    m1Objectif: safeString(src[i]?.m1Objectif),
+    mRealise: safeString(src[i]?.mRealise),
+    mTaux: safeString(src[i]?.mTaux),
+  }))
+}
+
+const normalizeMttrDebitRows = (rows?: MttrDebitRow[]): MttrDebitRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return src.length > 0 ? src.map((r) => ({ wilaya: safeString(r.wilaya), mttrObjectif: safeString(r.mttrObjectif), mttrRealise: safeString(r.mttrRealise), mttrEcart: safeString(r.mttrEcart), debitObjectif: safeString(r.debitObjectif), debitRealise: safeString(r.debitRealise), debitEcart: safeString(r.debitEcart) })) : [{ ...EMPTY_MTTR_DEBIT_ROW }]
+}
+
+const normalizeRecouvrementContentieuxRows = (rows?: RecouvrementContentieuxRow[]): RecouvrementContentieuxRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return RECOUVREMENT_CONTENTIEUX_LABELS.map((label, i) => ({
+    label,
+    m1Realise: safeString(src[i]?.m1Realise),
+    mObjectif: safeString(src[i]?.mObjectif),
+    mRealise: safeString(src[i]?.mRealise),
+    mTaux: safeString(src[i]?.mTaux),
+  }))
+}
+
+const normalizeRessourcesHumainesRows = (rows?: RessourcesHumainesRow[]): RessourcesHumainesRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return RESSOURCES_HUMAINES_LABELS.map((label, i) => ({
+    label,
+    m1Realise: safeString(src[i]?.m1Realise),
+    mObjectif: safeString(src[i]?.mObjectif),
+    mRealise: safeString(src[i]?.mRealise),
+    mTaux: safeString(src[i]?.mTaux),
+  }))
+}
+
+const normalizeFormationRows = (rows?: FormationRow[]): FormationRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return FORMATION_LABELS.map((label, i) => ({
+    label,
+    m1Realise: safeString(src[i]?.m1Realise),
+    mObjectif: safeString(src[i]?.mObjectif),
+    mRealise: safeString(src[i]?.mRealise),
+    mTaux: safeString(src[i]?.mTaux),
+  }))
+}
+
+const normalizeAcquisitionTerrainRows = (rows?: AcquisitionTerrainRow[]): AcquisitionTerrainRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return src.length > 0 ? src.map((r) => ({ wilaya: safeString(r.wilaya), terrain: safeString(r.terrain), location: safeString(r.location) })) : [{ ...EMPTY_ACQUISITION_TERRAIN_ROW }]
+}
+
+const normalizeNouveauxSitesRows = (rows?: NouveauxSitesRow[]): NouveauxSitesRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return NOUVEAUX_SITES_LABELS.map((label, i) => ({
+    label,
+    m1Realise: safeString(src[i]?.m1Realise),
+    m1Objectif: safeString(src[i]?.m1Objectif),
+    mRealise: safeString(src[i]?.mRealise),
+    mTaux: safeString(src[i]?.mTaux),
+  }))
 }
 
 const resolveTabKey = (decl: SavedData): TabKey => {
-  if ((decl.realisationTechniqueReseauRows?.length ?? 0) > 0) return "realisation_technique_reseau"
-  if ((decl.ameliorationQualiteRows?.length ?? 0) > 0) return "amelioration_qualite"
-  if ((decl.mttrRows?.length ?? 0) > 0) return "mttr"
-  return "realisation_technique_reseau"
+  if ((decl.genieCivilRows?.length ?? 0) > 0) return "genie_civil"
+  if ((decl.maintenanceEquipementRows?.length ?? 0) > 0) return "maintenance_equipement"
+  if ((decl.nouveauxSitesRows?.length ?? 0) > 0) return "nouveaux_sites"
+  if ((decl.mttrDebitRows?.length ?? 0) > 0) return "mttr_debit"
+  if ((decl.recouvrementContentieuxRows?.length ?? 0) > 0) return "recouvrement_contentieux"
+  if ((decl.ressourcesHumainesRows?.length ?? 0) > 0) return "ressources_humaines"
+  if ((decl.formationRows?.length ?? 0) > 0) return "formation"
+  if ((decl.acquisitionTerrainRows?.length ?? 0) > 0) return "acquisition_terrain"
+  if ((decl.commercialeDrRows?.length ?? 0) > 0) return "commerciale_dr"
+  if ((decl.reseauDistributionRows?.length ?? 0) > 0) return "commerciale_dr"
+  return "genie_civil"
 }
 
 
@@ -463,11 +882,15 @@ function RegionalePageContent() {
     const requestedTab = safeString(params.get("tab")).trim()
     if (requestedTab) {
       setActiveTab(requestedTab)
+      const category = CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(requestedTab as TabKey))
+      if (category) {
+        setSelectedCategoryKey(category.key)
+      }
     }
   }, [])
 
   // Global meta
-  const [activeTab, setActiveTab] = useState("realisation_technique_reseau")
+  const [activeTab, setActiveTab] = useState("genie_civil")
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<CategoryKey>("reseau")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_PERIOD.mois)
@@ -481,10 +904,17 @@ function RegionalePageContent() {
   const [policyRevision, setPolicyRevision] = useState(0)
   const [kpiRows, setKpiRows] = useState<Record<string, string[]>>({})
 
-  // Tab data (3 tableaux conservés)
-  const [realisationTechniqueReseauRows, setRealisationTechniqueReseauRows] = useState<RealisationTechniqueReseauRow[]>(DEFAULT_REALISATION_TECHNIQUE_RESEAU_ROWS.map((row) => ({ ...row })))
-  const [ameliorationQualiteRows, setAmeliorationQualiteRows] = useState<AmeliorationQualiteRow[]>([{ ...EMPTY_AMELIORATION_QUALITE_ROW }])
-  const [mttrRows, setMttrRows] = useState<MttrRegionRow[]>(DEFAULT_MTTR_ROWS.map((row) => ({ ...row, cities: row.cities.map((city) => ({ ...city })) })))
+  // Tab data
+  const [commercialeDrRows, setCommercialeDrRows] = useState<CommercialeDrRow[]>(DEFAULT_COMMERCIALE_DR_ROWS.map((row) => ({ ...row })))
+  const [reseauDistributionRows, setReseauDistributionRows] = useState<ReseauDistributionRow[]>(DEFAULT_RESEAU_DISTRIBUTION_ROWS.map((row) => ({ ...row })))
+  const [genieCivilRows, setGenieCivilRows] = useState<GenieCivilRow[]>(DEFAULT_GENIE_CIVIL_ROWS.map((row) => ({ ...row })))
+  const [maintenanceEquipementRows, setMaintenanceEquipementRows] = useState<MaintenanceEquipementRow[]>(DEFAULT_MAINTENANCE_EQUIPEMENT_ROWS.map((row) => ({ ...row })))
+  const [nouveauxSitesRows, setNouveauxSitesRows] = useState<NouveauxSitesRow[]>(DEFAULT_NOUVEAUX_SITES_ROWS.map((row) => ({ ...row })))
+  const [mttrDebitRows, setMttrDebitRows] = useState<MttrDebitRow[]>([{ ...EMPTY_MTTR_DEBIT_ROW }])
+  const [recouvrementContentieuxRows, setRecouvrementContentieuxRows] = useState<RecouvrementContentieuxRow[]>(DEFAULT_RECOUVREMENT_CONTENTIEUX_ROWS.map((row) => ({ ...row })))
+  const [ressourcesHumainesRows, setRessourcesHumainesRows] = useState<RessourcesHumainesRow[]>(DEFAULT_RESSOURCES_HUMAINES_ROWS.map((row) => ({ ...row })))
+  const [formationRows, setFormationRows] = useState<FormationRow[]>(DEFAULT_FORMATION_ROWS.map((row) => ({ ...row })))
+  const [acquisitionTerrainRows, setAcquisitionTerrainRows] = useState<AcquisitionTerrainRow[]>([{ ...EMPTY_ACQUISITION_TERRAIN_ROW }])
   const [declarations, setDeclarations] = useState<ApiData[]>([])
   const [tabComment, setTabComment] = useState("")
 
@@ -512,44 +942,101 @@ function RegionalePageContent() {
         return rows && rows.length > 0 ? rows : Array.from(fallback)
       }
 
-      const realisationLabels = getLabels("realisation_technique_reseau", REALISATION_TECHNIQUE_RESEAU_LABELS)
-      setRealisationTechniqueReseauRows((prev) => realisationLabels.map((label, i) => ({
+      const commercialeDrLabels = getLabels("commerciale_dr", COMMERCIALE_DR_LABELS)
+      setCommercialeDrRows((prev) => commercialeDrLabels.map((label, i) => ({
         label,
-        m: safeString(prev[i]?.m),
-        m1: safeString(prev[i]?.m1),
+        m1Realise: safeString(prev[i]?.m1Realise),
+        m1Objectif: safeString(prev[i]?.m1Objectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
       })))
 
-      const ameliorationLabels = getLabels("amelioration_qualite", ["Wilaya 1"])
-      setAmeliorationQualiteRows((prev) => {
-        if (ameliorationLabels.length === 0) return prev.length ? prev : [{ ...EMPTY_AMELIORATION_QUALITE_ROW }]
-        return ameliorationLabels.map((wilaya, i) => ({
-          wilaya,
-          mObjectif: safeString(prev[i]?.mObjectif),
-          mRealise: safeString(prev[i]?.mRealise),
-          m1Objectif: safeString(prev[i]?.m1Objectif),
-          m1Realise: safeString(prev[i]?.m1Realise),
-          ecart: safeString(prev[i]?.ecart),
-        }))
-      })
+      const reseauDistributionLabels = getLabels("reseau_distribution", RESEAU_DISTRIBUTION_LABELS)
+      setReseauDistributionRows((prev) => reseauDistributionLabels.map((label, i) => ({
+        label,
+        m1Recrute: safeString(prev[i]?.m1Recrute),
+        m1Realise: safeString(prev[i]?.m1Realise),
+        mRecrute: safeString(prev[i]?.mRecrute),
+        mRealise: safeString(prev[i]?.mRealise),
+        mEcart: safeString(prev[i]?.mEcart),
+        situation: safeString(prev[i]?.situation),
+      })))
 
-      const mttrLabels = getLabels("mttr", MTTR_REGIONS)
-      setMttrRows((prev) => mttrLabels.map((regionName, i) => {
-        const sourceCities = Array.isArray(prev[i]?.cities) ? prev[i].cities : []
-        return {
-          region: regionName,
-          cities: sourceCities.length > 0
-            ? sourceCities.map((city) => ({
-                wilayaM: safeString(city.wilayaM),
-                objectifM: safeString(city.objectifM),
-                realiseM: safeString(city.realiseM),
-                wilayaM1: safeString(city.wilayaM1),
-                objectifM1: safeString(city.objectifM1),
-                realiseM1: safeString(city.realiseM1),
-                ecart: safeString(city.ecart),
-              }))
-            : [{ ...EMPTY_MTTR_CITY_ROW }],
-        }
-      }))
+      const genieCivilLabels = getLabels("genie_civil", GENIE_CIVIL_LABELS)
+      setGenieCivilRows((prev) => genieCivilLabels.map((label, i) => ({
+        label,
+        m1Realise: safeString(prev[i]?.m1Realise),
+        m1Objectif: safeString(prev[i]?.m1Objectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
+      })))
+
+      const maintenanceEquipementLabels = getLabels("maintenance_equipement", MAINTENANCE_EQUIPEMENT_LABELS)
+      setMaintenanceEquipementRows((prev) => maintenanceEquipementLabels.map((label, i) => ({
+        label,
+        m1Realise: safeString(prev[i]?.m1Realise),
+        m1Objectif: safeString(prev[i]?.m1Objectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
+      })))
+
+      const nouveauxSitesLabels = getLabels("nouveaux_sites", NOUVEAUX_SITES_LABELS)
+      setNouveauxSitesRows((prev) => nouveauxSitesLabels.map((label, i) => ({
+        label,
+        m1Realise: safeString(prev[i]?.m1Realise),
+        m1Objectif: safeString(prev[i]?.m1Objectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
+      })))
+
+      const recouvrementContentieuxLabels = getLabels("recouvrement_contentieux", RECOUVREMENT_CONTENTIEUX_LABELS)
+      setRecouvrementContentieuxRows((prev) => recouvrementContentieuxLabels.map((label, i) => ({
+        label,
+        m1Realise: safeString(prev[i]?.m1Realise),
+        mObjectif: safeString(prev[i]?.mObjectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
+      })))
+
+      const ressourcesHumainesLabels = getLabels("ressources_humaines", RESSOURCES_HUMAINES_LABELS)
+      setRessourcesHumainesRows((prev) => ressourcesHumainesLabels.map((label, i) => ({
+        label,
+        m1Realise: safeString(prev[i]?.m1Realise),
+        mObjectif: safeString(prev[i]?.mObjectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
+      })))
+
+      const formationLabels = getLabels("formation", FORMATION_LABELS)
+      setFormationRows((prev) => formationLabels.map((label, i) => ({
+        label,
+        m1Realise: safeString(prev[i]?.m1Realise),
+        mObjectif: safeString(prev[i]?.mObjectif),
+        mRealise: safeString(prev[i]?.mRealise),
+        mTaux: safeString(prev[i]?.mTaux),
+      })))
+
+      const acquisitionTerrainLabels = kpiRows["acquisition_terrain"]
+      if (acquisitionTerrainLabels && acquisitionTerrainLabels.length > 0) {
+        setAcquisitionTerrainRows((prev) => acquisitionTerrainLabels.map((wilaya, i) => ({
+          wilaya,
+          terrain: safeString(prev[i]?.terrain),
+          location: safeString(prev[i]?.location),
+        })))
+      }
+
+      const mttrDebitLabels = kpiRows["mttr_debit"]
+      if (mttrDebitLabels && mttrDebitLabels.length > 0) {
+        setMttrDebitRows((prev) => mttrDebitLabels.map((wilaya, i) => ({
+          wilaya,
+          mttrObjectif: safeString(prev[i]?.mttrObjectif),
+          mttrRealise: safeString(prev[i]?.mttrRealise),
+          mttrEcart: safeString(prev[i]?.mttrEcart),
+          debitObjectif: safeString(prev[i]?.debitObjectif),
+          debitRealise: safeString(prev[i]?.debitRealise),
+          debitEcart: safeString(prev[i]?.debitEcart),
+        })))
+      }
     }, [kpiRows])
   
   const manageableTabKeys = useMemo(
@@ -753,9 +1240,16 @@ function RegionalePageContent() {
       setAnnee(loadedAnnee)
       setEditingSourceMois(loadedMois)
       setEditingSourceAnnee(loadedAnnee)
-      setRealisationTechniqueReseauRows(normalizeRealisationTechniqueReseauRows(declaration.realisationTechniqueReseauRows))
-      setAmeliorationQualiteRows(normalizeAmeliorationQualiteRows(declaration.ameliorationQualiteRows))
-      setMttrRows(normalizeMttrRows(declaration.mttrRows))
+      setCommercialeDrRows(normalizeCommercialeDrRows(declaration.commercialeDrRows))
+      setReseauDistributionRows(normalizeReseauDistributionRows(declaration.reseauDistributionRows))
+      setGenieCivilRows(normalizeGenieCivilRows(declaration.genieCivilRows))
+      setMaintenanceEquipementRows(normalizeMaintenanceEquipementRows(declaration.maintenanceEquipementRows))
+      setNouveauxSitesRows(normalizeNouveauxSitesRows(declaration.nouveauxSitesRows))
+      setMttrDebitRows(normalizeMttrDebitRows(declaration.mttrDebitRows))
+      setRecouvrementContentieuxRows(normalizeRecouvrementContentieuxRows(declaration.recouvrementContentieuxRows))
+      setRessourcesHumainesRows(normalizeRessourcesHumainesRows(declaration.ressourcesHumainesRows))
+      setFormationRows(normalizeFormationRows(declaration.formationRows))
+      setAcquisitionTerrainRows(normalizeAcquisitionTerrainRows(declaration.acquisitionTerrainRows))
     } catch {
       toast({
         title: "Erreur de chargement",
@@ -874,21 +1368,61 @@ function RegionalePageContent() {
 
     let validationError = false
     switch (tabKey) {
-      case "realisation_technique_reseau":
-        if (realisationTechniqueReseauRows.some((row) => !row.m || !row.m1)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Realisation technique Reseau.", variant: "destructive" })
+      case "genie_civil":
+        if (genieCivilRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Genie Civil.", variant: "destructive" })
           validationError = true
         }
         break
-      case "amelioration_qualite":
-        if (ameliorationQualiteRows.some((row) => !row.wilaya || !row.mObjectif || !row.mRealise || !row.m1Objectif || !row.m1Realise || !row.ecart)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Amelioration qualite.", variant: "destructive" })
+      case "maintenance_equipement":
+        if (maintenanceEquipementRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Maintenance & Equipements.", variant: "destructive" })
           validationError = true
         }
         break
-      case "mttr":
-        if (mttrRows.some((region) => region.cities.some((city) => !city.wilayaM || !city.objectifM || !city.realiseM || !city.wilayaM1 || !city.objectifM1 || !city.realiseM1 || !city.ecart))) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau MTTR.", variant: "destructive" })
+      case "nouveaux_sites":
+        if (nouveauxSitesRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Nouveaux Sites & Extension Radio.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "mttr_debit":
+        if (mttrDebitRows.some((row) => !row.wilaya || !row.mttrObjectif || !row.mttrRealise || !row.mttrEcart || !row.debitObjectif || !row.debitRealise || !row.debitEcart)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau MTTR & Debit Internet.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "recouvrement_contentieux":
+        if (recouvrementContentieuxRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Recouvrement Contentieux.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "ressources_humaines":
+        if (ressourcesHumainesRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Ressources Humaines.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "formation":
+        if (formationRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Formation.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "acquisition_terrain":
+        if (acquisitionTerrainRows.some((row) => !row.wilaya || !row.terrain || !row.location)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Acquisition Terrain & Location Immeuble.", variant: "destructive" })
+          validationError = true
+        }
+        break
+      case "commerciale_dr":
+        if (commercialeDrRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Commerciale DR.", variant: "destructive" })
+          validationError = true
+        }
+        if (reseauDistributionRows.some((row) => !row.m1Recrute || !row.m1Realise || !row.mRecrute || !row.mRealise || !row.mEcart || !row.situation)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Reseau de Distribution.", variant: "destructive" })
           validationError = true
         }
         break
@@ -918,14 +1452,33 @@ function RegionalePageContent() {
     }
     
     switch (tabKey) {
-      case "realisation_technique_reseau":
-        baseDecl.realisationTechniqueReseauRows = realisationTechniqueReseauRows
+      case "genie_civil":
+        baseDecl.genieCivilRows = genieCivilRows
         break
-      case "amelioration_qualite":
-        baseDecl.ameliorationQualiteRows = ameliorationQualiteRows
+      case "maintenance_equipement":
+        baseDecl.maintenanceEquipementRows = maintenanceEquipementRows
         break
-      case "mttr":
-        baseDecl.mttrRows = mttrRows
+      case "nouveaux_sites":
+        baseDecl.nouveauxSitesRows = nouveauxSitesRows
+        break
+      case "mttr_debit":
+        baseDecl.mttrDebitRows = mttrDebitRows
+        break
+      case "recouvrement_contentieux":
+        baseDecl.recouvrementContentieuxRows = recouvrementContentieuxRows
+        break
+      case "ressources_humaines":
+        baseDecl.ressourcesHumainesRows = ressourcesHumainesRows
+        break
+      case "formation":
+        baseDecl.formationRows = formationRows
+        break
+      case "acquisition_terrain":
+        baseDecl.acquisitionTerrainRows = acquisitionTerrainRows
+        break
+      case "commerciale_dr":
+        baseDecl.commercialeDrRows = commercialeDrRows
+        baseDecl.reseauDistributionRows = reseauDistributionRows
         break
     }
     
@@ -946,9 +1499,15 @@ function RegionalePageContent() {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       let tabData: unknown = {}
       switch (tabKey) {
-        case "realisation_technique_reseau": tabData = { realisationTechniqueReseauRows }; break
-        case "amelioration_qualite": tabData = { ameliorationQualiteRows }; break
-        case "mttr": tabData = { mttrRows }; break
+        case "genie_civil": tabData = { genieCivilRows }; break
+        case "maintenance_equipement": tabData = { maintenanceEquipementRows }; break
+        case "nouveaux_sites": tabData = { nouveauxSitesRows }; break
+        case "mttr_debit": tabData = { mttrDebitRows }; break
+        case "recouvrement_contentieux": tabData = { recouvrementContentieuxRows }; break
+        case "ressources_humaines": tabData = { ressourcesHumainesRows }; break
+        case "formation": tabData = { formationRows }; break
+        case "acquisition_terrain": tabData = { acquisitionTerrainRows }; break
+        case "commerciale_dr": tabData = { commercialeDrRows, reseauDistributionRows }; break
       }
       const requestPayload = {
         tabKey,
@@ -1106,52 +1665,188 @@ function RegionalePageContent() {
     ) : null
   }
 
+  const handleStepClick = (pointKey: string) => {
+    const category = CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(pointKey as TabKey))
+    if (category) {
+      setSelectedCategoryKey(category.key)
+    }
+    if (isTabKey(pointKey)) {
+      setActiveTab(pointKey)
+    }
+  }
+
   const renderTabCard = (tabKey: TabKey) => {
     switch (tabKey) {
-      case "realisation_technique_reseau":
+      case "genie_civil":
         return (
           <Card key={tabKey}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Realisation technique Reseau</CardTitle>
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Genie Civil & Environnement</CardTitle>
             </CardHeader>
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabRealisationTechniqueReseau
-                rows={realisationTechniqueReseauRows}
-                setRows={setRealisationTechniqueReseauRows}
+              <TabGenieCivil
+                rows={genieCivilRows}
+                setRows={setGenieCivilRows}
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
               />
-
             </CardContent>
           </Card>
         )
-      case "amelioration_qualite":
+      case "maintenance_equipement":
         return (
           <Card key={tabKey}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Amelioration qualite (Debit MBPS/Wilaya)</CardTitle>
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Maintenance & Equipements</CardTitle>
             </CardHeader>
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabAmeliorationQualite rows={ameliorationQualiteRows} setRows={setAmeliorationQualiteRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
-
+              <TabMaintenanceEquipement
+                rows={maintenanceEquipementRows}
+                setRows={setMaintenanceEquipementRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
             </CardContent>
           </Card>
         )
-      case "mttr":
+      case "nouveaux_sites":
         return (
           <Card key={tabKey}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>MTTR / DR</CardTitle>
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Nouveaux Sites & Extension Radio</CardTitle>
             </CardHeader>
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabMttr rows={mttrRows} setRows={setMttrRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
-
+              <TabNouveauxSites
+                rows={nouveauxSitesRows}
+                setRows={setNouveauxSitesRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+          </Card>
+        )
+      case "mttr_debit":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>MTTR & Débit Internet</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabMttrDebit
+                rows={mttrDebitRows}
+                setRows={setMttrDebitRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+          </Card>
+        )
+      case "recouvrement_contentieux":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Recouvrement Contentieux</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabRecouvrementContentieux
+                rows={recouvrementContentieuxRows}
+                setRows={setRecouvrementContentieuxRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+          </Card>
+        )
+      case "ressources_humaines":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Ressources Humaines</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabRessourcesHumaines
+                rows={ressourcesHumainesRows}
+                setRows={setRessourcesHumainesRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+          </Card>
+        )
+      case "formation":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Formation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabFormation
+                rows={formationRows}
+                setRows={setFormationRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+          </Card>
+        )
+      case "acquisition_terrain":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Acquisition Terrain & Location Immeuble</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabAcquisitionTerrain
+                rows={acquisitionTerrainRows}
+                setRows={setAcquisitionTerrainRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+          </Card>
+        )
+      case "commerciale_dr":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Realisations Commerciales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabCommercialeDr
+                rows={commercialeDrRows}
+                setRows={setCommercialeDrRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
+            </CardContent>
+            <CardHeader className="pb-3 pt-6">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Reseau de Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TabReseauDistribution
+                rows={reseauDistributionRows}
+                setRows={setReseauDistributionRows}
+                onSave={() => handleSave(tabKey)}
+                isSubmitting={isSubmitting}
+              />
             </CardContent>
           </Card>
         )
@@ -1181,6 +1876,7 @@ function RegionalePageContent() {
               mois={mois}
               annee={annee}
               onBackClick={() => router.push("/dashbord")}
+              onStepClick={handleStepClick}
               layout="horizontal"
             />
 

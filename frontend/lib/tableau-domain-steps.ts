@@ -57,7 +57,8 @@ export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
     { key: "formation", label: "Formation" },
   ],
   regionale: [
-    { key: "reseau", label: "Réseau" },
+    { key: "reseau", label: "Technique" },
+    { key: "commerciale_dr", label: "Commercial" },
   ],
 }
 

@@ -139,12 +139,37 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
   ],
   regionale: [
     {
-      key: "reseau",
-      label: "Réseau",
+      key: "commerciale_dr",
+      label: "Commercial",
       points: [
-        { key: "realisation_technique_reseau", label: "Réalisation Technique Réseau" },
-        { key: "amelioration_qualite", label: "Amélioration Qualité" },
-        { key: "mttr", label: "MTTR / DR" },
+        { key: "commerciale_dr", label: "Commerciale DR" },
+        { key: "reseau_distribution", label: "Réseau de Distribution" },
+      ],
+    },
+    {
+      key: "reseau",
+      label: "Technique",
+      points: [
+        { key: "genie_civil", label: "Génie Civil & Environnement" },
+        { key: "maintenance_equipement", label: "Maintenance & Équipements" },
+        { key: "nouveaux_sites", label: "Nouveaux Sites & Extension Radio" },
+        { key: "mttr_debit", label: "MTTR & Débit Internet" },
+      ],
+    },
+    {
+      key: "support",
+      label: "Support",
+      points: [
+        { key: "recouvrement_contentieux", label: "Recouvrement Contentieux" },
+        { key: "ressources_humaines", label: "Ressources Humaines" },
+        { key: "formation", label: "Formation" },
+      ],
+    },
+    {
+      key: "csm",
+      label: "CSM",
+      points: [
+        { key: "acquisition_terrain", label: "Acquisition Terrain & Location Immeuble" },
       ],
     },
   ],

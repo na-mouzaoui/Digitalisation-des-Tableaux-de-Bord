@@ -54,9 +54,15 @@ export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
     { key: "formation", label: "Formation" },
   ],
   regionale: [
-    { key: "realisation_technique_reseau", label: "Réalisation Technique Réseau" },
-    { key: "amelioration_qualite", label: "Amélioration Qualité" },
-    { key: "mttr", label: "MTTR / DR" },
+    { key: "commerciale_dr", label: "Commercial" },
+    { key: "genie_civil", label: "Génie Civil & Environnement" },
+    { key: "maintenance_equipement", label: "Maintenance & Équipements" },
+    { key: "nouveaux_sites", label: "Nouveaux Sites & Extension Radio" },
+    { key: "mttr_debit", label: "MTTR & Débit Internet" },
+    { key: "recouvrement_contentieux", label: "Recouvrement Contentieux" },
+    { key: "ressources_humaines", label: "Ressources Humaines" },
+    { key: "formation", label: "Formation" },
+    { key: "acquisition_terrain", label: "Acquisition Terrain & Location Immeuble" },
   ],
 }
 
