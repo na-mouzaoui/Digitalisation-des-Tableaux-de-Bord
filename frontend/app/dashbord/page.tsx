@@ -10,9 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CheckCircle, Trash2, Printer, Filter, ChevronUp, ChevronDown, X, Pencil, Clock3, CalendarDays, Building2, FileSpreadsheet } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { CheckCircle, Trash2, Printer, Filter, ChevronUp, ChevronDown, X, Pencil, Clock3, CalendarDays, Building2, FileSpreadsheet, AlertCircle, FileText, CheckSquare } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE } from "@/lib/config"
+import { getCurrenttableauPeriod, gettableauPeriodDeadline, formattableauPeriod, formattableauPeriodDeadline } from "@/lib/fiscal-period-deadline"
 import WILAYAS_COMMUNES, { type WilayaCommuneEntry } from "@/lib/wilayas-communes"
 
 type EncRow = { designation: string; ht?: string; ttc?: string }
@@ -53,6 +55,59 @@ const IRG_LABELS = [
 const TAXE2_LABELS = ["Taxe sur l'importation des biens et services"]
 const TAXE12_LABELS = ["Taxe de Formation Professionnelle 1%", "Taxe d'Apprentissage 1%"]
 const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Aoét","Sept","Oct","Nov","Déc"]
+
+const TABLEAU_TITLE_MAP: Record<string, string> = {
+  // Commercial
+  reclamation: "TABLEAU RECLAMATION",
+  e_payement: "E-PAYEMENT (MDA)",
+  total_encaissement: "ENCAISSEMENT (MDA)",
+  rechargement: "RECHARGEMENT",
+  recouvrement: "RECOUVREMENT (MDA)",
+  parc_abonnes_gp: "PARC ABONNES GP",
+  total_parc_abonnes_technologie: "TOTAL PARC ABONNES PAR TECHNOLOGIE",
+  activation: "ACTIVATION",
+  desactivation: "DÉSACTIVATION",
+  resiliation: "RÉSILIATION",
+  chiffre_affaires_mda: "CHIFFRE D'AFFAIRES (MDA)",
+  // Regionale
+  realisations_commerciales: "REALISATIONS COMMERCIALES",
+  reseau_distribution: "Reseau de Distribution",
+  genie_civil: "GENIE CIVIL & ENVIRONNEMENT",
+  maintenance_equipement: "MAINTENANCE & EQUIPEMENTS",
+  nouveaux_sites: "NOUVEAUX SITES & EXTENSION RADIO",
+  mttr_debit: "MTTR & DEBIT INTERNET",
+  recouvrement_contentieux: "RECOUVREMENT CONTENTIEUX",
+  ressources_humaines: "RESSOURCES HUMAINES",
+  formation: "FORMATION",
+  acquisition_terrain: "ACQUISITION TERRAIN & LOCATION IMMEUBLE",
+  // Support
+  creances_contentieuses: "CREANCE CONTENTIEUSES",
+  creances_contentieuses_anterieur: "Créances Contentieuses Antérieur",
+  rh: "RH",
+  frais_personnel: "Frais Personnel (MDA)",
+  effectif_gsp: "Effectif par GSP",
+  absenteisme: "Absenteisme",
+  mouvement_effectifs: "Mouvement des Effectifs",
+  mouvement_effectifs_domaine: "Mouvement des Effectifs par Domaine",
+  effectifs_formes_gsp: "Effectifs formes par GSP",
+  formations_domaines: "Formations realisees par domaines",
+  budget_formation: "Budget des Formations",
+  // DVDRS
+  realisation_technique_reseau: "SUIVI DES INFRASTRUCTURES RESEAU 2G/3G/4G",
+  situation_reseau: "SITUATION RESEAU",
+  trafic_data: "EVOLUTION DU TRAFIC DATA",
+  amelioration_qualite: "AMELIORATION QUALITE",
+  couverture_reseau: "COUVERTURE RESEAU",
+  action_notable_reseau: "ACTION NOTABLE SUR LE RESEAU",
+  // DQRPC
+  disponibilite_reseau: "DISPONIBILITE RESEAU",
+  mttr: "MTTR / DR",
+  // Finances
+  compte_resultat: "COMPTE DE RESULTAT & INVESTISSEMENT (MDA)",
+  investissement: "Investissement (MDA)",
+  avancement_engagement: "ETAT D'AVANCEMENT DES ENGAGEMENTS (MDA)",
+  tresorerie: "Trésorerie Mobilis (MDA)",
+}
 
 interface Savedtableau {
   id: string
@@ -2682,6 +2737,43 @@ export default function tableauDashboardPage() {
     }
   }, [status, user])
 
+  const tableauStats = useMemo(() => {
+    const totalCount = Object.keys(TABLEAU_TITLE_MAP).length
+    const currentPeriod = getCurrenttableauPeriod()
+    const now = new Date()
+    const deadline = gettableauPeriodDeadline(currentPeriod.mois, currentPeriod.annee, user?.role)
+    const isLocked = deadline ? now.getTime() > deadline.getTime() : false
+    const timeRemaining = deadline && !isLocked ? deadline.getTime() - now.getTime() : 0
+
+    const periodTabKeys = new Set<string>()
+    const approvedTabKeys = new Set<string>()
+    const allTabKeys = Object.keys(TABLEAU_TITLE_MAP)
+
+    tableaux.forEach((decl) => {
+      if (decl.tabKey && decl.mois === currentPeriod.mois && decl.annee === currentPeriod.annee) {
+        periodTabKeys.add(decl.tabKey)
+        if (decl.isApproved) approvedTabKeys.add(decl.tabKey)
+      }
+    })
+
+    const filledCount = periodTabKeys.size
+    const approvedCount = approvedTabKeys.size
+    const remainingTabKeys = allTabKeys.filter((k) => !periodTabKeys.has(k))
+    const remainingApprovedKeys = allTabKeys.filter((k) => !approvedTabKeys.has(k))
+
+    return {
+      totalCount,
+      currentPeriod,
+      deadline,
+      isLocked,
+      timeRemaining,
+      filledCount,
+      approvedCount,
+      remainingTabKeys,
+      remainingApprovedKeys,
+    }
+  }, [tableaux, user?.role])
+
   if (isLoading || !user || status !== "authenticated") {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -3294,59 +3386,6 @@ export default function tableauDashboardPage() {
     }
   }
 
-const TABLEAU_TITLE_MAP: Record<string, string> = {
-  // Commercial
-  reclamation: "TABLEAU RECLAMATION",
-  e_payement: "E-PAYEMENT (MDA)",
-  total_encaissement: "ENCAISSEMENT (MDA)",
-  rechargement: "RECHARGEMENT",
-  recouvrement: "RECOUVREMENT (MDA)",
-  parc_abonnes_gp: "PARC ABONNES GP",
-  total_parc_abonnes_technologie: "TOTAL PARC ABONNES PAR TECHNOLOGIE",
-  activation: "ACTIVATION",
-  desactivation: "DÉSACTIVATION",
-  resiliation: "RÉSILIATION",
-  chiffre_affaires_mda: "CHIFFRE D'AFFAIRES (MDA)",
-  // Regionale
-  realisations_commerciales: "REALISATIONS COMMERCIALES",
-  reseau_distribution: "Reseau de Distribution",
-  genie_civil: "GENIE CIVIL & ENVIRONNEMENT",
-  maintenance_equipement: "MAINTENANCE & EQUIPEMENTS",
-  nouveaux_sites: "NOUVEAUX SITES & EXTENSION RADIO",
-  mttr_debit: "MTTR & DEBIT INTERNET",
-  recouvrement_contentieux: "RECOUVREMENT CONTENTIEUX",
-  ressources_humaines: "RESSOURCES HUMAINES",
-  formation: "FORMATION",
-  acquisition_terrain: "ACQUISITION TERRAIN & LOCATION IMMEUBLE",
-  // Support
-  creances_contentieuses: "CREANCE CONTENTIEUSES",
-  creances_contentieuses_anterieur: "Créances Contentieuses Antérieur",
-  rh: "RH",
-  frais_personnel: "Frais Personnel (MDA)",
-  effectif_gsp: "Effectif par GSP",
-  absenteisme: "Absenteisme",
-  mouvement_effectifs: "Mouvement des Effectifs",
-  mouvement_effectifs_domaine: "Mouvement des Effectifs par Domaine",
-  effectifs_formes_gsp: "Effectifs formes par GSP",
-  formations_domaines: "Formations realisees par domaines",
-  budget_formation: "Budget des Formations",
-  // DVDRS
-  realisation_technique_reseau: "SUIVI DES INFRASTRUCTURES RESEAU 2G/3G/4G",
-  situation_reseau: "SITUATION RESEAU",
-  trafic_data: "EVOLUTION DU TRAFIC DATA",
-  amelioration_qualite: "AMELIORATION QUALITE",
-  couverture_reseau: "COUVERTURE RESEAU",
-  action_notable_reseau: "ACTION NOTABLE SUR LE RESEAU",
-  // DQRPC
-  disponibilite_reseau: "DISPONIBILITE RESEAU",
-  mttr: "MTTR / DR",
-  // Finances
-  compte_resultat: "COMPTE DE RESULTAT & INVESTISSEMENT (MDA)",
-  investissement: "Investissement (MDA)",
-  avancement_engagement: "ETAT D'AVANCEMENT DES ENGAGEMENTS (MDA)",
-  tresorerie: "Trésorerie Mobilis (MDA)",
-}
-
     const getTableauDisplayName = (tabKey: string): string => {
     const key = (tabKey ?? "").trim().toLowerCase()
     const displayNames: Record<string, string> = {
@@ -3764,6 +3803,103 @@ const TABLEAU_TITLE_MAP: Record<string, string> = {
           <p className="text-sm text-muted-foreground mt-1">
             tableaux tableaus récents
           </p>
+        </div>
+
+        {/* Stats tiles */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Tile 1: Temps restant */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-amber-50 p-2.5">
+                  <Clock3 className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Clôture période</p>
+                  <p className="text-sm font-semibold">
+                    {tableauStats.deadline ? (
+                      tableauStats.isLocked
+                        ? "Période clôturée"
+                        : tableauStats.timeRemaining > 86400000
+                          ? `${Math.floor(tableauStats.timeRemaining / 86400000)}j ${Math.floor((tableauStats.timeRemaining % 86400000) / 3600000)}h`
+                          : `${Math.floor(tableauStats.timeRemaining / 3600000)}h ${Math.floor((tableauStats.timeRemaining % 3600000) / 60000)}m`
+                    ) : "N/A"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formattableauPeriod(tableauStats.currentPeriod.mois, tableauStats.currentPeriod.annee)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tile 2: Remplis / Total */}
+          <Card>
+            <CardContent className="pt-6">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-3 cursor-help">
+                      <div className="rounded-lg bg-blue-50 p-2.5">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Remplis</p>
+                        <p className="text-sm font-semibold">
+                          {tableauStats.filledCount} / {tableauStats.totalCount}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">tableaux (KPIs)</p>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  {tableauStats.remainingTabKeys.length > 0 && (
+                    <TooltipContent side="bottom" align="start" className="max-w-xs">
+                      <p className="text-xs font-medium mb-1">Tableaux restants ({tableauStats.remainingTabKeys.length}) :</p>
+                      <ul className="text-[10px] space-y-0.5">
+                        {tableauStats.remainingTabKeys.map((k) => (
+                          <li key={k}>• {TABLEAU_TITLE_MAP[k] ?? k}</li>
+                        ))}
+                      </ul>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </CardContent>
+          </Card>
+
+          {/* Tile 3: Approuvés / Total */}
+          <Card>
+            <CardContent className="pt-6">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-3 cursor-help">
+                      <div className="rounded-lg bg-emerald-50 p-2.5">
+                        <CheckSquare className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Approuvés</p>
+                        <p className="text-sm font-semibold">
+                          {tableauStats.approvedCount} / {tableauStats.totalCount}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">tableaux (KPIs)</p>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  {tableauStats.remainingApprovedKeys.length > 0 && (
+                    <TooltipContent side="bottom" align="start" className="max-w-xs">
+                      <p className="text-xs font-medium mb-1">Tableaux non approuvés ({tableauStats.remainingApprovedKeys.length}) :</p>
+                      <ul className="text-[10px] space-y-0.5">
+                        {tableauStats.remainingApprovedKeys.map((k) => (
+                          <li key={k}>• {TABLEAU_TITLE_MAP[k] ?? k}</li>
+                        ))}
+                      </ul>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Recent tableaux */}
