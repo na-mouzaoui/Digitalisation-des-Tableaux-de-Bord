@@ -37,6 +37,48 @@ public class KpiController : ControllerBase
         return DomainDisplayNames.TryGetValue(normalized, out var displayName) ? displayName : null;
     }
 
+    [HttpGet("domain/{domainName}")]
+    public async Task<IActionResult> GetKpisByDomain(string domainName)
+    {
+        var domainDisplayName = ResolveDomainDisplayName(domainName);
+        if (string.IsNullOrWhiteSpace(domainDisplayName))
+            return BadRequest(new { message = "Domaine invalide." });
+
+        var domaines = await _context.Domaines
+            .AsNoTracking()
+            .Include(d => d.SousDomaines)
+                .ThenInclude(sd => sd.Kpis)
+                    .ThenInclude(k => k.SousKpis)
+            .Where(d => d.Designation == domainDisplayName)
+            .ToListAsync();
+
+        if (domaines.Count == 0)
+            return Ok(Array.Empty<object>());
+
+        var result = domaines.SelectMany(d => d.SousDomaines)
+            .OrderBy(sd => sd.Designation)
+            .Select(sd => new
+            {
+                id = sd.Id,
+                designation = sd.Designation,
+                kpis = sd.Kpis
+                    .OrderBy(k => k.Nom)
+                    .Select(k => new
+                    {
+                        id = k.Id,
+                        name = k.Nom,
+                        rows = k.SousKpis
+                            .OrderBy(r => r.Order)
+                            .Select(r => r.Designation)
+                            .ToArray(),
+                    })
+                    .ToArray(),
+            })
+            .ToArray();
+
+        return Ok(result);
+    }
+
     [HttpGet("by-name/{name}")]
     public async Task<IActionResult> GetKpiByName(string name, [FromQuery] string? domain = null)
     {

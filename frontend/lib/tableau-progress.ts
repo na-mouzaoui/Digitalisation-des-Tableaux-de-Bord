@@ -88,7 +88,7 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
       key: "e_payment",
       label: "E-payment",
       points: [
-        { key: "e_payement_pop", label: "E-PAYEMENT (MDA)" },
+        { key: "e_payement", label: "E-PAYEMENT (MDA)" },
       ],
     },
     {
@@ -139,10 +139,10 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
   ],
   regionale: [
     {
-      key: "commerciale_dr",
+      key: "realisations_commerciales",
       label: "Commercial",
       points: [
-        { key: "commerciale_dr", label: "Commerciale DR" },
+        { key: "realisations_commerciales", label: "Realisations Commerciales" },
         { key: "reseau_distribution", label: "Réseau de Distribution" },
       ],
     },

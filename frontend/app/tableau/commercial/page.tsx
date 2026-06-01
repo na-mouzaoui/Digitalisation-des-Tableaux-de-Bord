@@ -17,6 +17,7 @@ import { Plus, Trash2, Save, ArrowRight } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
+import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
 const PRIMARY_COLOR = "#2db34b"
@@ -760,7 +761,7 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
   { key: "reclamation",                    label: "Reclamation",                           color: PRIMARY_COLOR, title: "TABLEAU RECLAMATION" },
-  { key: "e_payement_pop",                 label: "E-PAYEMENT (MDA)",                      color: PRIMARY_COLOR, title: "E-PAYEMENT (MDA)" },
+  { key: "e_payement",                 label: "E-PAYEMENT (MDA)",                      color: PRIMARY_COLOR, title: "E-PAYEMENT (MDA)" },
   { key: "total_encaissement",             label: "Encaissement (MDA)",                      color: PRIMARY_COLOR, title: "ENCAISSEMENT (MDA)" },
   { key: "rechargement",                   label: "Rechargement",                          color: PRIMARY_COLOR, title: "RECHARGEMENT" },
   { key: "recouvrement",                   label: "Recouvrement",                          color: PRIMARY_COLOR, title: "RECOUVREMENT (MDA)" },
@@ -774,7 +775,7 @@ const TABS = [
 
 const KPI_TAB_KEYS = [
   "reclamation",
-  "e_payement_pop",
+  "e_payement",
   "total_encaissement",
   "rechargement",
   "recouvrement",
@@ -789,7 +790,7 @@ const KPI_TAB_KEYS = [
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
 type tableauTabKey =
-  | "reclamation" | "e_payement_pop"
+  | "reclamation" | "e_payement"
   | "total_encaissement" | "rechargement" | "situation_reseaux" | "recouvrement"
   | "parc_abonnes_gp" | "total_parc_abonnes_technologie"
   | "activation" | "desactivation" | "resiliation" | "chiffre_affaires_mda"
@@ -803,7 +804,7 @@ const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; 
   { key: "parc_abonnes",   label: "Parc abonne",                  tabKeys: ["parc_abonnes_gp", "total_parc_abonnes_technologie"] },
   { key: "activation_desactivation_sim", label: "Activation", tabKeys: ["activation", "desactivation", "resiliation"] },
   { key: "reclamation",    label: "Reclamation",                  tabKeys: ["reclamation"] },
-  { key: "e_payment",      label: "E-payment",                    tabKeys: ["e_payement_pop"] },
+  { key: "e_payment",      label: "E-payment",                    tabKeys: ["e_payement"] },
   { key: "encaissement",   label: "Encaissement",                 tabKeys: ["total_encaissement"] },
   { key: "rechargement",   label: "Rechargement",                 tabKeys: ["rechargement"] },
   { key: "recouvrement",   label: "Recouvrement",                 tabKeys: ["recouvrement"] },
@@ -944,7 +945,7 @@ const normalizeChiffreAffairesMdaRows = (rows?: ChiffreAffairesMdaRow[]): Chiffr
 
 const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
   if ((decl.reclamationRows?.length ?? 0) > 0) return "reclamation"
-  if ((decl.ePayementPopRows?.length ?? 0) > 0) return "e_payement_pop"
+  if ((decl.ePayementPopRows?.length ?? 0) > 0) return "e_payement"
   if ((decl.totalEncaissementRows?.length ?? 0) > 0) return "total_encaissement"
   if ((decl.rechargementRows?.length ?? 0) > 0) return "rechargement"
   if ((decl.recouvrementRows?.length ?? 0) > 0) return "recouvrement"
@@ -1081,7 +1082,7 @@ function CommercialPageContent() {
       }
     }))
 
-    const ePayementPopLabels = getLabels("e_payement_pop", EPAYEMENT_CHANNELS)
+    const ePayementPopLabels = getLabels("e_payement", EPAYEMENT_CHANNELS)
     setEPayementPopRows((prev) => ePayementPopLabels.map((rechargement, i) => ({
       rechargement,
       m: safeString(prev[i]?.m),
@@ -1506,7 +1507,7 @@ function CommercialPageContent() {
           validationError = true
         }
         break
-      case "e_payement_pop":
+      case "e_payement":
         if (ePayementPopRows.some((row) => !row.m || !row.m1 || !row.evol)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau E-PAYEMENT (MDA).", variant: "destructive" })
           validationError = true
@@ -1606,7 +1607,7 @@ function CommercialPageContent() {
       case "reclamation":
         baseDecl.reclamationRows = reclamationRows
         break
-      case "e_payement_pop":
+      case "e_payement":
         baseDecl.ePayementPopRows = ePayementPopRows
         break
       case "total_encaissement":
@@ -1656,7 +1657,7 @@ function CommercialPageContent() {
       let tabData: unknown = {}
       switch (tabKey) {
         case "reclamation": tabData = { reclamationRows }; break
-        case "e_payement_pop": tabData = { ePayementPopRows }; break
+        case "e_payement": tabData = { ePayementPopRows }; break
         case "total_encaissement": tabData = { totalEncaissementRows }; break
         case "rechargement": tabData = { rechargementRows }; break
         case "recouvrement": tabData = { recouvrementRows }; break
@@ -1848,7 +1849,7 @@ function CommercialPageContent() {
             </CardContent>
           </Card>
         )
-      case "e_payement_pop":
+      case "e_payement":
         return (
           <Card key={tabKey}>
             <CardHeader className="pb-3">
@@ -2070,6 +2071,14 @@ function CommercialPageContent() {
                 </div>
               )
             })}
+
+              <DynamicKpiTabs
+                domain="commercial"
+                excludeKeys={KPI_TAB_KEYS}
+                mois={mois}
+                annee={annee}
+                direction={effectiveDirection}
+              />
             </div>
             <div className="mt-4 space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Commentaire</label>

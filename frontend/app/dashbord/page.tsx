@@ -113,15 +113,11 @@ interface Savedtableau {
   
   // Commercial Tables
   reclamationRows?: ReclamationRow[]
-  reclamationGpRows?: ReclamationGpRow[]
   ePayementPopRows?: EPayementRow[]
-  ePayementPrpRows?: EPayementRow[]
   totalEncaissementRows?: TotalEncaissementRow[]
   rechargementRows?: RechargementRow[]
   recouvrementRows?: RecouvrementRow[]
-  parcAbonnesB2bRows?: ParcAbonnesB2BRow[]
   parcAbonnesGpRows?: ParcAbonnesGpRow[]
-  totalParcAbonnesRows?: TotalParcAbonnesRow[]
   totalParcAbonnesTechnologieRows?: TotalParcAbonnesTechnologieRow[]
   activationRows?: ActivationRow[]
   desactivationRows?: DesactivationRow[]
@@ -184,6 +180,19 @@ interface ReminderData {
   approvedTabs: number
   remainingToEnterTabs: number
   remainingToApproveTabs: number
+}
+
+interface RecentComment {
+  id: number
+  tabKey: string
+  comment: string
+  mois: string
+  annee: string
+  updatedAt: string
+  userName: string
+  userDirection: string
+  domaine: string | null
+  sousDomaine: string | null
 }
 
 const toArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : [])
@@ -299,15 +308,11 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     },
     // Commercial
     reclamationRows: [],
-    reclamationGpRows: [],
     ePayementPopRows: [],
-    ePayementPrpRows: [],
     totalEncaissementRows: [],
     rechargementRows: [],
     recouvrementRows: [],
-    parcAbonnesB2bRows: [],
     parcAbonnesGpRows: [],
-    totalParcAbonnesRows: [],
     totalParcAbonnesTechnologieRows: [],
     activationRows: [],
     desactivationRows: [],
@@ -443,31 +448,12 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
       }
       break
     }
-    case "frequence_formation": {
-      const formationData = parsedData.budgetFormationRows as unknown
-      tableau.formationRows = {
-        effectifsFormesGspRows: [],
-        formationsDomainesRows: [],
-        budgetFormationRows: toArray<BudgetFormationRow>(formationData),
-      }
-      break
-    }
-    
     // Commercial Tables
     case "reclamation":
       tableau.reclamationRows = toArray<ReclamationRow>(parsedData.reclamationRows)
       break
-    case "reclamation_gp":
-      tableau.reclamationGpRows = toArray<ReclamationGpRow>(parsedData.reclamationGpRows)
-      break
     case "e_payement":
-      tableau.ePayementPopRows = toArray<EPayementRow>(parsedData.ePayementRows)
-      break
-    case "e_payement_pop":
       tableau.ePayementPopRows = toArray<EPayementRow>(parsedData.ePayementPopRows)
-      break
-    case "e_payement_prp":
-      tableau.ePayementPrpRows = toArray<EPayementRow>(parsedData.ePayementPrpRows)
       break
     case "total_encaissement":
       tableau.totalEncaissementRows = toArray<TotalEncaissementRow>(parsedData.totalEncaissementRows)
@@ -478,14 +464,8 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     case "recouvrement":
       tableau.recouvrementRows = toArray<RecouvrementRow>(parsedData.recouvrementRows)
       break
-    case "parc_abonnes_b2b":
-      tableau.parcAbonnesB2bRows = toArray<ParcAbonnesB2BRow>(parsedData.parcAbonnesB2bRows)
-      break
     case "parc_abonnes_gp":
       tableau.parcAbonnesGpRows = toArray<ParcAbonnesGpRow>(parsedData.parcAbonnesGpRows)
-      break
-    case "total_parc_abonnes":
-      tableau.totalParcAbonnesRows = toArray<TotalParcAbonnesRow>(parsedData.totalParcAbonnesRows)
       break
     case "total_parc_abonnes_technologie":
       tableau.totalParcAbonnesTechnologieRows = toArray<TotalParcAbonnesTechnologieRow>(parsedData.totalParcAbonnesTechnologieRows)
@@ -493,9 +473,7 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     case "activation":
       tableau.activationRows = toArray<ActivationRow>(parsedData.activationRows)
       break
-    case "desactivation_resiliation":
-      tableau.desactivationRows = toArray<any>(parsedData.desactivationResiliationRows ?? parsedData.desactivationRows) as DesactivationRow[]
-      break
+
     case "desactivation":
       tableau.desactivationRows = toArray<DesactivationRow>(parsedData.desactivationRows)
       break
@@ -731,14 +709,11 @@ const TD: React.CSSProperties = { border: "1px solid #e5e7eb", padding: "1px 4px
 
 // Types pour les tableaux /tableau
 type ReclamationRow = { category: "recues" | "traitees"; type: "GP" | "B2B"; mGp: string; mB2b: string; m1Gp: string; m1B2b: string }
-type ReclamationGpRow = { label: string; recues: string; traitees: string }
 type EPayementRow = { rechargement: string; m: string; m1: string; evol: string }
 type RechargementRow = { designation: string; m: string; m1: string; evol: string }
 type TotalEncaissementRow = { designation: string; m: string; m1: string; evol: string }
 type RecouvrementRow = { designation: string; m1Recouvre: string; mMis: string; mRecouvre: string; mTaux: string }
-type ParcAbonnesB2BRow = { designation: string; m: string; m1: string; evol: string }
 type ParcAbonnesGpRow = { designation: string; m: string; m1: string; evol: string }
-type TotalParcAbonnesRow = { designation: string; m: string; m1: string; evol: string }
 type TotalParcAbonnesTechnologieRow = { designation: string; m: string; m1: string; evol: string }
 type ActivationRow = { designation: string; m: string; m1: string; evol: string }
 type DesactivationRow = { designation: string; m: string; m1: string; evol: string }
@@ -1102,59 +1077,6 @@ function ReclamationBlockDisplay({ rows }: { rows: ReclamationRow[] }) {
               <td colSpan={2} className="px-2 py-2 text-xs text-right border border-gray-200 font-semibold">Taux de traitement (%)</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(toPercent(totalTraiteesM, totalM))}</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(toPercent(totalTraiteesM1, totalM1))}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-function ReclamationGpBlockDisplay({ rows }: { rows: ReclamationGpRow[] }) {
-  const totalRecues = rows.reduce((s, r) => s + num(r.recues), 0)
-  const totalTraitees = rows.reduce((s, r) => s + num(r.traitees), 0)
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Tableau Reclamation GP</p>
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Type de Reclamation GP</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b" colSpan={2}>M</th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Taux de traitement</th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 border-b">Part des reclamations recus</th>
-            </tr>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b"></th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Recues</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Traitees</th>
-              <th className="px-3 py-2 border-b"></th>
-              <th className="px-3 py-2 border-b"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => {
-              const recues = num(row.recues)
-              const traitees = num(row.traitees)
-              return (
-                <tr key={`${row.label}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
-                  <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.recues)}</td>
-                  <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.traitees)}</td>
-                  <td className="px-3 py-2 border-b text-xs text-right font-semibold text-gray-700">{fmt(toPercent(traitees, recues))}</td>
-                  <td className="px-3 py-2 border-b text-xs text-right font-semibold text-gray-700">{fmt(toPercent(recues, totalRecues))}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="bg-green-100 font-semibold">
-              <td className="px-3 py-2 text-xs text-right border-t">Total</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(totalRecues)}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(totalTraitees)}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{fmt(toPercent(totalTraitees, totalRecues))}</td>
-              <td className="px-3 py-2 text-xs border-t text-right">{totalRecues > 0 ? "100,00" : ""}</td>
             </tr>
           </tfoot>
         </table>
@@ -2385,14 +2307,8 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     // Tableaux Commercial
     case "reclamation":
       return <ReclamationBlockDisplay rows={decl.reclamationRows ?? []} />
-    case "reclamation_gp":
-      return <ReclamationGpBlockDisplay rows={decl.reclamationGpRows ?? []} />
     case "e_payement":
       return <EPayementBlockDisplay title="E-PAYEMENT (MDA)" rows={decl.ePayementPopRows ?? []} />
-    case "e_payement_pop":
-      return <EPayementBlockDisplay title="E-PAYEMENT POP (MDA)" rows={decl.ePayementPopRows ?? []} />
-    case "e_payement_prp":
-      return <EPayementBlockDisplay title="E-PAYEMENT PRP (MDA)" rows={decl.ePayementPrpRows ?? []} />
     case "total_encaissement":
       return <TotalEncaissementBlockDisplay rows={decl.totalEncaissementRows ?? []} />
     case "rechargement":
@@ -2405,9 +2321,9 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
       return <SimpleEvolTableDisplay title="Total Parc Abonnes par Technologie" rows={decl.totalParcAbonnesTechnologieRows ?? []} />
     case "activation":
       return <SimpleEvolTableDisplay title="Activation" rows={decl.activationRows ?? []} />
-    case "desactivation_resiliation":
-    case "desactivation":
-      return <SimpleEvolTableDisplay title="Désactivation" rows={decl.desactivationRows ?? []} />
+   case "desactivation":
+     return <SimpleEvolTableDisplay title="Désactivation" rows={decl.desactivationRows ?? []} />
+
     case "resiliation":
       return <SimpleEvolTableDisplay title="Résiliation" rows={decl.resiliationRows ?? []} />
     case "chiffre_affaires_mda":
@@ -2423,7 +2339,9 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     
     // Tableaux Support (Nouveaux)
     case "creances_contentieuses":
-      return <CreancesContentieusesBlockDisplay rows={decl.recouvrementRows ?? []} anterieurRows={decl.recouvrementAnterieurRows ?? []} />
+      return <CreancesContentieusesBlockDisplay rows={decl.recouvrementRows ?? []} anterieurRows={[]} />
+    case "creances_contentieuses_anterieur":
+      return <CreancesContentieusesBlockDisplay rows={decl.recouvrementAnterieurRows ?? []} anterieurRows={[]} />
     case "mouvement_effectifs_domaine":
       return <MouvementEffectifsDomaineBlockDisplay rows={decl.mouvementEffectifsDomaineRows ?? []} />
     case "budget_formation":
@@ -2583,6 +2501,9 @@ export default function tableauDashboardPage() {
   const [printDecl, setPrintDecl] = useState<Savedtableau | null>(null)
   const [showDialog, setShowDialog] = useState(false)
   const [stepComment, setStepComment] = useState("")
+  const [recentComments, setRecentComments] = useState<RecentComment[]>([])
+  const [selectedComment, setSelectedComment] = useState<RecentComment | null>(null)
+  const [showCommentDialog, setShowCommentDialog] = useState(false)
   const [showRecapDialog, setShowRecapDialog] = useState(false)
   const [showRecapFilters, setShowRecapFilters] = useState(false)
   const consultTableContainerRef = useRef<HTMLDivElement | null>(null)
@@ -2691,6 +2612,26 @@ export default function tableauDashboardPage() {
         .stop()
         .catch((error) => console.error("SignalR tableau stop error:", error))
     }
+  }, [status, user])
+
+  useEffect(() => {
+    if (!user || status !== "authenticated") return
+    let cancelled = false
+    const loadComments = async () => {
+      try {
+        const token = getStoredToken()
+        const res = await fetch(`${API_BASE}/api/step-comment/recent?limit=20`, {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+        if (res.ok && !cancelled) {
+          const data: RecentComment[] = await res.json()
+          setRecentComments(data)
+        }
+      } catch { /* ignore */ }
+    }
+    loadComments()
+    return () => { cancelled = true }
   }, [status, user])
 
   useEffect(() => {
@@ -3002,7 +2943,7 @@ export default function tableauDashboardPage() {
           const img = new Image()
           img.onload = () => resolve(img)
           img.onerror = () => resolve(null)
-          img.src = "/logo_doc.png"
+          img.src = "/logo_slogan.png"
         })
 
         // Logo en haut é gauche
@@ -3353,6 +3294,59 @@ export default function tableauDashboardPage() {
     }
   }
 
+const TABLEAU_TITLE_MAP: Record<string, string> = {
+  // Commercial
+  reclamation: "TABLEAU RECLAMATION",
+  e_payement: "E-PAYEMENT (MDA)",
+  total_encaissement: "ENCAISSEMENT (MDA)",
+  rechargement: "RECHARGEMENT",
+  recouvrement: "RECOUVREMENT (MDA)",
+  parc_abonnes_gp: "PARC ABONNES GP",
+  total_parc_abonnes_technologie: "TOTAL PARC ABONNES PAR TECHNOLOGIE",
+  activation: "ACTIVATION",
+  desactivation: "DÉSACTIVATION",
+  resiliation: "RÉSILIATION",
+  chiffre_affaires_mda: "CHIFFRE D'AFFAIRES (MDA)",
+  // Regionale
+  realisations_commerciales: "REALISATIONS COMMERCIALES",
+  reseau_distribution: "Reseau de Distribution",
+  genie_civil: "GENIE CIVIL & ENVIRONNEMENT",
+  maintenance_equipement: "MAINTENANCE & EQUIPEMENTS",
+  nouveaux_sites: "NOUVEAUX SITES & EXTENSION RADIO",
+  mttr_debit: "MTTR & DEBIT INTERNET",
+  recouvrement_contentieux: "RECOUVREMENT CONTENTIEUX",
+  ressources_humaines: "RESSOURCES HUMAINES",
+  formation: "FORMATION",
+  acquisition_terrain: "ACQUISITION TERRAIN & LOCATION IMMEUBLE",
+  // Support
+  creances_contentieuses: "CREANCE CONTENTIEUSES",
+  creances_contentieuses_anterieur: "Créances Contentieuses Antérieur",
+  rh: "RH",
+  frais_personnel: "Frais Personnel (MDA)",
+  effectif_gsp: "Effectif par GSP",
+  absenteisme: "Absenteisme",
+  mouvement_effectifs: "Mouvement des Effectifs",
+  mouvement_effectifs_domaine: "Mouvement des Effectifs par Domaine",
+  effectifs_formes_gsp: "Effectifs formes par GSP",
+  formations_domaines: "Formations realisees par domaines",
+  budget_formation: "Budget des Formations",
+  // DVDRS
+  realisation_technique_reseau: "SUIVI DES INFRASTRUCTURES RESEAU 2G/3G/4G",
+  situation_reseau: "SITUATION RESEAU",
+  trafic_data: "EVOLUTION DU TRAFIC DATA",
+  amelioration_qualite: "AMELIORATION QUALITE",
+  couverture_reseau: "COUVERTURE RESEAU",
+  action_notable_reseau: "ACTION NOTABLE SUR LE RESEAU",
+  // DQRPC
+  disponibilite_reseau: "DISPONIBILITE RESEAU",
+  mttr: "MTTR / DR",
+  // Finances
+  compte_resultat: "COMPTE DE RESULTAT & INVESTISSEMENT (MDA)",
+  investissement: "Investissement (MDA)",
+  avancement_engagement: "ETAT D'AVANCEMENT DES ENGAGEMENTS (MDA)",
+  tresorerie: "Trésorerie Mobilis (MDA)",
+}
+
     const getTableauDisplayName = (tabKey: string): string => {
     const key = (tabKey ?? "").trim().toLowerCase()
     const displayNames: Record<string, string> = {
@@ -3459,7 +3453,7 @@ export default function tableauDashboardPage() {
     if (["creance_contentieuses", "frais_personnel", "effectif_gsp", "absenteisme", "mouvement_effectifs", "mouvement_effectifs_domaine", "effectifs_formes_gsp", "formations_domaines", "budget_formation", "rh", "formation"].includes(key)) return "Support"
     
     // Commerciale: 14 tableaux (14 commercial sub-tabs)
-    if (["reclamation", "reclamation_gp", "e_payement_pop", "e_payement_prp", "total_encaissement", "rechargement", "recouvrement", "desactivation_resiliation", "parc_abonnes_b2b", "parc_abonnes_gp", "total_parc_abonnes", "total_parc_abonnes_technologie", "activation", "chiffre_affaires_mda", "e_payement", "encaissement_c", "parc_abonnes", "chiffre_affaires_c", "commercial_autres"].includes(key)) return "Commerciale"
+    if (["reclamation", "e_payement", "total_encaissement", "rechargement", "recouvrement", "parc_abonnes_gp", "total_parc_abonnes_technologie", "activation", "chiffre_affaires_mda", "encaissement_c", "parc_abonnes", "chiffre_affaires_c", "commercial_autres"].includes(key)) return "Commerciale"
     
     // DirectionRegionale: 1 tableau
     if (key === "regionale") return "DirectionRegionale"
@@ -3554,7 +3548,7 @@ export default function tableauDashboardPage() {
           const img = new Image()
           img.onload = () => resolve(img)
           img.onerror = () => resolve(null)
-          img.src = "/logo_doc.png"
+          img.src = "/logo_slogan.png"
         })
 
         const drawUnderlinedText = (text: string, x: number, y: number) => {
@@ -3882,7 +3876,7 @@ export default function tableauDashboardPage() {
                         Nom Tableau <SortIcon col="type" />
                       </TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("direction")}>
-                        Structure <SortIcon col="direction" />
+                        Domaine <SortIcon col="direction" />
                       </TableHead>
                       <TableHead className="cursor-pointer select-none" onClick={() => handleSort("periode")}>
                         Période <SortIcon col="periode" />
@@ -3921,7 +3915,289 @@ export default function tableauDashboardPage() {
                         >
                           <TableCell>
                             <Badge variant="outline" className="text-xs">
-                              {getTableauDisplayName(declType.key)}
+                              {TABLEAU_TITLE_MAP[declType.key] ?? getTableauDisplayName(declType.key)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">{gettableauDomain(decl)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {MONTHS[decl.mois] || decl.mois} {decl.annee}
+                            </Badge>
+                            {isLocked && (
+                              <Badge variant="secondary" className="ml-2 text-[10px] text-emerald-700">
+                                Cléturée
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {new Date(decl.createdAt).toLocaleString("fr-DZ", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })}
+                          </TableCell>
+                          <TableCell className="w-20 p-0 align-middle">
+                            <div className="flex items-center justify-center">
+                              {decl.isApproved ? (
+                                <span className="inline-flex" title="Approuvée" aria-label="Approuvée">
+                                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                                </span>
+                              ) : (
+                                <span className="inline-flex" title="En attente" aria-label="En attente">
+                                  <Clock3 className="h-4 w-4 text-amber-600" />
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-center gap-2">
+                              {(isAdminRole || canApproveRegionaltableaux || canApproveFinancetableaux) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 w-8 p-0 border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                  disabled={!canApproveThistableau}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    handleApprove(decl)
+                                  }}
+                                  title={decl.isApproved ? "tableau déjé approuvée" : !canApproveThistableau ? "Action non autorisée pour cette tableau" : "Approuver"}
+                                >
+                                  <CheckCircle size={16} />
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                disabled={isLocked}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  handleDelete(decl)
+                                }}
+                                title={isLocked ? "Période cléturée (suppression impossible)" : "Supprimer"}
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Commentaires Récents */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">
+              Commentaires récents
+              {recentComments.length > 0 && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({recentComments.length})
+                </span>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentComments.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Aucun commentaire récent.
+              </p>
+            ) : (
+              <div className="max-h-[540px] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Sous-domaine</TableHead>
+                      <TableHead>Domaine</TableHead>
+                      <TableHead>Période</TableHead>
+                      <TableHead>Utilisateur</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentComments.map((rc) => (
+                      <TableRow
+                        key={rc.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => { setSelectedComment(rc); setShowCommentDialog(true) }}
+                        title="Cliquer pour voir le commentaire"
+                      >
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {TABLEAU_TITLE_MAP[rc.tabKey] ?? rc.sousDomaine ?? rc.tabKey}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{rc.domaine ?? "-"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {MONTHS[rc.mois] ?? rc.mois} {rc.annee}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{rc.userName}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(rc.updatedAt).toLocaleString("fr-DZ", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent tableaux */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <CardTitle className="text-base">
+                tableaux récents
+                {tableaux.length > 0 && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({filteredtableaux.length}{hasActiveFilters ? ` / ${tableaux.length}` : ""})
+                  </span>
+                )}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {hasActiveFilters && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs text-muted-foreground hover:text-emerald-600"
+                    onClick={() => { setFilterType(""); setFilterMois(""); setFilterAnnee(""); setFilterDirection(""); setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo("") }}
+                  >
+                    <X size={14} className="mr-1" /> Effacer filtres
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant={showFilters ? "secondary" : "outline"}
+                  className="h-8 text-xs"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Filter size={14} className="mr-1" /> Filtrer
+                </Button>
+              </div>
+            </div>
+            {showFilters && (
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7 text-sm">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Type</label>
+                  <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
+                    <option value="">Tous</option>
+                    <option value="encaissement">Encaissement</option>
+                    <option value="tva_immo">TVA / IMMO</option>
+                    <option value="tva_biens">TVA / Biens &amp; Serv</option>
+                    <option value="droits_timbre">Droits Timbre</option>
+                    <option value="ca_tap">CA 7% &amp; CA Glob 1%</option>
+                    <option value="etat_tap">ETAT TAP</option>
+                    <option value="ca_siege">CA Siége</option>
+                    <option value="irg">Situation IRG</option>
+                    <option value="taxe2">Taxe 2%</option>
+                    <option value="taxe_masters">Taxe des Master 1,5%</option>
+                    <option value="taxe_vehicule">Taxe Vehicule</option>
+                    <option value="taxe_formation">Taxe Formation</option>
+                    <option value="acompte">Acompte Provisionnel</option>
+                    <option value="ibs">IBS Etrangers</option>
+                    <option value="taxe_domicil">Taxe Domiciliation</option>
+                    <option value="tva_autoliq">TVA Auto Liquidation</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Mois</label>
+                  <select value={filterMois} onChange={e => setFilterMois(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
+                    <option value="">Tous</option>
+                    {Object.entries(MONTHS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Année</label>
+                  <input type="number" placeholder="ex: 2025" value={filterAnnee} onChange={e => setFilterAnnee(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Domaine</label>
+                  <select value={filterDirection} onChange={e => setFilterDirection(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
+                    <option value="">Tous</option>
+                    {domainOptions.map((domain) => (
+                      <option key={domain} value={domain}>{domain}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Statut</label>
+                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
+                    <option value="">Tous</option>
+                    <option value="approved">Approuvée</option>
+                    <option value="pending">En attente</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Du</label>
+                  <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Au</label>
+                  <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs" />
+                </div>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent>
+            {recenttableaux.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Aucune tableau tableau enregistrée pour le moment.
+              </p>
+            ) : (
+              <div className="max-h-[540px] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("type")}>
+                        Nom Tableau <SortIcon col="type" />
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("direction")}>
+                        Domaine <SortIcon col="direction" />
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("periode")}>
+                        Période <SortIcon col="periode" />
+                      </TableHead>
+                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("date")}>
+                        Date d&apos;enregistrement <SortIcon col="date" />
+                      </TableHead>
+                      <TableHead className="w-20 text-center">Statut</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recenttableaux.map((decl) => {
+                      const declType = gettableauType(decl)
+                      const isLocked = istableauLocked(decl)
+                      const tableauDirection = (decl.direction ?? "").trim().toLowerCase()
+                      const isSiegetableau = tableauDirection === "siége"
+                        || tableauDirection === "siege"
+                        || tableauDirection.includes("siége")
+                        || tableauDirection.includes("siege")
+                      const isOwntableau = String(decl.userId ?? "") === String(user.id)
+                      const canApproveAsRegional = canApproveRegionaltableaux
+                        && !decl.isApproved
+                        && (isOwntableau || (!!normalizedRegion && tableauDirection === normalizedRegion))
+                      const canApproveAsFinance = canApproveFinancetableaux
+                        && !decl.isApproved
+                        && (isOwntableau || isSiegetableau)
+                      const canApproveAsAdmin = isAdminRole && !decl.isApproved
+                      const canApproveThistableau = canApproveAsAdmin || canApproveAsRegional || canApproveAsFinance
+                      return (
+                        <TableRow
+                          key={decl.id}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleView(decl, declType.key)}
+                          title="Cliquer pour consulter"
+                        >
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {TABLEAU_TITLE_MAP[declType.key] ?? getTableauDisplayName(declType.key)}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-sm">{gettableauDomain(decl)}</TableCell>
@@ -4070,6 +4346,39 @@ export default function tableauDashboardPage() {
                   <p className="text-sm whitespace-pre-wrap">{stepComment}</p>
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Comment Dialog */}
+      <Dialog open={showCommentDialog} onOpenChange={setShowCommentDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Commentaire</DialogTitle>
+          </DialogHeader>
+          {selectedComment && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <Badge variant="secondary" className="gap-1.5 font-normal">
+                  {selectedComment.domaine ?? "-"} &gt; {selectedComment.sousDomaine ?? selectedComment.tabKey}
+                </Badge>
+                <Badge variant="secondary" className="gap-1.5 font-normal">
+                  {MONTHS[selectedComment.mois] ?? selectedComment.mois} {selectedComment.annee}
+                </Badge>
+                <Badge variant="secondary" className="gap-1.5 font-normal">
+                  {selectedComment.userName}
+                </Badge>
+              </div>
+              <div className="rounded-lg border bg-slate-50 p-4">
+                <p className="text-sm whitespace-pre-wrap">{selectedComment.comment || "(commentaire vide)"}</p>
+              </div>
+              <p className="text-xs text-muted-foreground text-right">
+                {new Date(selectedComment.updatedAt).toLocaleDateString("fr-FR", {
+                  day: "numeric", month: "long", year: "numeric",
+                  hour: "2-digit", minute: "2-digit",
+                })}
+              </p>
             </div>
           )}
         </DialogContent>

@@ -79,15 +79,12 @@ namespace CheckFillingAPI.Migrations
                 new[]
                 {
                     (1, 1, "reclamation"),
-                    (2, 2, "e_payement_pop"),
-                    (3, 2, "e_payement_prp"),
-                    (4, 3, "total_encaissement"),
+                    (2, 2, "e_payement"),
+                    (3, 3, "total_encaissement"),
                     (5, 4, "rechargement"),
                     (6, 5, "recouvrement"),
                     (7, 6, "parc_abonnes_gp"),
-                    (8, 6, "parc_abonnes_b2b"),
-                    (9, 6, "total_parc_abonnes"),
-                    (10, 7, "total_parc_abonnes_technologie"),
+                    (8, 7, "total_parc_abonnes_technologie"),
                     (11, 8, "activation"),
                     (12, 9, "desactivation"),
                     (13, 10, "resiliation"),

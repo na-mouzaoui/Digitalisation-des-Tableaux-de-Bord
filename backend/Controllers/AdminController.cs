@@ -448,6 +448,86 @@ public class AdminController : ControllerBase
     }
 
     // ?????????????????????????????????????????????
+    // DOMAINES / SOUS-DOMAINES
+    // ?????????????????????????????????????????????
+
+    [HttpGet("domaines")]
+    public async Task<IActionResult> GetDomaines()
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        var domaines = await _context.Domaines
+            .AsNoTracking()
+            .Include(d => d.SousDomaines.OrderBy(sd => sd.Designation))
+            .OrderBy(d => d.Designation)
+            .Select(d => new
+            {
+                d.Id,
+                d.Designation,
+                SousDomaines = d.SousDomaines.Select(sd => new
+                {
+                    sd.Id,
+                    sd.Designation,
+                }).ToArray(),
+            })
+            .ToArrayAsync();
+
+        return Ok(domaines);
+    }
+
+    public class CreateSousDomaineRequest
+    {
+        public int DomaineId { get; set; }
+        public string Designation { get; set; } = string.Empty;
+    }
+
+    [HttpPost("sous-domaines")]
+    public async Task<IActionResult> CreateSousDomaine([FromBody] CreateSousDomaineRequest request)
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        var designation = (request.Designation ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(designation))
+            return BadRequest(new { message = "La désignation du sous-domaine est requise." });
+
+        var domaine = await _context.Domaines.FindAsync(request.DomaineId);
+        if (domaine == null)
+            return BadRequest(new { message = "Domaine introuvable." });
+
+        var exists = await _context.SousDomaines
+            .AnyAsync(sd => sd.DomaineId == request.DomaineId && sd.Designation == designation);
+
+        if (exists)
+            return BadRequest(new { message = "Ce sous-domaine existe déjé dans ce domaine." });
+
+        var sousDomaine = new SousDomaine
+        {
+            DomaineId = request.DomaineId,
+            Designation = designation,
+        };
+
+        _context.SousDomaines.Add(sousDomaine);
+        await _context.SaveChangesAsync();
+
+        await _auditService.LogAction(
+            GetCurrentUserId(),
+            "CREATE_SOUS_DOMAINE",
+            "SousDomaine",
+            sousDomaine.Id,
+            new { sousDomaine.Designation, domaineId = request.DomaineId }
+        );
+
+        return Ok(new
+        {
+            id = sousDomaine.Id,
+            designation = sousDomaine.Designation,
+            domaineId = sousDomaine.DomaineId,
+        });
+    }
+
+    // ?????????????????????????????????????????????
     // TABLEAU SETTINGS
     // ?????????????????????????????????????????????
 
@@ -658,8 +738,39 @@ public class AdminController : ControllerBase
         return Ok(hierarchy);
     }
 
+    [HttpDelete("kpis/{id}")]
+    public async Task<IActionResult> DeleteKpi(int id)
+    {
+        if (!await IsAdmin())
+            return Forbid();
+
+        var kpi = await _context.Kpis
+            .Include(k => k.SousKpis)
+            .FirstOrDefaultAsync(k => k.Id == id);
+
+        if (kpi == null)
+            return NotFound(new { message = "KPI introuvable." });
+
+        var kpiName = kpi.Nom;
+        var sousDomaineId = kpi.SousDomaineId;
+
+        _context.SousKpis.RemoveRange(kpi.SousKpis);
+        _context.Kpis.Remove(kpi);
+        await _context.SaveChangesAsync();
+
+        await _auditService.LogAction(
+            GetCurrentUserId(),
+            "DELETE_KPI",
+            "Kpi",
+            id,
+            new { name = kpiName, sousDomaineId }
+        );
+
+        return Ok(new { message = "KPI supprimé.", name = kpiName });
+    }
+
     [HttpPut("kpis/by-name/{name}")]
-    public async Task<IActionResult> UpsertKpiRows(string name, [FromBody] KpiRowsRequest request, [FromQuery] string? domain = null)
+    public async Task<IActionResult> UpsertKpiRows(string name, [FromBody] KpiRowsRequest request, [FromQuery] string? domain = null, [FromQuery] int? sousDomaineId = null)
     {
         if (!await IsAdmin())
             return Forbid();
@@ -689,17 +800,29 @@ public class AdminController : ControllerBase
 
         if (kpi == null)
         {
-            if (string.IsNullOrWhiteSpace(domainDisplayName))
+            if (sousDomaineId.HasValue)
+            {
+                var sousDomaine = await _context.SousDomaines.FindAsync(sousDomaineId.Value);
+                if (sousDomaine == null)
+                    return BadRequest(new { message = "Sous-domaine introuvable." });
+                kpi = new Kpi { Nom = normalizedName, SousDomaineId = sousDomaine.Id };
+            }
+            else if (!string.IsNullOrWhiteSpace(domainDisplayName))
+            {
+                var sousDomaine = await _context.SousDomaines
+                    .Include(sd => sd.Domaine)
+                    .FirstOrDefaultAsync(sd => sd.Domaine.Designation == domainDisplayName || sd.Designation == domainDisplayName);
+
+                if (sousDomaine == null)
+                    return BadRequest(new { message = "Sous-domaine introuvable." });
+
+                kpi = new Kpi { Nom = normalizedName, SousDomaineId = sousDomaine.Id };
+            }
+            else
+            {
                 return BadRequest(new { message = "Le domaine du KPI est requis pour créer ce tableau." });
+            }
 
-            var sousDomaine = await _context.SousDomaines
-                .Include(sd => sd.Domaine)
-                .FirstOrDefaultAsync(sd => sd.Domaine.Designation == domainDisplayName || sd.Designation == domainDisplayName);
-
-            if (sousDomaine == null)
-                return BadRequest(new { message = "Sous-domaine introuvable." });
-
-            kpi = new Kpi { Nom = normalizedName, SousDomaineId = sousDomaine.Id };
             _context.Kpis.Add(kpi);
         }
 

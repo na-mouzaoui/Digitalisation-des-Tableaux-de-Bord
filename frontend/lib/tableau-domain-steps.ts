@@ -36,17 +36,13 @@ export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
   ],
   commercial: [
     { key: "chiffre_affaires_mda", label: "Chiffre d'Affaires MDA" },
-    { key: "parc_abonnes_b2b", label: "Parc Abonnés B2B" },
     { key: "parc_abonnes_gp", label: "Parc Abonnés GP" },
-    { key: "total_parc_abonnes", label: "Total Parc Abonnés" },
     { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnés/Technologie" },
     { key: "desactivation", label: "Désactivation" },
     { key: "resiliation", label: "Résiliation" },
     { key: "activation", label: "Activation SIM" },
     { key: "reclamation", label: "Réclamation" },
-    { key: "reclamation_gp", label: "Réclamation GP" },
-    { key: "e_payement_pop", label: "E-Payment POP" },
-    { key: "e_payement_prp", label: "E-Payment PRP" },
+    { key: "e_payement", label: "E-Payment POP" },
     { key: "total_encaissement", label: "Total Encaissement" },
     { key: "rechargement", label: "Rechargement" },
     { key: "recouvrement", label: "Recouvrement" },
@@ -58,7 +54,7 @@ export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
   ],
   regionale: [
     { key: "reseau", label: "Technique" },
-    { key: "commerciale_dr", label: "Commercial" },
+    { key: "realisations_commerciales", label: "Commercial" },
   ],
 }
 

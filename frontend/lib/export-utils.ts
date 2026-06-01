@@ -99,7 +99,7 @@ export function exportStatsToPDF(
     const img = new Image()
     img.onload = () => resolve(img)
     img.onerror = () => resolve(null)
-    img.src = "/logo_doc.png"
+    img.src = "/logo_slogan.png"
   })
 
   logo.then((logoImg) => {
@@ -200,7 +200,7 @@ export function exportHistoryToPDF(checks: Check[], users: User[], banks: Bank[]
     const img = new Image()
     img.onload = () => resolve(img)
     img.onerror = () => resolve(null)
-    img.src = "/logo_doc.png"
+    img.src = "/logo_slogan.png"
   })
 
   logo.then((logoImg) => {

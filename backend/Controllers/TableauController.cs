@@ -124,9 +124,7 @@ public class TableauController : ControllerBase
     private static readonly string[] AllManageableTabOrder =
     {
         "reclamation",
-        "reclamation_gp",
-        "e_payement_pop",
-        "e_payement_prp",
+        "e_payement",
         "total_encaissement",
         "rechargement",
         "recouvrement",
@@ -137,24 +135,25 @@ public class TableauController : ControllerBase
         "couverture_reseau",
         "action_notable_reseau",
         "disponibilite_reseau",
-        "desactivation_resiliation",
-        "parc_abonnes_b2b",
         "mttr",
         "creances_contentieuses",
+        "creances_contentieuses_anterieur",
         "frais_personnel",
         "effectif_gsp",
         "absenteisme",
         "mouvement_effectifs",
         "mouvement_effectifs_domaine",
         "compte_resultat",
+        "investissement",
+        "avancement_engagement",
+        "tresorerie",
         "effectifs_formes_gsp",
         "formations_domaines",
-        "frequence_formation",
         "parc_abonnes_gp",
-        "total_parc_abonnes",
         "total_parc_abonnes_technologie",
         "activation",
-        "chiffre_affaires_mda"
+        "chiffre_affaires_mda",
+        "reseau_distribution"
     };
 
     private static readonly HashSet<string> AllManageableTabs = new(AllManageableTabOrder, StringComparer.OrdinalIgnoreCase);

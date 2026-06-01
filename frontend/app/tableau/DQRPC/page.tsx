@@ -16,6 +16,7 @@ import { Plus, Trash2, Save, ArrowRight } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
+import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
@@ -1150,6 +1151,14 @@ function DQRPCPageContent() {
                 </div>
               )
             })}
+
+              <DynamicKpiTabs
+                domain="dqrpc"
+                excludeKeys={KPI_TAB_KEYS}
+                mois={mois}
+                annee={annee}
+                direction={effectiveDirection}
+              />
             </div>
             <div className="mt-4 space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Commentaire</label>

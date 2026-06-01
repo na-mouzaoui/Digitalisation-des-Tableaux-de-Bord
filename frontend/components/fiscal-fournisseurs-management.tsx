@@ -417,7 +417,7 @@ export function tableauFournisseursManagement() {
 
       worksheet.mergeCells("A1:B3")
       try {
-        const logoRes = await fetch("/logo_doc.png")
+        const logoRes = await fetch("/logo_slogan.png")
         if (logoRes.ok) {
           const logoBlob = await logoRes.blob()
           const logoBase64 = await fileToBase64Data(logoBlob)

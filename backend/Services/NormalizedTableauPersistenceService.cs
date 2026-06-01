@@ -27,14 +27,8 @@ public class NormalizedTableauPersistenceService : INormalizedTableauPersistence
             case "reclamation":
                 await SaveReclamationAsync(periodId, root, cancellationToken);
                 break;
-            case "reclamation_gp":
-                await SaveReclamationGpAsync(periodId, root, cancellationToken);
-                break;
-            case "e_payement_pop":
+            case "e_payement":
                 await SaveEPayementAsync(periodId, "Epaymentpop", root, cancellationToken);
-                break;
-            case "e_payement_prp":
-                await SaveEPayementAsync(periodId, "Epaymentprp", root, cancellationToken);
                 break;
             case "total_encaissement":
                 await SaveEncaissementAsync(periodId, root, cancellationToken);
@@ -48,23 +42,14 @@ public class NormalizedTableauPersistenceService : INormalizedTableauPersistence
             case "chiffre_affaires_mda":
                 await SaveCaAsync(periodId, root, cancellationToken);
                 break;
-            case "parc_abonnes_b2b":
-                await SaveParcAbonnesAsync(periodId, "ParcAbonnesB2B", root, cancellationToken);
-                break;
             case "parc_abonnes_gp":
                 await SaveParcAbonnesAsync(periodId, "ParcAbonnesGP", root, cancellationToken);
-                break;
-            case "total_parc_abonnes":
-                await SaveParcAbonnesAsync(periodId, "ParcAbonnes", root, cancellationToken);
                 break;
             case "total_parc_abonnes_technologie":
                 await SaveParcAbonnesAsync(periodId, "ParcAbonnesTechnologie", root, cancellationToken);
                 break;
             case "activation":
                 await SaveDesActivationAsync(periodId, "Activation", root, cancellationToken);
-                break;
-            case "desactivation_resiliation":
-                await SaveDesActivationAsync(periodId, "Desactivation", root, cancellationToken);
                 break;
             case "realisation_technique_reseau":
                 await SaveRealisationAsync(periodId, root, cancellationToken);
@@ -114,9 +99,6 @@ public class NormalizedTableauPersistenceService : INormalizedTableauPersistence
             case "formations_domaines":
                 await SaveFormationDomAsync(periodId, root, cancellationToken);
                 break;
-            case "frequence_formation":
-                await SaveFreqFormationAsync(periodId, root, cancellationToken);
-                break;
             case "genie_civil":
                 await SaveGenieCivilAsync(periodId, root, cancellationToken);
                 break;
@@ -126,8 +108,11 @@ public class NormalizedTableauPersistenceService : INormalizedTableauPersistence
             case "nouveaux_sites":
                 await SaveNouveauxSitesAsync(periodId, root, cancellationToken);
                 break;
-            case "commerciale_dr":
+            case "realisations_commerciales":
                 await SaveCommercialeDrAsync(periodId, root, cancellationToken);
+                break;
+            case "creances_contentieuses_anterieur":
+                await SaveCreancesContentieusesAnterieurAsync(periodId, root, cancellationToken);
                 break;
             default:
                 break;
@@ -269,25 +254,10 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
         }
     }
 
-    private async Task SaveReclamationGpAsync(int periodId, JsonElement root, CancellationToken ct)
-    {
-        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[ReclamationGP] WHERE [Id_Periode] = {periodId}", ct);
-        foreach (var row in GetRows(root, "reclamationGpRows"))
-        {
-            var lineId = await EnsureLineAsync("ReclamationGP_Lignes", GetString(row, "label"), ct);
-            var recues = ParseDecimal(GetString(row, "recues"));
-            var traitees = ParseDecimal(GetString(row, "traitees"));
-            decimal? taux = null;
-            if (recues.HasValue && recues.Value != 0 && traitees.HasValue)
-                taux = (traitees.Value / recues.Value) * 100m;
-            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[ReclamationGP]([Id_Designation_ReclamationGP],[Id_Periode],[M_Recues],[M_Traitees],[Taux],[Part]) VALUES ({lineId},{periodId},{recues},{traitees},{taux},{(decimal?)null})", ct);
-        }
-    }
-
     private async Task SaveEPayementAsync(int periodId, string type, JsonElement root, CancellationToken ct)
     {
         await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[Epayement] WHERE [Id_Periode] = {periodId} AND [Type] = {type}", ct);
-        var prop = type == "Epaymentpop" ? "ePayementPopRows" : "ePayementPrpRows";
+        var prop = "ePayementPopRows";
         foreach (var row in GetRows(root, prop))
         {
             var lineId = await EnsureLineAsync("Epayement_Lignes", GetString(row, "rechargement"), ct);
@@ -343,9 +313,7 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
         await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[ParcAbonnes] WHERE [Id_Periode] = {periodId} AND [Type] = {type}", ct);
         var prop = type switch
         {
-            "ParcAbonnesB2B" => "parcAbonnesB2bRows",
             "ParcAbonnesGP" => "parcAbonnesGpRows",
-            "ParcAbonnes" => "totalParcAbonnesRows",
             _ => "totalParcAbonnesTechnologieRows",
         };
 
@@ -462,10 +430,20 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
     private async Task SaveCreancesContentieusesAsync(int periodId, JsonElement root, CancellationToken ct)
     {
         await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[Creances] WHERE [Id_Periode] = {periodId}", ct);
-        foreach (var row in GetRows(root, "creancesContentieusesRows"))
+        foreach (var row in GetRows(root, "recouvrementRows"))
         {
             var lineId = await EnsureLineAsync("Creances_Lignes", GetString(row, "designation"), ct);
-            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[Creances]([Id_Designation_Creances],[Id_Periode],[M_1],[M],[Total]) VALUES ({lineId},{periodId},{ParseDecimal(GetString(row, "m1"))},{ParseDecimal(GetString(row, "m"))},{ParseDecimal(GetString(row, "evol"))})", ct);
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[Creances]([Id_Designation_Creances],[Id_Periode],[M_1],[M],[Total]) VALUES ({lineId},{periodId},{ParseDecimal(GetString(row, "m1Montant"))},{ParseDecimal(GetString(row, "mMontant"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
+        }
+    }
+
+    private async Task SaveCreancesContentieusesAnterieurAsync(int periodId, JsonElement root, CancellationToken ct)
+    {
+        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[Creances] WHERE [Id_Periode] = {periodId}", ct);
+        foreach (var row in GetRows(root, "recouvrementAnterieurRows"))
+        {
+            var lineId = await EnsureLineAsync("Creances_Lignes", GetString(row, "designation"), ct);
+            await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[Creances]([Id_Designation_Creances],[Id_Periode],[M_1],[M],[Total]) VALUES ({lineId},{periodId},{ParseDecimal(GetString(row, "m1Montant"))},{ParseDecimal(GetString(row, "mMontant"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
         }
     }
 
@@ -538,24 +516,6 @@ IF NOT EXISTS (SELECT 1 FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y
             var lineId = await EnsureLineAsync("FormationDom_Lignes", GetString(row, "domaine"), ct);
             await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[FormationDom]([Id_Designation_FormationDom],[Id_Periode],[M_1_Objectif],[M_1_Realise],[M_1_Taux],[M_Objectif],[M_Realise],[M_Taux]) VALUES ({lineId},{periodId},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Taux"))},{ParseDecimal(GetString(row, "mObjectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
         }
-    }
-
-    private async Task SaveFreqFormationAsync(int periodId, JsonElement root, CancellationToken ct)
-    {
-        JsonElement row;
-        if (root.TryGetProperty("frequenceFormationRow", out var obj) && obj.ValueKind == JsonValueKind.Object)
-        {
-            row = obj;
-        }
-        else
-        {
-            var rows = GetRows(root, "frequenceFormationRows");
-            if (rows.Length == 0) return;
-            row = rows[0];
-        }
-
-        await _context.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM [dbo].[FreqFormation] WHERE [Id_Periode] = {periodId}", ct);
-        await _context.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO [dbo].[FreqFormation]([Id_Periode],[M_1_Objectif],[M_1_Realise],[M_1_Taux],[M_Objectif],[M_Realise],[M_Taux]) VALUES ({periodId},{ParseDecimal(GetString(row, "m1Objectif"))},{ParseDecimal(GetString(row, "m1Realise"))},{ParseDecimal(GetString(row, "m1Taux"))},{ParseDecimal(GetString(row, "mObjectif"))},{ParseDecimal(GetString(row, "mRealise"))},{ParseDecimal(GetString(row, "mTaux"))})", ct);
     }
 
     private async Task SaveGenieCivilAsync(int periodId, JsonElement root, CancellationToken ct)

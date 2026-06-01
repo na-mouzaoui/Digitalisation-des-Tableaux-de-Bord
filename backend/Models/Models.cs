@@ -70,9 +70,11 @@ public class StepComment
     public string TabKey { get; set; } = string.Empty;
     public string Mois { get; set; } = string.Empty;
     public string Annee { get; set; } = string.Empty;
-    public string Direction { get; set; } = string.Empty;
+    public int UserId { get; set; }
     public string Comment { get; set; } = string.Empty;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public User User { get; set; } = null!;
 }
 
 public class AdminSetting

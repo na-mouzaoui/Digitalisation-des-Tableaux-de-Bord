@@ -17,6 +17,7 @@ import { Plus, Trash2, Save, ArrowRight } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
+import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
@@ -630,7 +631,7 @@ const TABS = [
   { key: "ressources_humaines",            label: "Ressources Humaines",                    color: PRIMARY_COLOR, title: "RESSOURCES HUMAINES" },
   { key: "formation",                      label: "Formation",                              color: PRIMARY_COLOR, title: "FORMATION" },
   { key: "acquisition_terrain",            label: "Acquisition Terrain & Location Immeuble", color: PRIMARY_COLOR, title: "ACQUISITION TERRAIN & LOCATION IMMEUBLE" },
-  { key: "commerciale_dr",                 label: "Commercial",                             color: PRIMARY_COLOR, title: "COMMERCIALE DR" },
+  { key: "realisations_commerciales",                 label: "Commercial",                             color: PRIMARY_COLOR, title: "REALISATIONS COMMERCIALES" },
 ]
 
 const CUSTOM_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
@@ -644,16 +645,17 @@ type TabKey =
   | "ressources_humaines"
   | "formation"
   | "acquisition_terrain"
-  | "commerciale_dr"
+  | "realisations_commerciales"
+  | "reseau_distribution"
 
 type CategoryKey = "reseau" | "commerciale" | "support" | "csm" | "all"
 
 const CATEGORY_OPTIONS: Array<{ key: CategoryKey; label: string; tabKeys: TabKey[] }> = [
-  { key: "commerciale", label: "Commerciale", tabKeys: ["commerciale_dr"] },
+  { key: "commerciale", label: "Commerciale", tabKeys: ["realisations_commerciales"] },
   { key: "reseau", label: "Technique",   tabKeys: ["genie_civil", "maintenance_equipement", "nouveaux_sites", "mttr_debit"] },
   { key: "support", label: "Support",    tabKeys: ["recouvrement_contentieux", "ressources_humaines", "formation"] },
   { key: "csm", label: "CSM",           tabKeys: ["acquisition_terrain"] },
-  { key: "all", label: "Tous",        tabKeys: ["genie_civil", "maintenance_equipement", "nouveaux_sites", "mttr_debit", "recouvrement_contentieux", "ressources_humaines", "formation", "acquisition_terrain", "commerciale_dr"] },
+  { key: "all", label: "Tous",        tabKeys: ["genie_civil", "maintenance_equipement", "nouveaux_sites", "mttr_debit", "recouvrement_contentieux", "ressources_humaines", "formation", "acquisition_terrain", "realisations_commerciales"] },
 ]
 
 const KPI_TAB_KEYS = [
@@ -665,15 +667,15 @@ const KPI_TAB_KEYS = [
   "ressources_humaines",
   "formation",
   "acquisition_terrain",
-  "commerciale_dr",
+  "realisations_commerciales",
   "reseau_distribution",
 ]
 
 const findCategoryKeyForTab = (tabKey: string): CategoryKey =>
   CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(tabKey as TabKey))?.key ?? "reseau"
 
-const isTabKey = (value: string): value is TabKey =>
-  TABS.some((tab) => tab.key === value)
+const isValidTabKey = (value: string): value is TabKey =>
+  TABS.some((tab) => tab.key === value) || value === "reseau_distribution"
 
 const MONTHS = [
   { value: "01", label: "Janvier" },  { value: "02", label: "Fevrier" },
@@ -844,8 +846,8 @@ const resolveTabKey = (decl: SavedData): TabKey => {
   if ((decl.ressourcesHumainesRows?.length ?? 0) > 0) return "ressources_humaines"
   if ((decl.formationRows?.length ?? 0) > 0) return "formation"
   if ((decl.acquisitionTerrainRows?.length ?? 0) > 0) return "acquisition_terrain"
-  if ((decl.commercialeDrRows?.length ?? 0) > 0) return "commerciale_dr"
-  if ((decl.reseauDistributionRows?.length ?? 0) > 0) return "commerciale_dr"
+  if ((decl.commercialeDrRows?.length ?? 0) > 0) return "realisations_commerciales"
+  if ((decl.reseauDistributionRows?.length ?? 0) > 0) return "realisations_commerciales"
   return "genie_civil"
 }
 
@@ -942,7 +944,7 @@ function RegionalePageContent() {
         return rows && rows.length > 0 ? rows : Array.from(fallback)
       }
 
-      const commercialeDrLabels = getLabels("commerciale_dr", COMMERCIALE_DR_LABELS)
+      const commercialeDrLabels = getLabels("realisations_commerciales", COMMERCIALE_DR_LABELS)
       setCommercialeDrRows((prev) => commercialeDrLabels.map((label, i) => ({
         label,
         m1Realise: safeString(prev[i]?.m1Realise),
@@ -1218,7 +1220,8 @@ function RegionalePageContent() {
         })
         return
       }
-      const requestedTab = isTabKey(editQuery.tab) ? editQuery.tab : resolveTabKey(declaration)
+      const requestedTab = isValidTabKey(editQuery.tab) ? editQuery.tab : 
+resolveTabKey(declaration)
       const loadedDirection = safeString(declaration.direction).trim()
       const scopedDirection = isAdminRole ? loadedDirection : resolveDirectionForRole(loadedDirection)
       if (!isAdminRole && !canManageTabForDirection(requestedTab, scopedDirection)) {
@@ -1290,7 +1293,7 @@ function RegionalePageContent() {
         safeString(decl.mois).trim() === periodMois &&
         safeString(decl.annee).trim() === periodAnnee &&
         safeString(decl.direction).trim() === periodDirection &&
-        isTabKey(decl.tabKey)
+        isValidTabKey(decl.tabKey)
       ) {
         keys.add(decl.tabKey)
       }
@@ -1416,11 +1419,13 @@ function RegionalePageContent() {
           validationError = true
         }
         break
-      case "commerciale_dr":
+      case "realisations_commerciales":
         if (commercialeDrRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Commerciale DR.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Realisations Commerciales.", variant: "destructive" })
           validationError = true
         }
+        break
+      case "reseau_distribution":
         if (reseauDistributionRows.some((row) => !row.m1Recrute || !row.m1Realise || !row.mRecrute || !row.mRealise || !row.mEcart || !row.situation)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Reseau de Distribution.", variant: "destructive" })
           validationError = true
@@ -1476,8 +1481,10 @@ function RegionalePageContent() {
       case "acquisition_terrain":
         baseDecl.acquisitionTerrainRows = acquisitionTerrainRows
         break
-      case "commerciale_dr":
+      case "realisations_commerciales":
         baseDecl.commercialeDrRows = commercialeDrRows
+        break
+      case "reseau_distribution":
         baseDecl.reseauDistributionRows = reseauDistributionRows
         break
     }
@@ -1507,7 +1514,8 @@ function RegionalePageContent() {
         case "ressources_humaines": tabData = { ressourcesHumainesRows }; break
         case "formation": tabData = { formationRows }; break
         case "acquisition_terrain": tabData = { acquisitionTerrainRows }; break
-        case "commerciale_dr": tabData = { commercialeDrRows, reseauDistributionRows }; break
+        case "realisations_commerciales": tabData = { commercialeDrRows }; break
+        case "reseau_distribution": tabData = { reseauDistributionRows }; break
       }
       const requestPayload = {
         tabKey,
@@ -1670,8 +1678,9 @@ function RegionalePageContent() {
     if (category) {
       setSelectedCategoryKey(category.key)
     }
-    if (isTabKey(pointKey)) {
-      setActiveTab(pointKey)
+    const resolvedKey = pointKey === "reseau_distribution" ? "realisations_commerciales" : pointKey
+    if (isValidTabKey(resolvedKey)) {
+      setActiveTab(resolvedKey)
     }
   }
 
@@ -1821,34 +1830,38 @@ function RegionalePageContent() {
             </CardContent>
           </Card>
         )
-      case "commerciale_dr":
+      case "realisations_commerciales":
         return (
-          <Card key={tabKey}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Realisations Commerciales</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderDisabledNotice(tabKey)}
-              {renderExistingWarning(tabKey)}
-              <TabCommercialeDr
-                rows={commercialeDrRows}
-                setRows={setCommercialeDrRows}
-                onSave={() => handleSave(tabKey)}
-                isSubmitting={isSubmitting}
-              />
-            </CardContent>
-            <CardHeader className="pb-3 pt-6">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Reseau de Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TabReseauDistribution
-                rows={reseauDistributionRows}
-                setRows={setReseauDistributionRows}
-                onSave={() => handleSave(tabKey)}
-                isSubmitting={isSubmitting}
-              />
-            </CardContent>
-          </Card>
+          <div key={tabKey} className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Realisations Commerciales</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {renderExistingWarning("realisations_commerciales")}
+                <TabCommercialeDr
+                  rows={commercialeDrRows}
+                  setRows={setCommercialeDrRows}
+                  onSave={() => handleSave("realisations_commerciales")}
+                  isSubmitting={isSubmitting}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Reseau de Distribution</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {renderExistingWarning("reseau_distribution")}
+                <TabReseauDistribution
+                  rows={reseauDistributionRows}
+                  setRows={setReseauDistributionRows}
+                  onSave={() => handleSave("reseau_distribution")}
+                  isSubmitting={isSubmitting}
+                />
+              </CardContent>
+            </Card>
+          </div>
         )
       default:
         return null
@@ -1927,6 +1940,14 @@ function RegionalePageContent() {
                   </div>
                 )
               })}
+
+              <DynamicKpiTabs
+                domain="regionale"
+                excludeKeys={KPI_TAB_KEYS}
+                mois={mois}
+                annee={annee}
+                direction={effectiveDirection}
+              />
             </div>
             <div className="mt-4 space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Commentaire</label>

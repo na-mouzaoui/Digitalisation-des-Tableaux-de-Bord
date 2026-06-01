@@ -17,6 +17,7 @@ import { Plus, Trash2, Save, ArrowRight } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
+import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
@@ -449,29 +450,28 @@ function TabTresorerieMobilis({ rows, setRows, onSave, isSubmitting }: TabTresor
 // 7. CONFIGURATION DES ONGLETS
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "compte_resultat", label: "Compte de resultat", color: PRIMARY_COLOR, title: "COMPTE DE RESULTAT" },
-  { key: "investissement", label: "Investissement (MDA)", color: PRIMARY_COLOR, title: "INVESTISSEMENT (MDA)" },
+  { key: "compte_resultat", label: "Compte de resultat", color: PRIMARY_COLOR, title: "COMPTE DE RESULTAT & INVESTISSEMENT (MDA)" },
   { key: "avancement_engagement", label: "Finance DFC", color: PRIMARY_COLOR, title: "ETAT D'AVANCEMENT DES ENGAGEMENTS (MDA)" },
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
-type tableauTabKey = "compte_resultat" | "investissement" | "avancement_engagement"
+type tableauTabKey = "compte_resultat" | "investissement" | "avancement_engagement" | "tresorerie"
 
-type tableauCategoryKey = "cr" | "all"
+type tableauCategoryKey = "all"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all", label: "Tous", tabKeys: ["compte_resultat", "investissement", "avancement_engagement"] },
-  { key: "cr", label: "CR", tabKeys: ["compte_resultat"] },
+  { key: "all", label: "Tous", tabKeys: ["compte_resultat", "investissement", "avancement_engagement", "tresorerie"] },
 ]
 
 const KPI_TAB_KEYS = ["compte_resultat", "investissement", "avancement_engagement"]
 
-const findtableauCategoryKeyForTab = (tabKey: string): tableauCategoryKey =>
-  tableau_CATEGORY_OPTIONS.find((c) => c.tabKeys.includes(tabKey as tableauTabKey))?.key ?? "cr"
+const ALL_VALID_KEYS = new Set(["compte_resultat", "investissement", "avancement_engagement", "tresorerie"])
+
+const findtableauCategoryKeyForTab = (_tabKey: string): tableauCategoryKey => "all"
 
 const istableauTabKey = (value: string): value is tableauTabKey =>
-  TABS.some((tab) => tab.key === value)
+  ALL_VALID_KEYS.has(value)
 
 const MONTHS = [
   { value: "01", label: "Janvier" }, { value: "02", label: "Fevrier" },
@@ -579,6 +579,7 @@ const normalizeTresorerieMobilisRows = (rows?: TresorerieMobilisRow[]): Tresorer
 
 const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
   if ((decl.avancementEngagementRows?.length ?? 0) > 0) return "avancement_engagement"
+  if ((decl.tresorerieMobilisRows?.length ?? 0) > 0) return "tresorerie"
   if ((decl.investissementRows?.length ?? 0) > 0) return "investissement"
   if ((decl.compteResultatRows?.length ?? 0) > 0) return "compte_resultat"
   return "compte_resultat"
@@ -631,7 +632,7 @@ function FinancesPageContent() {
   }, [])
 
   const [activeTab, setActiveTab] = useState("compte_resultat")
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("cr")
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("all")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)
@@ -781,7 +782,7 @@ function FinancesPageContent() {
 
   useEffect(() => {
     if (declarationCategoryOptions.some((category) => category.key === selectedCategoryKey)) return
-    setSelectedCategoryKey(declarationCategoryOptions[0]?.key ?? "cr")
+    setSelectedCategoryKey(declarationCategoryOptions[0]?.key ?? "all")
   }, [declarationCategoryOptions, selectedCategoryKey])
 
   useEffect(() => {
@@ -874,7 +875,7 @@ function FinancesPageContent() {
       }
       setEditingDeclarationId(safeString(declaration.id) || editQuery.editId)
       setEditingCreatedAt(safeString(declaration.createdAt) || new Date().toISOString())
-      setActiveTab(requestedTab)
+      setActiveTab(requestedTab === "investissement" ? "compte_resultat" : requestedTab === "tresorerie" ? "avancement_engagement" : requestedTab)
       setDirection(scopedDirection)
       const loadedMois = normalizeMonthValue(safeString(declaration.mois))
       const loadedAnnee = normalizeYearValue(safeString(declaration.annee))
@@ -926,7 +927,7 @@ function FinancesPageContent() {
         safeString(decl.mois).trim() === periodMois &&
         safeString(decl.annee).trim() === periodAnnee &&
         safeString(decl.direction).trim() === periodDirection &&
-        istableauTabKey(decl.tabKey)
+        ALL_VALID_KEYS.has(decl.tabKey)
       ) {
         keys.add(decl.tabKey)
       }
@@ -944,10 +945,10 @@ function FinancesPageContent() {
   }
 
   const handleStepClick = (pointKey: string) => {
-    if (istableauTabKey(pointKey)) {
-      const category = findtableauCategoryKeyForTab(pointKey)
-      setSelectedCategoryKey(category)
-      setActiveTab(pointKey)
+    const resolvedKey = pointKey === "investissement" ? "compte_resultat" : pointKey === "tresorerie" ? "avancement_engagement" : pointKey
+    if (istableauTabKey(resolvedKey)) {
+      setSelectedCategoryKey("all")
+      setActiveTab(resolvedKey)
     }
   }
 
@@ -1019,8 +1020,12 @@ function FinancesPageContent() {
       toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Investissement.", variant: "destructive" })
       validationError = true
     }
-    if (tabKey === "avancement_engagement" && (avancementEngagementRows.some((row) => !row.m1 || !row.m || !row.evol) || tresorerieMobilisRows.some((row) => !row.m1 || !row.m || !row.evol))) {
-      toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Finance DFC.", variant: "destructive" })
+    if (tabKey === "avancement_engagement" && avancementEngagementRows.some((row) => !row.m1 || !row.m || !row.evol)) {
+      toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Etat d'avancement des engagements.", variant: "destructive" })
+      validationError = true
+    }
+    if (tabKey === "tresorerie" && tresorerieMobilisRows.some((row) => !row.m1 || !row.m || !row.evol)) {
+      toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Trésorerie Mobilis.", variant: "destructive" })
       validationError = true
     }
     if (validationError) return
@@ -1045,10 +1050,25 @@ function FinancesPageContent() {
       direction: saveDirection,
       mois,
       annee,
-      compteResultatRows,
-      investissementRows,
-      avancementEngagementRows,
-      tresorerieMobilisRows,
+      compteResultatRows: [],
+      investissementRows: [],
+      avancementEngagementRows: [],
+      tresorerieMobilisRows: [],
+    }
+
+    switch (tabKey) {
+      case "compte_resultat":
+        baseDecl.compteResultatRows = compteResultatRows
+        break
+      case "investissement":
+        baseDecl.investissementRows = investissementRows
+        break
+      case "avancement_engagement":
+        baseDecl.avancementEngagementRows = avancementEngagementRows
+        break
+      case "tresorerie":
+        baseDecl.tresorerieMobilisRows = tresorerieMobilisRows
+        break
     }
 
     try {
@@ -1067,9 +1087,11 @@ function FinancesPageContent() {
       const apiBase = API_BASE
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       const tabData = tabKey === "avancement_engagement"
-        ? { avancementEngagementRows, tresorerieMobilisRows }
+        ? { avancementEngagementRows }
         : tabKey === "investissement"
         ? { investissementRows }
+        : tabKey === "tresorerie"
+        ? { tresorerieMobilisRows }
         : { compteResultatRows }
 
       const requestPayload = {
@@ -1301,41 +1323,21 @@ function FinancesPageContent() {
 
             <div className="space-y-4">
               {activeTab === "compte_resultat" && (
-                <>
+                <div className="space-y-4">
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Compte de resultat</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      {renderDisabledNotice("compte_resultat")}
+                    <CardContent className="space-y-4">
                       {renderExistingWarning("compte_resultat")}
                       <TabCompteResultat rows={compteResultatRows} setRows={setCompteResultatRows} onSave={() => handleSave("compte_resultat")} isSubmitting={isSubmitting} />
                     </CardContent>
                   </Card>
-                  <div className="mt-4 space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Commentaire</label>
-                    <textarea
-                      className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      placeholder="Ajouter un commentaire..."
-                      value={tabComment}
-                      onChange={(e) => setTabComment(e.target.value)}
-                    />
-                    <div className="flex justify-end">
-                      <Button size="sm" onClick={handleSaveComment} disabled={isCommentSubmitting} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Enregistrer le commentaire">
-                        <ArrowRight size={14} />
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
-              {activeTab === "investissement" && (
-                <>
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Investissement (MDA)</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      {renderDisabledNotice("investissement")}
+                    <CardContent className="space-y-4">
                       {renderExistingWarning("investissement")}
                       <TabInvestissement rows={investissementRows} setRows={setInvestissementRows} onSave={() => handleSave("investissement")} isSubmitting={isSubmitting} />
                     </CardContent>
@@ -1354,7 +1356,7 @@ function FinancesPageContent() {
                       </Button>
                     </div>
                   </div>
-                </>
+                </div>
               )}
               {activeTab === "avancement_engagement" && (
                 <div className="space-y-4">
@@ -1362,8 +1364,7 @@ function FinancesPageContent() {
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Etat d'avancement des engagement (MDA)</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      {renderDisabledNotice("avancement_engagement")}
+                    <CardContent className="space-y-4">
                       {renderExistingWarning("avancement_engagement")}
                       <TabAvancementEngagement rows={avancementEngagementRows} setRows={setAvancementEngagementRows} onSave={() => handleSave("avancement_engagement")} isSubmitting={isSubmitting} />
                     </CardContent>
@@ -1372,10 +1373,9 @@ function FinancesPageContent() {
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Trésorerie Mobilis (MDA)</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      {renderDisabledNotice("avancement_engagement")}
-                      {renderExistingWarning("avancement_engagement")}
-                      <TabTresorerieMobilis rows={tresorerieMobilisRows} setRows={setTresorerieMobilisRows} onSave={() => handleSave("avancement_engagement")} isSubmitting={isSubmitting} />
+                    <CardContent className="space-y-4">
+                      {renderExistingWarning("tresorerie")}
+                      <TabTresorerieMobilis rows={tresorerieMobilisRows} setRows={setTresorerieMobilisRows} onSave={() => handleSave("tresorerie")} isSubmitting={isSubmitting} />
                     </CardContent>
                   </Card>
                   <div className="mt-4 space-y-1">
@@ -1394,6 +1394,14 @@ function FinancesPageContent() {
                   </div>
                 </div>
               )}
+
+              <DynamicKpiTabs
+                domain="finances"
+                excludeKeys={KPI_TAB_KEYS}
+                mois={mois}
+                annee={annee}
+                direction={effectiveDirection}
+              />
             </div>
           </div>
         </>

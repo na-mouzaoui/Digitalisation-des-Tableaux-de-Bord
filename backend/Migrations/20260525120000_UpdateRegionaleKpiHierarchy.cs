@@ -57,7 +57,7 @@ INSERT INTO @Keep ([Nom]) VALUES
 (N'ressources_humaines'),
 (N'formation'),
 (N'acquisition_terrain'),
-(N'commerciale_dr'),
+(N'realisations_commerciales'),
 (N'reseau_distribution');
 
 DELETE sk
@@ -74,7 +74,7 @@ WHERE sd.[DomaineId] = @RegionaleId
     AND k.[Nom] NOT IN (SELECT [Nom] FROM @Keep);
 
 UPDATE [Kpis] SET [SousDomaineId] = @SdCommerciale
-WHERE [Nom] IN (N'commerciale_dr', N'reseau_distribution')
+WHERE [Nom] IN (N'realisations_commerciales', N'reseau_distribution')
     AND [SousDomaineId] IN (SELECT [Id] FROM [SousDomaines] WHERE [DomaineId] = @RegionaleId);
 
 UPDATE [Kpis] SET [SousDomaineId] = @SdGenieCivil
@@ -111,9 +111,9 @@ WHERE [Nom] = N'acquisition_terrain'
 
 DECLARE @KpiId INT;
 
-IF NOT EXISTS (SELECT 1 FROM [Kpis] WHERE [SousDomaineId] = @SdCommerciale AND [Nom] = N'commerciale_dr')
-        INSERT INTO [Kpis]([SousDomaineId], [Nom]) VALUES (@SdCommerciale, N'commerciale_dr');
-SELECT @KpiId = [Id] FROM [Kpis] WHERE [SousDomaineId] = @SdCommerciale AND [Nom] = N'commerciale_dr';
+IF NOT EXISTS (SELECT 1 FROM [Kpis] WHERE [SousDomaineId] = @SdCommerciale AND [Nom] = N'realisations_commerciales')
+        INSERT INTO [Kpis]([SousDomaineId], [Nom]) VALUES (@SdCommerciale, N'realisations_commerciales');
+SELECT @KpiId = [Id] FROM [Kpis] WHERE [SousDomaineId] = @SdCommerciale AND [Nom] = N'realisations_commerciales';
 DELETE FROM [SousKpis] WHERE [KpiId] = @KpiId;
 INSERT INTO [SousKpis]([KpiId], [Designation], [Order]) VALUES
 (@KpiId, N'Chiffre d''Affaires', 0),
@@ -256,7 +256,7 @@ BEGIN
                     N'ressources_humaines',
                     N'formation',
                     N'acquisition_terrain',
-                    N'commerciale_dr',
+                    N'realisations_commerciales',
                     N'reseau_distribution'
             );
 
@@ -273,7 +273,7 @@ BEGIN
                     N'ressources_humaines',
                     N'formation',
                     N'acquisition_terrain',
-                    N'commerciale_dr',
+                    N'realisations_commerciales',
                     N'reseau_distribution'
             );
 

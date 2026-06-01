@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation"
 import { Plus, Trash2, Save, ArrowRight } from "lucide-react"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
+import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
 const PRIMARY_COLOR = "#2db34b"
@@ -630,6 +631,7 @@ const KPI_TAB_KEYS = [
   "mouvement_effectifs",
   "mouvement_effectifs_domaine",
   "creances_contentieuses",
+  "creances_contentieuses_anterieur",
   "effectifs_formes_gsp",
   "formations_domaines",
   "budget_formation",
@@ -640,6 +642,7 @@ const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 type tableauTabKey =
   | "creances_contentieuses" | "rh" | "formation"
   | "frais_personnel" | "effectif_gsp" | "absenteisme" | "mouvement_effectifs" | "mouvement_effectifs_domaine"
+  | "creances_contentieuses_anterieur"
   | "effectifs_formes_gsp" | "formations_domaines" | "budget_formation"
 
 const SUPPORT_RH_TAB_KEYS = new Set<tableauTabKey>([
@@ -665,12 +668,12 @@ const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; 
 const findtableauCategoryKeyForTab = (_tabKey: string): tableauCategoryKey => "all"
 
 const istableauTabKey = (value: string): value is tableauTabKey =>
-  TABS.some((tab) => tab.key === value) || SUPPORT_RH_TAB_KEYS.has(value as tableauTabKey) || SUPPORT_FORMATION_TAB_KEYS.has(value as tableauTabKey)
+  TABS.some((tab) => tab.key === value) || KPI_TAB_KEYS.includes(value as tableauTabKey) || SUPPORT_RH_TAB_KEYS.has(value as tableauTabKey) || SUPPORT_FORMATION_TAB_KEYS.has(value as tableauTabKey)
 
 const resolveSupportParentTabKey = (tabKey: string): "creances_contentieuses" | "rh" | "formation" => {
   if (SUPPORT_RH_TAB_KEYS.has(tabKey as tableauTabKey)) return "rh"
   if (SUPPORT_FORMATION_TAB_KEYS.has(tabKey as tableauTabKey)) return "formation"
-  if (tabKey === "creances_contentieuses") return "creances_contentieuses"
+  if (tabKey === "creances_contentieuses" || tabKey === "creances_contentieuses_anterieur") return "creances_contentieuses"
   return tabKey === "formation" ? "formation" : "rh"
 }
 
@@ -785,7 +788,7 @@ const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
   if ((decl.absenteismeRows?.length ?? 0) > 0) return "absenteisme"
   if ((decl.mouvementEffectifsRows?.length ?? 0) > 0) return "mouvement_effectifs"
   if ((decl.mouvementEffectifsDomaineRows?.length ?? 0) > 0) return "mouvement_effectifs_domaine"
-  if ((decl.recouvrementRows?.length ?? 0) > 0) return "creances_contentieuses"
+  if ((decl.recouvrementRows?.length ?? 0) > 0 || (decl.recouvrementAnterieurRows?.length ?? 0) > 0) return "creances_contentieuses"
   if ((decl.formationRows?.budgetFormationRows?.length ?? 0) > 0) return "budget_formation"
   if ((decl.formationRows?.formationsDomainesRows?.length ?? 0) > 0) return "formations_domaines"
   if ((decl.formationRows?.effectifsFormesGspRows?.length ?? 0) > 0) return "effectifs_formes_gsp"
@@ -980,6 +983,15 @@ function SupportPageContent() {
 
       const creanceLabels = getLabels("creances_contentieuses", RECOUVREMENT_LABELS)
       setRecouvrementRows((prev) => creanceLabels.map((designation, i) => ({
+        designation,
+        m1Montant: safeString(prev[i]?.m1Montant),
+        mObjectif: safeString(prev[i]?.mObjectif),
+        mMontant: safeString(prev[i]?.mMontant),
+        mTaux: safeString(prev[i]?.mTaux),
+      })))
+
+      const creanceAnterieurLabels = getLabels("creances_contentieuses_anterieur", RECOUVREMENT_ANTERIEUR_LABELS)
+      setRecouvrementAnterieurRows((prev) => creanceAnterieurLabels.map((designation, i) => ({
         designation,
         m1Montant: safeString(prev[i]?.m1Montant),
         mObjectif: safeString(prev[i]?.mObjectif),
@@ -1246,7 +1258,7 @@ function SupportPageContent() {
     const loadComment = async () => {
       try {
         const token = localStorage.getItem("jwt")
-        const res = await fetch(`${API_BASE}/api/step-comment?tabKey=${encodeURIComponent(activeTab)}&mois=${encodeURIComponent(mois)}&annee=${encodeURIComponent(annee)}&direction=${encodeURIComponent(effectiveDirection)}`, {
+        const res = await fetch(`${API_BASE}/api/step-comment?tabKey=${encodeURIComponent(activeTab)}&mois=${encodeURIComponent(mois)}&annee=${encodeURIComponent(annee)}`, {
           credentials: "include",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
@@ -1389,6 +1401,12 @@ function SupportPageContent() {
           validationError = true
         }
         break
+      case "creances_contentieuses_anterieur":
+        if (recouvrementAnterieurRows.some((row) => !row.m1Montant || !row.mObjectif || !row.mMontant || !row.mTaux)) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Créances Contentieuses Antérieur.", variant: "destructive" })
+          validationError = true
+        }
+        break
     }
     if (validationError) return
 
@@ -1440,6 +1458,8 @@ function SupportPageContent() {
         break
       case "creances_contentieuses":
         baseDecl.recouvrementRows = recouvrementRows
+        break
+      case "creances_contentieuses_anterieur":
         baseDecl.recouvrementAnterieurRows = recouvrementAnterieurRows
         break
       case "effectifs_formes_gsp":
@@ -1486,7 +1506,10 @@ function SupportPageContent() {
           tabData = { mouvementEffectifsDomaineRows: mouvementEffectifsDomaineRows }
           break
         case "creances_contentieuses":
-          tabData = { recouvrementRows, recouvrementAnterieurRows }
+          tabData = { recouvrementRows }
+          break
+        case "creances_contentieuses_anterieur":
+          tabData = { recouvrementAnterieurRows }
           break
         case "effectifs_formes_gsp":
         case "formations_domaines":
@@ -1600,7 +1623,6 @@ function SupportPageContent() {
           tabKey: activeTab,
           mois,
           annee,
-          direction: effectiveDirection,
           comment: tabComment,
         }),
       })
@@ -1745,19 +1767,28 @@ function SupportPageContent() {
         )
       case "creances_contentieuses":
         return (
-          <Card key={tabKey}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Recouvrement des Créances Contentieuses</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {renderDisabledNotice(tabKey)}
-              {renderExistingWarning(tabKey)}
-              <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} />
-              <TabRecouvrement rows={recouvrementAnterieurRows} setRows={setRecouvrementAnterieurRows} />
-              <SaveButton onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
-
-            </CardContent>
-          </Card>
+          <div key={tabKey} className="space-y-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Recouvrement des Créances Contentieuses</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {renderExistingWarning("creances_contentieuses")}
+                <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} />
+                <SaveButton onSave={() => handleSave("creances_contentieuses")} isSubmitting={isSubmitting} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Créances Contentieuses Antérieur</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {renderExistingWarning("creances_contentieuses_anterieur")}
+                <TabRecouvrement rows={recouvrementAnterieurRows} setRows={setRecouvrementAnterieurRows} />
+                <SaveButton onSave={() => handleSave("creances_contentieuses_anterieur")} isSubmitting={isSubmitting} />
+              </CardContent>
+            </Card>
+          </div>
         )
       case "effectifs_formes_gsp":
         return (
@@ -1865,6 +1896,14 @@ function SupportPageContent() {
                 {renderTabCard(tabKey)}
               </div>
             ))}
+
+              <DynamicKpiTabs
+                domain="support"
+                excludeKeys={KPI_TAB_KEYS}
+                mois={mois}
+                annee={annee}
+                direction={effectiveDirection}
+              />
             </div>
             <div className="mt-4 space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Commentaire</label>
