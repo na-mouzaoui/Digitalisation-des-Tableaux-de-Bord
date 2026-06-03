@@ -367,10 +367,12 @@ function IndicatorBrick({
   valueClassName?: string
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        {icon}
+    <Card className="gap-0">
+      <CardHeader className="pb-1">
+        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+          <span className="shrink-0">{icon}</span>
+          {label}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className={`text-2xl font-bold ${valueClassName ?? ""}`.trim()}>{value}</div>

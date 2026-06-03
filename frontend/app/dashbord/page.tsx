@@ -3808,54 +3808,50 @@ export default function tableauDashboardPage() {
         {/* Stats tiles */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Tile 1: Temps restant */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-amber-50 p-2.5">
-                  <Clock3 className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Clôture période</p>
-                  <p className="text-sm font-semibold">
-                    {tableauStats.deadline ? (
-                      tableauStats.isLocked
-                        ? "Période clôturée"
-                        : tableauStats.timeRemaining > 86400000
-                          ? `${Math.floor(tableauStats.timeRemaining / 86400000)}j ${Math.floor((tableauStats.timeRemaining % 86400000) / 3600000)}h`
-                          : `${Math.floor(tableauStats.timeRemaining / 3600000)}h ${Math.floor((tableauStats.timeRemaining % 3600000) / 60000)}m`
-                    ) : "N/A"}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {formattableauPeriod(tableauStats.currentPeriod.mois, tableauStats.currentPeriod.annee)}
-                  </p>
-                </div>
-              </div>
+          <Card className="gap-0">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Clock3 className="h-4 w-4 shrink-0 text-amber-600" />
+                Clôture période
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {tableauStats.deadline ? (
+                  tableauStats.isLocked
+                    ? "Période clôturée"
+                    : `${Math.floor(tableauStats.timeRemaining / 86400000)}j`
+                ) : "N/A"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {formattableauPeriod(tableauStats.currentPeriod.mois, tableauStats.currentPeriod.annee)}
+              </p>
             </CardContent>
           </Card>
 
           {/* Tile 2: Remplis / Total */}
-          <Card>
-            <CardContent className="pt-6">
+          <Card className="gap-0">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4 shrink-0 text-blue-600" />
+                Remplis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-3 cursor-help">
-                      <div className="rounded-lg bg-blue-50 p-2.5">
-                        <FileText className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Remplis</p>
-                        <p className="text-sm font-semibold">
-                          {tableauStats.filledCount} / {tableauStats.totalCount}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">tableaux (KPIs)</p>
-                      </div>
+                    <div className="cursor-help">
+                      <p className="text-2xl font-bold">
+                        {tableauStats.filledCount} / {tableauStats.totalCount}
+                      </p>
+                      <p className="text-xs text-muted-foreground">tableaux (KPIs)</p>
                     </div>
                   </TooltipTrigger>
                   {tableauStats.remainingTabKeys.length > 0 && (
                     <TooltipContent side="bottom" align="start" className="max-w-xs">
                       <p className="text-xs font-medium mb-1">Tableaux restants ({tableauStats.remainingTabKeys.length}) :</p>
-                      <ul className="text-[10px] space-y-0.5">
+                      <ul className="text-xs space-y-0.5">
                         {tableauStats.remainingTabKeys.map((k) => (
                           <li key={k}>• {TABLEAU_TITLE_MAP[k] ?? k}</li>
                         ))}
@@ -3868,28 +3864,28 @@ export default function tableauDashboardPage() {
           </Card>
 
           {/* Tile 3: Approuvés / Total */}
-          <Card>
-            <CardContent className="pt-6">
+          <Card className="gap-0">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CheckSquare className="h-4 w-4 shrink-0 text-emerald-600" />
+                Approuvés
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-3 cursor-help">
-                      <div className="rounded-lg bg-emerald-50 p-2.5">
-                        <CheckSquare className="h-5 w-5 text-emerald-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Approuvés</p>
-                        <p className="text-sm font-semibold">
-                          {tableauStats.approvedCount} / {tableauStats.totalCount}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">tableaux (KPIs)</p>
-                      </div>
+                    <div className="cursor-help">
+                      <p className="text-2xl font-bold">
+                        {tableauStats.approvedCount} / {tableauStats.totalCount}
+                      </p>
+                      <p className="text-xs text-muted-foreground">tableaux (KPIs)</p>
                     </div>
                   </TooltipTrigger>
                   {tableauStats.remainingApprovedKeys.length > 0 && (
                     <TooltipContent side="bottom" align="start" className="max-w-xs">
                       <p className="text-xs font-medium mb-1">Tableaux non approuvés ({tableauStats.remainingApprovedKeys.length}) :</p>
-                      <ul className="text-[10px] space-y-0.5">
+                      <ul className="text-xs space-y-0.5">
                         {tableauStats.remainingApprovedKeys.map((k) => (
                           <li key={k}>• {TABLEAU_TITLE_MAP[k] ?? k}</li>
                         ))}
@@ -4181,228 +4177,6 @@ export default function tableauDashboardPage() {
                 </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Recent tableaux */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <CardTitle className="text-base">
-                tableaux récents
-                {tableaux.length > 0 && (
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({filteredtableaux.length}{hasActiveFilters ? ` / ${tableaux.length}` : ""})
-                  </span>
-                )}
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                {hasActiveFilters && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 text-xs text-muted-foreground hover:text-emerald-600"
-                    onClick={() => { setFilterType(""); setFilterMois(""); setFilterAnnee(""); setFilterDirection(""); setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo("") }}
-                  >
-                    <X size={14} className="mr-1" /> Effacer filtres
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant={showFilters ? "secondary" : "outline"}
-                  className="h-8 text-xs"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter size={14} className="mr-1" /> Filtrer
-                </Button>
-              </div>
-            </div>
-            {showFilters && (
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7 text-sm">
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Type</label>
-                  <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
-                    <option value="">Tous</option>
-                    <option value="encaissement">Encaissement</option>
-                    <option value="tva_immo">TVA / IMMO</option>
-                    <option value="tva_biens">TVA / Biens &amp; Serv</option>
-                    <option value="droits_timbre">Droits Timbre</option>
-                    <option value="ca_tap">CA 7% &amp; CA Glob 1%</option>
-                    <option value="etat_tap">ETAT TAP</option>
-                    <option value="ca_siege">CA Siége</option>
-                    <option value="irg">Situation IRG</option>
-                    <option value="taxe2">Taxe 2%</option>
-                    <option value="taxe_masters">Taxe des Master 1,5%</option>
-                    <option value="taxe_vehicule">Taxe Vehicule</option>
-                    <option value="taxe_formation">Taxe Formation</option>
-                    <option value="acompte">Acompte Provisionnel</option>
-                    <option value="ibs">IBS Etrangers</option>
-                    <option value="taxe_domicil">Taxe Domiciliation</option>
-                    <option value="tva_autoliq">TVA Auto Liquidation</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Mois</label>
-                  <select value={filterMois} onChange={e => setFilterMois(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
-                    <option value="">Tous</option>
-                    {Object.entries(MONTHS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Année</label>
-                  <input type="number" placeholder="ex: 2025" value={filterAnnee} onChange={e => setFilterAnnee(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Domaine</label>
-                  <select value={filterDirection} onChange={e => setFilterDirection(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
-                    <option value="">Tous</option>
-                    {domainOptions.map((domain) => (
-                      <option key={domain} value={domain}>{domain}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Statut</label>
-                  <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs">
-                    <option value="">Tous</option>
-                    <option value="approved">Approuvée</option>
-                    <option value="pending">En attente</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Du</label>
-                  <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground block mb-1">Au</label>
-                  <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="w-full border rounded px-2 py-1.5 text-xs" />
-                </div>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent>
-            {recenttableaux.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Aucune tableau tableau enregistrée pour le moment.
-              </p>
-            ) : (
-              <div className="max-h-[540px] overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("type")}>
-                        Nom Tableau <SortIcon col="type" />
-                      </TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("direction")}>
-                        Domaine <SortIcon col="direction" />
-                      </TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("periode")}>
-                        Période <SortIcon col="periode" />
-                      </TableHead>
-                      <TableHead className="cursor-pointer select-none" onClick={() => handleSort("date")}>
-                        Date d&apos;enregistrement <SortIcon col="date" />
-                      </TableHead>
-                      <TableHead className="w-20 text-center">Statut</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recenttableaux.map((decl) => {
-                      const declType = gettableauType(decl)
-                      const isLocked = istableauLocked(decl)
-                      const tableauDirection = (decl.direction ?? "").trim().toLowerCase()
-                      const isSiegetableau = tableauDirection === "siége"
-                        || tableauDirection === "siege"
-                        || tableauDirection.includes("siége")
-                        || tableauDirection.includes("siege")
-                      const isOwntableau = String(decl.userId ?? "") === String(user.id)
-                      const canApproveAsRegional = canApproveRegionaltableaux
-                        && !decl.isApproved
-                        && (isOwntableau || (!!normalizedRegion && tableauDirection === normalizedRegion))
-                      const canApproveAsFinance = canApproveFinancetableaux
-                        && !decl.isApproved
-                        && (isOwntableau || isSiegetableau)
-                      const canApproveAsAdmin = isAdminRole && !decl.isApproved
-                      const canApproveThistableau = canApproveAsAdmin || canApproveAsRegional || canApproveAsFinance
-                      return (
-                        <TableRow
-                          key={decl.id}
-                          className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => handleView(decl, declType.key)}
-                          title="Cliquer pour consulter"
-                        >
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {TABLEAU_TITLE_MAP[declType.key] ?? getTableauDisplayName(declType.key)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">{gettableauDomain(decl)}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">
-                              {MONTHS[decl.mois] || decl.mois} {decl.annee}
-                            </Badge>
-                            {isLocked && (
-                              <Badge variant="secondary" className="ml-2 text-[10px] text-emerald-700">
-                                Cléturée
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {new Date(decl.createdAt).toLocaleString("fr-DZ", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })}
-                          </TableCell>
-                          <TableCell className="w-20 p-0 align-middle">
-                            <div className="flex items-center justify-center">
-                              {decl.isApproved ? (
-                                <span className="inline-flex" title="Approuvée" aria-label="Approuvée">
-                                  <CheckCircle className="h-4 w-4 text-emerald-600" />
-                                </span>
-                              ) : (
-                                <span className="inline-flex" title="En attente" aria-label="En attente">
-                                  <Clock3 className="h-4 w-4 text-amber-600" />
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-center gap-2">
-                              {(isAdminRole || canApproveRegionaltableaux || canApproveFinancetableaux) && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 w-8 p-0 border-emerald-300 text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                  disabled={!canApproveThistableau}
-                                  onClick={(event) => {
-                                    event.stopPropagation()
-                                    handleApprove(decl)
-                                  }}
-                                  title={decl.isApproved ? "tableau déjé approuvée" : !canApproveThistableau ? "Action non autorisée pour cette tableau" : "Approuver"}
-                                >
-                                  <CheckCircle size={16} />
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                disabled={isLocked}
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  handleDelete(decl)
-                                }}
-                                title={isLocked ? "Période cléturée (suppression impossible)" : "Supprimer"}
-                              >
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-
           </CardContent>
         </Card>
 

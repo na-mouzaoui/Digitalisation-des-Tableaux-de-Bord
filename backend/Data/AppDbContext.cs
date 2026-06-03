@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<Kpi> Kpis { get; set; }
     public DbSet<SousKpi> SousKpis { get; set; }
     public DbSet<StepComment> StepComments { get; set; }
+    public DbSet<Valeur> Valeurs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -162,6 +163,65 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.KpiId, e.Order })
                 .IsUnique();
+        });
+
+        // Valeur configuration
+        modelBuilder.Entity<Valeur>(entity =>
+        {
+            entity.ToTable("Valeurs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id_SousKpi).IsRequired();
+            entity.Property(e => e.Id_Periode).IsRequired();
+            entity.HasOne(e => e.SousKpi)
+                  .WithMany()
+                  .HasForeignKey(e => e.Id_SousKpi)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Property(e => e.M).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Evol).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Part_Pct).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Ecart).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Objectif_2026).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Situation_Actuelle).HasMaxLength(255);
+            entity.Property(e => e.M_Objectif).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Realise).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Taux).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Objectif).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Realise).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Taux).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Wilaya).HasMaxLength(255);
+            entity.Property(e => e.Taux_M).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Taux_M_1).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Montant_Recouvre).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Montant_Mis_Recouvrement).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Montant_Recouvre).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Taux_Recouvrement).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Objectif_Recouvrement).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Recrute).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Recrute).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.MTTR_Objectif).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.MTTR_Realise).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.MTTR_Ecart).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Debit_Objectif).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Debit_Realise).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Debit_Ecart).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Cadres_Sup).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Cadres).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Maitrise).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_Execution).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Cadres_Sup).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Cadres).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Maitrise).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_Execution).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_CDI).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_CDD).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_1_CTA).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_CDI).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_CDD).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.M_CTA).HasColumnType("decimal(18,2)");
+
+            entity.HasIndex(e => new { e.Id_SousKpi, e.Id_Periode }).IsUnique();
         });
 
         // Seed data

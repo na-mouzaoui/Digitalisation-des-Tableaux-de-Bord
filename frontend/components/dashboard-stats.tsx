@@ -215,10 +215,12 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Montant Total</CardTitle>
-            <Banknote className="h-4 w-4" style={{ color: '#e82c2a' }} />
+        <Card className="gap-0">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Banknote className="h-4 w-4 shrink-0" style={{ color: '#e82c2a' }} />
+              Montant Total
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatNumber(filteredStats.totalAmount || 0)} DZD</div>
@@ -226,10 +228,12 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Chéques ??mis</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+        <Card className="gap-0">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+              Chéques Émis
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{(filteredStats.emittedChecks || 0).toLocaleString('fr-FR')}</div>
@@ -237,10 +241,12 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Chéques Annulés</CardTitle>
-            <XCircle className="h-4 w-4 text-emerald-500" />
+        <Card className="gap-0">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <XCircle className="h-4 w-4 shrink-0 text-emerald-500" />
+              Chéques Annulés
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600">{(filteredStats.canceledChecks || 0).toLocaleString('fr-FR')}</div>
@@ -248,10 +254,12 @@ export function DashboardStats({ stats, checks, users, currentUser, regions = []
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Chéques Rejetés</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
+        <Card className="gap-0">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-orange-500" />
+              Chéques Rejetés
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{(filteredStats.rejectedChecks || 0).toLocaleString('fr-FR')}</div>

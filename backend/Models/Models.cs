@@ -122,6 +122,65 @@ public class SousKpi
     public Kpi Kpi { get; set; } = null!;
 }
 
+public class Valeur
+{
+    public int Id { get; set; }
+    public int Id_SousKpi { get; set; }
+    public int Id_Periode { get; set; }
+
+    public decimal? M { get; set; }
+    public decimal? M_1 { get; set; }
+    public decimal? Evol { get; set; }
+    public decimal? Part_Pct { get; set; }
+    public decimal? Ecart { get; set; }
+    public decimal? Objectif_2026 { get; set; }
+    public string? Situation_Actuelle { get; set; }
+
+    public decimal? M_Objectif { get; set; }
+    public decimal? M_Realise { get; set; }
+    public decimal? M_Taux { get; set; }
+    public decimal? M_1_Objectif { get; set; }
+    public decimal? M_1_Realise { get; set; }
+    public decimal? M_1_Taux { get; set; }
+    public string? M_Wilaya { get; set; }
+    public decimal? Taux_M { get; set; }
+    public decimal? Taux_M_1 { get; set; }
+
+    public decimal? M_1_Montant_Recouvre { get; set; }
+    public decimal? M_Montant_Mis_Recouvrement { get; set; }
+    public decimal? M_Montant_Recouvre { get; set; }
+    public decimal? M_Taux_Recouvrement { get; set; }
+    public decimal? M_Objectif_Recouvrement { get; set; }
+
+    public decimal? M_1_Recrute { get; set; }
+    public decimal? M_Recrute { get; set; }
+
+    public decimal? MTTR_Objectif { get; set; }
+    public decimal? MTTR_Realise { get; set; }
+    public decimal? MTTR_Ecart { get; set; }
+    public decimal? Debit_Objectif { get; set; }
+    public decimal? Debit_Realise { get; set; }
+    public decimal? Debit_Ecart { get; set; }
+
+    public decimal? M_1_Cadres_Sup { get; set; }
+    public decimal? M_1_Cadres { get; set; }
+    public decimal? M_1_Maitrise { get; set; }
+    public decimal? M_1_Execution { get; set; }
+    public decimal? M_Cadres_Sup { get; set; }
+    public decimal? M_Cadres { get; set; }
+    public decimal? M_Maitrise { get; set; }
+    public decimal? M_Execution { get; set; }
+
+    public decimal? M_1_CDI { get; set; }
+    public decimal? M_1_CDD { get; set; }
+    public decimal? M_1_CTA { get; set; }
+    public decimal? M_CDI { get; set; }
+    public decimal? M_CDD { get; set; }
+    public decimal? M_CTA { get; set; }
+
+    public SousKpi SousKpi { get; set; } = null!;
+}
+
 // DTOs
 public class CreateUserRequest
 {

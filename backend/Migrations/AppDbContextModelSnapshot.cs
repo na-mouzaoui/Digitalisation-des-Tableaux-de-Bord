@@ -226,10 +226,6 @@ namespace CheckFillingAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Direction")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Mois")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -241,7 +237,12 @@ namespace CheckFillingAPI.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("StepComments");
                 });
@@ -405,6 +406,159 @@ namespace CheckFillingAPI.Migrations
                         });
                 });
 
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Valeur", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Debit_Ecart")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Debit_Objectif")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Debit_Realise")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Ecart")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Evol")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Id_Periode")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_SousKpi")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("M")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MTTR_Ecart")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MTTR_Objectif")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MTTR_Realise")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_CDD")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_CDI")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_CTA")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Cadres")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Cadres_Sup")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Execution")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Maitrise")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Montant_Recouvre")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Objectif")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Realise")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Recrute")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_1_Taux")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_CDD")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_CDI")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_CTA")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Cadres")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Cadres_Sup")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Execution")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Maitrise")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Montant_Mis_Recouvrement")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Montant_Recouvre")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Objectif")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Objectif_Recouvrement")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Realise")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Recrute")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Taux")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("M_Taux_Recouvrement")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("M_Wilaya")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<decimal?>("Objectif_2026")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Part_Pct")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Situation_Actuelle")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<decimal?>("Taux_M")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Taux_M_1")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_SousKpi", "Id_Periode")
+                        .IsUnique();
+
+                    b.ToTable("Valeurs", (string)null);
+                });
+
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Wilaya", b =>
                 {
                     b.Property<int>("Id")
@@ -475,6 +629,17 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("Kpi");
                 });
 
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.StepComment", b =>
+                {
+                    b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Tableau", b =>
                 {
                     b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.User", "ApprovedByUser")
@@ -491,6 +656,17 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Valeur", b =>
+                {
+                    b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.SousKpi", "SousKpi")
+                        .WithMany()
+                        .HasForeignKey("Id_SousKpi")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SousKpi");
                 });
 
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Domaine", b =>
