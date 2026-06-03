@@ -75,6 +75,26 @@ public class StepCommentController : ControllerBase
         return Ok(new { success = true });
     }
 
+    [HttpDelete]
+    public async Task<IActionResult> Delete([FromQuery] string tabKey, [FromQuery] string mois, [FromQuery] string annee)
+    {
+        var userId = GetCurrentUserId();
+
+        var existing = await _context.StepComments
+            .FirstOrDefaultAsync(c =>
+                c.TabKey == tabKey &&
+                c.Mois == mois &&
+                c.Annee == annee &&
+                c.UserId == userId);
+
+        if (existing == null)
+            return NotFound(new { success = false, message = "Commentaire introuvable" });
+
+        _context.StepComments.Remove(existing);
+        await _context.SaveChangesAsync();
+        return Ok(new { success = true });
+    }
+
     [HttpGet("recent")]
     public async Task<IActionResult> GetRecent([FromQuery] int limit = 20)
     {

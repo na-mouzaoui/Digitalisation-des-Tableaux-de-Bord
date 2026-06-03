@@ -11,6 +11,7 @@ public class User
     public string PhoneNumber { get; set; } = string.Empty;
     public string Role { get; set; } = "utilisateur"; // utilisateur, directeur, divisionnaire, admin
     public string? Region { get; set; } // nord, sud, est, ouest (pour role divisionnaire uniquement)
+    public string? AllowedKpisJson { get; set; } = "[]"; // JSON array of KPI IDs allowed (empty = all)
     public bool MustChangePassword { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
@@ -192,6 +193,7 @@ public class CreateUserRequest
     public string PhoneNumber { get; set; } = string.Empty;
     public string Role { get; set; } = "utilisateur";
     public string? Region { get; set; }
+    public List<int>? AllowedKpiIds { get; set; }
 }
 
 public class UpdateUserRequest
@@ -203,6 +205,7 @@ public class UpdateUserRequest
     public string? PhoneNumber { get; set; }
     public string? Role { get; set; }
     public string? Region { get; set; }
+    public List<int>? AllowedKpiIds { get; set; }
 }
 
 public class TableauRequest

@@ -31,7 +31,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, Eye, EyeOff, KeyRound, Info, Upload, Download } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, EyeOff, KeyRound, Info, Upload, Download, FolderTree } from "lucide-react";
+import AdminUserKpiAccess from "@/components/admin-user-kpi-access";
 import {
   Tooltip,
   TooltipContent,
@@ -134,6 +135,7 @@ interface User {
   phoneNumber: string;
   role: string;
   region?: string;
+  allowedKpiIds?: number[];
   createdAt: string;
 }
 
@@ -163,6 +165,7 @@ export default function AdminUserManagement() {
     phoneNumber: "",
     role: "utilisateur",
     region: "",
+    allowedKpiIds: [] as number[],
   });
 
   useEffect(() => {
@@ -472,6 +475,7 @@ export default function AdminUserManagement() {
       phoneNumber: user.phoneNumber,
       role: user.role,
       region: user.region || "",
+      allowedKpiIds: user.allowedKpiIds ?? [],
     });
     setIsEditOpen(true);
   };
@@ -486,6 +490,7 @@ export default function AdminUserManagement() {
       phoneNumber: "",
       role: "utilisateur",
       region: "",
+      allowedKpiIds: [],
     });
     setShowPassword(false);
   };
@@ -691,6 +696,12 @@ export default function AdminUserManagement() {
                   </Select>
                 </div>
               )}
+              <div className="space-y-2">
+                <AdminUserKpiAccess
+                  allowedKpiIds={formData.allowedKpiIds}
+                  onAllowedKpiIdsChange={(ids) => setFormData({ ...formData, allowedKpiIds: ids })}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
@@ -824,12 +835,6 @@ export default function AdminUserManagement() {
                 onChange={(value) => setFormData({ ...formData, role: value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Accès aux modules</Label>
-              <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-                Tableau
-              </div>
-            </div>
             {formData.role === "divisionnaire" && (
               <div className="space-y-2">
                 <Label htmlFor="edit-region">Région</Label>
@@ -847,6 +852,12 @@ export default function AdminUserManagement() {
                 </Select>
               </div>
             )}
+            <div className="space-y-2">
+              <AdminUserKpiAccess
+                allowedKpiIds={formData.allowedKpiIds}
+                onAllowedKpiIdsChange={(ids) => setFormData({ ...formData, allowedKpiIds: ids })}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>

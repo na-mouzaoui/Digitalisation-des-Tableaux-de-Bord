@@ -74,6 +74,26 @@ public class AdminController : ControllerBase
         return JsonSerializer.Serialize(normalized);
     }
 
+    private static List<int> ParseAllowedKpiIds(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new List<int>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<int>>(json) ?? new List<int>();
+        }
+        catch
+        {
+            return new List<int>();
+        }
+    }
+
+    private static string SerializeAllowedKpiIds(IEnumerable<int> ids)
+    {
+        return JsonSerializer.Serialize(ids.Distinct().ToList());
+    }
+
     private async Task<AdminSetting> GetOrCreateAdminSettingAsync()
     {
         var setting = await _context.AdminSettings.FirstOrDefaultAsync(x => x.Id == 1);
@@ -137,12 +157,28 @@ public class AdminController : ControllerBase
                 u.PhoneNumber,
                 u.Role,
                 u.Region,
+                u.AllowedKpisJson,
                 u.MustChangePassword,
                 u.CreatedAt
             })
             .ToListAsync();
 
-        return Ok(users);
+        var result = users.Select(u => new
+        {
+            u.Id,
+            u.Email,
+            u.FirstName,
+            u.LastName,
+            u.Direction,
+            u.PhoneNumber,
+            u.Role,
+            u.Region,
+            allowedKpiIds = ParseAllowedKpiIds(u.AllowedKpisJson),
+            u.MustChangePassword,
+            u.CreatedAt
+        });
+
+        return Ok(result);
     }
 
     [HttpGet("users/{id}")]
@@ -168,6 +204,7 @@ public class AdminController : ControllerBase
             user.PhoneNumber,
             user.Role,
             user.Region,
+            allowedKpiIds = ParseAllowedKpiIds(user.AllowedKpisJson),
             user.MustChangePassword,
             user.CreatedAt
         });
@@ -201,6 +238,7 @@ public class AdminController : ControllerBase
             PhoneNumber = request.PhoneNumber ?? "",
             Role = request.Role ?? "utilisateur",
             Region = request.Role == "divisionnaire" ? request.Region : null,
+            AllowedKpisJson = request.AllowedKpiIds != null ? SerializeAllowedKpiIds(request.AllowedKpiIds) : "[]",
             MustChangePassword = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -257,6 +295,9 @@ public class AdminController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(request.Password))
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+        if (request.AllowedKpiIds != null)
+            user.AllowedKpisJson = SerializeAllowedKpiIds(request.AllowedKpiIds);
 
         await _context.SaveChangesAsync();
 

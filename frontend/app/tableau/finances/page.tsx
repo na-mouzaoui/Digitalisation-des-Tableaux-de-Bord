@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
-import { Plus, Trash2, Save, ArrowRight } from "lucide-react"
+import { Plus, Trash2, Save, ArrowRight, Pencil } from "lucide-react"
 import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
@@ -651,6 +651,9 @@ function FinancesPageContent() {
   const [tresorerieMobilisRows, setTresorerieMobilisRows] = useState<TresorerieMobilisRow[]>(DEFAULT_TRESORERIE_MOBILIS_ROWS.map((row) => ({ ...row })))
   const [tableauDeclarations, settableauDeclarations] = useState<Apitableautableau[]>([])
   const [tabComment, setTabComment] = useState("")
+  const [isEditingComment, setIsEditingComment] = useState(false)
+  const [hasExistingComment, setHasExistingComment] = useState(false)
+  const savedCommentRef = useRef("")
 
   const userRole = user?.role ?? ""
   const isAdminRole = isAdmintableauRole(userRole)
@@ -909,6 +912,8 @@ function FinancesPageContent() {
         if (res.ok && !cancelled) {
           const data = await res.json()
           setTabComment(data.comment ?? "")
+          setHasExistingComment(!!data.comment)
+          setIsEditingComment(false)
         }
       } catch { /* ignore */ }
     }
@@ -1204,8 +1209,26 @@ function FinancesPageContent() {
           comment: tabComment,
         }),
       })
+      setHasExistingComment(true)
+      setIsEditingComment(false)
     } catch { /* ignore */ }
     setIsCommentSubmitting(false)
+  }
+
+  const handleDeleteComment = async () => {
+    if (!activeTab || !mois || !annee || !effectiveDirection) return
+    try {
+      const apiBase = API_BASE
+      const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
+      await fetch(`${apiBase}/api/step-comment?tabKey=${encodeURIComponent(activeTab)}&mois=${encodeURIComponent(mois)}&annee=${encodeURIComponent(annee)}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      setTabComment("")
+      setHasExistingComment(false)
+      setIsEditingComment(false)
+    } catch { /* ignore */ }
   }
 
   const activeColor = TABS.find((t) => t.key === activeTab)?.color ?? "#2db34b"
@@ -1345,15 +1368,37 @@ function FinancesPageContent() {
                   <div className="mt-4 space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">Commentaire</label>
                     <textarea
-                      className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Ajouter un commentaire..."
                       value={tabComment}
                       onChange={(e) => setTabComment(e.target.value)}
+                      disabled={hasExistingComment && !isEditingComment}
                     />
-                    <div className="flex justify-end">
-                      <Button size="sm" onClick={handleSaveComment} disabled={isCommentSubmitting} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Enregistrer le commentaire">
-                        <ArrowRight size={14} />
-                      </Button>
+                    <div className="flex justify-end gap-2">
+                      {hasExistingComment && !isEditingComment ? (
+                        <>
+                          <Button size="sm" onClick={() => { savedCommentRef.current = tabComment; setIsEditingComment(true) }} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Modifier le commentaire">
+                            <Pencil size={14} />
+                          </Button>
+                          <Button size="sm" onClick={handleDeleteComment} variant="destructive" className="gap-1" title="Supprimer le commentaire">
+                            <Trash2 size={14} />
+                          </Button>
+                        </>
+                      ) : hasExistingComment && isEditingComment ? (
+                        <>
+                          <Button size="sm" onClick={handleSaveComment} disabled={isCommentSubmitting} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Enregistrer le commentaire">
+                            <Save size={14} />
+                            Enregistrer
+                          </Button>
+                          <Button size="sm" onClick={() => { setTabComment(savedCommentRef.current); setIsEditingComment(false) }} variant="outline" className="gap-1" title="Annuler">
+                            Annuler
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" onClick={handleSaveComment} disabled={isCommentSubmitting} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Enregistrer le commentaire">
+                          <ArrowRight size={14} />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1381,15 +1426,37 @@ function FinancesPageContent() {
                   <div className="mt-4 space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">Commentaire</label>
                     <textarea
-                      className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       placeholder="Ajouter un commentaire..."
                       value={tabComment}
                       onChange={(e) => setTabComment(e.target.value)}
+                      disabled={hasExistingComment && !isEditingComment}
                     />
-                    <div className="flex justify-end">
-                      <Button size="sm" onClick={handleSaveComment} disabled={isCommentSubmitting} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Enregistrer le commentaire">
-                        <ArrowRight size={14} />
-                      </Button>
+                    <div className="flex justify-end gap-2">
+                      {hasExistingComment && !isEditingComment ? (
+                        <>
+                          <Button size="sm" onClick={() => { savedCommentRef.current = tabComment; setIsEditingComment(true) }} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Modifier le commentaire">
+                            <Pencil size={14} />
+                          </Button>
+                          <Button size="sm" onClick={handleDeleteComment} variant="destructive" className="gap-1" title="Supprimer le commentaire">
+                            <Trash2 size={14} />
+                          </Button>
+                        </>
+                      ) : hasExistingComment && isEditingComment ? (
+                        <>
+                          <Button size="sm" onClick={handleSaveComment} disabled={isCommentSubmitting} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Enregistrer le commentaire">
+                            <Save size={14} />
+                            Enregistrer
+                          </Button>
+                          <Button size="sm" onClick={() => { setTabComment(savedCommentRef.current); setIsEditingComment(false) }} variant="outline" className="gap-1" title="Annuler">
+                            Annuler
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" onClick={handleSaveComment} disabled={isCommentSubmitting} className="gap-1" style={{ backgroundColor: PRIMARY_COLOR, color: "white" }} title="Enregistrer le commentaire">
+                          <ArrowRight size={14} />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
