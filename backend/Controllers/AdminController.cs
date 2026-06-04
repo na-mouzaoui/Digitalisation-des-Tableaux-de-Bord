@@ -267,7 +267,7 @@ public class AdminController : ControllerBase
             Direction = request.Direction ?? "",
             PhoneNumber = request.PhoneNumber ?? "",
             Role = request.Role ?? "utilisateur",
-            Region = request.Role == "divisionnaire" ? request.Region : null,
+            Region = request.Region,
             AllowedKpis = SerializeCommaSeparatedIds(kpiIds),
             AllowedDomaines = SerializeCommaSeparatedIds(domaineIds),
             AllowedSousDomaines = SerializeCommaSeparatedIds(sousDomaineIds),
@@ -322,7 +322,11 @@ public class AdminController : ControllerBase
         if (!string.IsNullOrWhiteSpace(request.Role))
         {
             user.Role = request.Role;
-            user.Region = request.Role == "divisionnaire" ? request.Region : null;
+        }
+
+        if (request.Region != null)
+        {
+            user.Region = request.Region;
         }
 
         if (!string.IsNullOrWhiteSpace(request.Password))

@@ -325,16 +325,6 @@ export default function AdminUserManagement() {
       return;
     }
 
-    // Validate region for divisionnaire role
-    if (formData.role === "divisionnaire" && !formData.region) {
-      toast({
-        title: "Erreur de validation",
-        description: "La région est obligatoire pour le role régionale",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       const token = localStorage.getItem("jwt");
       const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -686,23 +676,6 @@ export default function AdminUserManagement() {
                   onChange={(value) => setFormData({ ...formData, role: value })}
                 />
               </div>
-              {formData.role === "divisionnaire" && (
-                <div className="space-y-2">
-                  <Label htmlFor="region">Région *</Label>
-                  <Select value={formData.region} onValueChange={(value) => setFormData({ ...formData, region: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez une région" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {regions.map((region) => (
-                        <SelectItem key={region.id} value={region.name}>
-                          {region.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
               <div className="space-y-2">
                 <AdminUserKpiAccess
                   key="create-kpi-access"
@@ -847,23 +820,6 @@ export default function AdminUserManagement() {
                 onChange={(value) => setFormData({ ...formData, role: value })}
               />
             </div>
-            {formData.role === "divisionnaire" && (
-              <div className="space-y-2">
-                <Label htmlFor="edit-region">Région</Label>
-                <Select value={formData.region} onValueChange={(value) => setFormData({ ...formData, region: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez une région" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {regions.map((region) => (
-                      <SelectItem key={region.id} value={region.name}>
-                        {region.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
             <div className="space-y-2">
               <AdminUserKpiAccess
                 key={isEditOpen && selectedUser ? `edit-kpi-access-${selectedUser.id}` : "edit-kpi-access"}

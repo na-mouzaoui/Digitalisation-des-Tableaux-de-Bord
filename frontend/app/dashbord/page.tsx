@@ -2583,8 +2583,9 @@ export default function tableauDashboardPage() {
   const normalizedRegion = (user?.region ?? "").trim().toLowerCase()
   const isFinanceRole = normalizedRole === "utilisateur"
   const isAdminRole = normalizedRole === "admin"
-  const canApproveRegionaltableaux = normalizedRole === "divisionnaire" && !!user?.isRegionalApprover
-  const canApproveFinancetableaux = isFinanceRole && !!user?.isFinanceApprover
+  const isDirectorRole = normalizedRole === "directeur"
+  const canApproveRegionaltableaux = normalizedRole === "divisionnaire"
+  const canApproveFinancetableaux = isFinanceRole
 
 
   useEffect(() => {
@@ -3325,10 +3326,10 @@ export default function tableauDashboardPage() {
   }
 
   const handleApprove = async (decl: Savedtableau) => {
-    if (!isAdminRole && !canApproveRegionaltableaux && !canApproveFinancetableaux) {
+    if (!isAdminRole && !isDirectorRole && !canApproveRegionaltableaux && !canApproveFinancetableaux) {
       toast({
         title: "Accés refusé",
-        description: "Seuls les comptes admin ou approbateurs (régional/finance) peuvent valider les tableaux.",
+        description: "Seuls les comptes admin, directeur ou approbateurs (régional/finance) peuvent valider les tableaux.",
         variant: "destructive",
       })
       return
@@ -4030,14 +4031,14 @@ export default function tableauDashboardPage() {
                         || tableauDirection.includes("siége")
                         || tableauDirection.includes("siege")
                       const isOwntableau = String(decl.userId ?? "") === String(user.id)
+                      const canApproveAsDirector = isDirectorRole && !decl.isApproved
                       const canApproveAsRegional = canApproveRegionaltableaux
                         && !decl.isApproved
-                        && (isOwntableau || (!!normalizedRegion && tableauDirection === normalizedRegion))
                       const canApproveAsFinance = canApproveFinancetableaux
                         && !decl.isApproved
                         && (isOwntableau || isSiegetableau)
                       const canApproveAsAdmin = isAdminRole && !decl.isApproved
-                      const canApproveThistableau = canApproveAsAdmin || canApproveAsRegional || canApproveAsFinance
+                      const canApproveThistableau = canApproveAsAdmin || canApproveAsDirector || canApproveAsRegional || canApproveAsFinance
                       return (
                         <TableRow
                           key={decl.id}
@@ -4079,7 +4080,7 @@ export default function tableauDashboardPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
-                              {(isAdminRole || canApproveRegionaltableaux || canApproveFinancetableaux) && (
+                              {(isAdminRole || isDirectorRole || canApproveRegionaltableaux || canApproveFinancetableaux) && (
                                 <Button
                                   size="sm"
                                   variant="outline"

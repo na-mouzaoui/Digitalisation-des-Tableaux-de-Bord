@@ -553,16 +553,12 @@ public class TableauController : ControllerBase
         var currentUserContext = await GetCurrentUserContextAsync(userId);
         var currentUserRole = (currentUserContext.Role ?? "").Trim().ToLowerInvariant();
 
-        var canApproveAsAdmin = currentUserRole == "admin";
+        var canApproveAsAdmin = currentUserRole == "admin" || currentUserRole == "directeur";
         var canApproveAsRegional = currentUserRole == "divisionnaire";
         var canApproveAsFinance = currentUserRole == "utilisateur";
 
         if (!canApproveAsAdmin && !canApproveAsRegional && !canApproveAsFinance)
             return StatusCode(403, new { message = "Ce compte n'a pas le droit d'approbation." });
-
-        var approverRegion = (currentUserContext.Region ?? "").Trim().ToLowerInvariant();
-        if (canApproveAsRegional && string.IsNullOrWhiteSpace(approverRegion))
-            return BadRequest(new { message = "Le compte approbateur doit étre rattaché é une région." });
 
         var decl = await _context.Tableaus
             .Include(d => d.User)
@@ -574,7 +570,6 @@ public class TableauController : ControllerBase
         var isSelfTableau = decl.UserId == userId;
 
         var tableauOwnerRole = (decl.User.Role ?? "").Trim().ToLowerInvariant();
-        var tableauOwnerRegion = (decl.User.Region ?? "").Trim().ToLowerInvariant();
         var tableauDirection = (decl.Direction ?? "").Trim().ToLowerInvariant();
         var isSiegeTableau = tableauDirection == "siége"
             || tableauDirection == "siege"
@@ -584,14 +579,6 @@ public class TableauController : ControllerBase
                 && (tableauOwnerRole == "utilisateur"
                     || tableauOwnerRole == "directeur"
                     || tableauOwnerRole == "admin"));
-
-        if (!canApproveAsAdmin && !isSelfTableau && canApproveAsRegional && (tableauOwnerRole != "divisionnaire" || tableauOwnerRegion != approverRegion))
-        {
-            return StatusCode(403, new
-            {
-                message = "Vous ne pouvez approuver que les tableaux des utilisateurs de votre région."
-            });
-        }
 
         if (!canApproveAsAdmin && !isSelfTableau && canApproveAsFinance && !isSiegeTableau)
         {
@@ -621,7 +608,7 @@ public class TableauController : ControllerBase
         await _context.SaveChangesAsync();
 
         await _auditService.LogAction(userId, "tableau_APPROVE", "Tableau", decl.Id,
-            new { decl.TabKey, decl.Mois, decl.Annee, decl.UserId, approverRegion, approverRole = currentUserRole });
+            new { decl.TabKey, decl.Mois, decl.Annee, decl.UserId, approverRole = currentUserRole });
 
         await NotifyTableauChangedAsync("approve", decl, userId);
 
