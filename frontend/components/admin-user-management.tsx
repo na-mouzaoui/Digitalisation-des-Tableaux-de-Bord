@@ -136,6 +136,8 @@ interface User {
   role: string;
   region?: string;
   allowedKpiIds?: number[];
+  allowedDomaineIds?: number[];
+  allowedSousDomaineIds?: number[];
   createdAt: string;
 }
 
@@ -166,6 +168,8 @@ export default function AdminUserManagement() {
     role: "utilisateur",
     region: "",
     allowedKpiIds: [] as number[],
+    allowedDomaineIds: [] as number[],
+    allowedSousDomaineIds: [] as number[],
   });
 
   useEffect(() => {
@@ -312,7 +316,6 @@ export default function AdminUserManagement() {
   };
 
   const handleCreate = async () => {
-    // Validate phone number: must start with 0 and have exactly 10 digits
     if (!/^0\d{9}$/.test(formData.phoneNumber.trim())) {
       toast({
         title: "Erreur de validation",
@@ -476,6 +479,8 @@ export default function AdminUserManagement() {
       role: user.role,
       region: user.region || "",
       allowedKpiIds: user.allowedKpiIds ?? [],
+      allowedDomaineIds: (user as any).allowedDomaineIds ?? [],
+      allowedSousDomaineIds: (user as any).allowedSousDomaineIds ?? [],
     });
     setIsEditOpen(true);
   };
@@ -491,6 +496,8 @@ export default function AdminUserManagement() {
       role: "utilisateur",
       region: "",
       allowedKpiIds: [],
+      allowedDomaineIds: [],
+      allowedSousDomaineIds: [],
     });
     setShowPassword(false);
   };
@@ -517,7 +524,7 @@ export default function AdminUserManagement() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end gap-2">
-        <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+        <Dialog open={isImportOpen} onOpenChange={(open) => { if (!open) { setIsImportOpen(false); setImportData([]); setImportFileName(""); } else { setIsImportOpen(true); } }}>
           <DialogTrigger asChild>
             <Button variant="outline">
               <Upload className="mr-2 h-4 w-4" />
@@ -588,7 +595,7 @@ export default function AdminUserManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) resetForm(); }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -698,13 +705,18 @@ export default function AdminUserManagement() {
               )}
               <div className="space-y-2">
                 <AdminUserKpiAccess
+                  key="create-kpi-access"
                   allowedKpiIds={formData.allowedKpiIds}
-                  onAllowedKpiIdsChange={(ids) => setFormData({ ...formData, allowedKpiIds: ids })}
+                  allowedDomaineIds={formData.allowedDomaineIds}
+                  allowedSousDomaineIds={formData.allowedSousDomaineIds}
+                  onAllowedKpiIdsChange={(ids) => setFormData((prev) => ({ ...prev, allowedKpiIds: ids }))}
+                  onAllowedDomaineIdsChange={(ids) => setFormData((prev) => ({ ...prev, allowedDomaineIds: ids }))}
+                  onAllowedSousDomaineIdsChange={(ids) => setFormData((prev) => ({ ...prev, allowedSousDomaineIds: ids }))}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+              <Button variant="outline" onClick={() => { setIsCreateOpen(false); resetForm(); }}>
                 Annuler
               </Button>
               <Button onClick={handleCreate}>Créer</Button>
@@ -776,7 +788,7 @@ export default function AdminUserManagement() {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+      <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) { setSelectedUser(null); resetForm(); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Modifier l'utilisateur</DialogTitle>
@@ -854,13 +866,18 @@ export default function AdminUserManagement() {
             )}
             <div className="space-y-2">
               <AdminUserKpiAccess
+                key={isEditOpen && selectedUser ? `edit-kpi-access-${selectedUser.id}` : "edit-kpi-access"}
                 allowedKpiIds={formData.allowedKpiIds}
-                onAllowedKpiIdsChange={(ids) => setFormData({ ...formData, allowedKpiIds: ids })}
+                allowedDomaineIds={formData.allowedDomaineIds}
+                allowedSousDomaineIds={formData.allowedSousDomaineIds}
+                onAllowedKpiIdsChange={(ids) => setFormData((prev) => ({ ...prev, allowedKpiIds: ids }))}
+                onAllowedDomaineIdsChange={(ids) => setFormData((prev) => ({ ...prev, allowedDomaineIds: ids }))}
+                onAllowedSousDomaineIdsChange={(ids) => setFormData((prev) => ({ ...prev, allowedSousDomaineIds: ids }))}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+            <Button variant="outline" onClick={() => { setIsEditOpen(false); setSelectedUser(null); resetForm(); }}>
               Annuler
             </Button>
             <Button onClick={handleUpdate}>Enregistrer</Button>

@@ -15,15 +15,16 @@ import {
 import { Button } from "@/components/ui/button"
 import { logout } from "@/lib/auth-client"
 import type { User } from "@/lib/db"
+import type { DomainKey } from "@/lib/tableau-domain-steps"
 import UserProfileMenu from "./user-profile-menu"
 
-const tableauLinks = [
-  { name: "Commercial", href: "/tableau/commercial" },
-  { name: "Réseaux technique (DVDRS)", href: "/tableau/DVDRS" },
-  { name: "Qualité réseau (DQRPC)", href: "/tableau/DQRPC" },
-  { name: "Support", href: "/tableau/Support" },
-  { name: "Finances", href: "/tableau/finances" },
-  { name: "Direction régionale", href: "/tableau/regionale" },
+const tableauLinks: { name: string; href: string; domainKey: DomainKey }[] = [
+  { name: "Commercial", href: "/tableau/commercial", domainKey: "commercial" },
+  { name: "Réseaux technique (DVDRS)", href: "/tableau/DVDRS", domainKey: "DVDRS" },
+  { name: "Qualité réseau (DQRPC)", href: "/tableau/DQRPC", domainKey: "DQRPC" },
+  { name: "Support", href: "/tableau/Support", domainKey: "Support" },
+  { name: "Finances", href: "/tableau/finances", domainKey: "finances" },
+  { name: "Direction régionale", href: "/tableau/regionale", domainKey: "regionale" },
 ]
 
 interface SidebarProps {

@@ -11,7 +11,9 @@ public class User
     public string PhoneNumber { get; set; } = string.Empty;
     public string Role { get; set; } = "utilisateur"; // utilisateur, directeur, divisionnaire, admin
     public string? Region { get; set; } // nord, sud, est, ouest (pour role divisionnaire uniquement)
-    public string? AllowedKpisJson { get; set; } = "[]"; // JSON array of KPI IDs allowed (empty = all)
+    public string AllowedKpis { get; set; } = ""; // IDs des KPI autorisés, séparés par des virgules ex: "1,2,3,4"
+    public string AllowedDomaines { get; set; } = ""; // IDs des domaines autorisés, séparés par des virgules ex: "1,2,3"
+    public string AllowedSousDomaines { get; set; } = ""; // IDs des sous-domaines autorisés, séparés par des virgules ex: "1,2,3"
     public bool MustChangePassword { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
@@ -194,6 +196,8 @@ public class CreateUserRequest
     public string Role { get; set; } = "utilisateur";
     public string? Region { get; set; }
     public List<int>? AllowedKpiIds { get; set; }
+    public List<int>? AllowedDomaineIds { get; set; }
+    public List<int>? AllowedSousDomaineIds { get; set; }
 }
 
 public class UpdateUserRequest
@@ -206,6 +210,8 @@ public class UpdateUserRequest
     public string? Role { get; set; }
     public string? Region { get; set; }
     public List<int>? AllowedKpiIds { get; set; }
+    public List<int>? AllowedDomaineIds { get; set; }
+    public List<int>? AllowedSousDomaineIds { get; set; }
 }
 
 public class TableauRequest

@@ -32,6 +32,8 @@ type DynamicKpiTabProps = {
   mois: string
   annee: string
   direction: string
+  allowedKpis?: number[]
+  allowedSousDomaines?: number[]
 }
 
 const normalizeAmountInput = (value: string) => {
@@ -73,16 +75,12 @@ function AmountInput({ value, onChange, ...props }: Omit<React.ComponentProps<ty
   return <Input {...props} type="text" inputMode="decimal" value={formatAmountInput(value)} onChange={handleChange} />
 }
 
-export default function DynamicKpiTabs({ domain, excludeKeys, mois, annee, direction }: DynamicKpiTabProps) {
+export default function DynamicKpiTabs({ domain, excludeKeys, mois, annee, direction, allowedKpis, allowedSousDomaines }: DynamicKpiTabProps) {
   const { toast } = useToast()
   const [sousDomaines, setSousDomaines] = useState<SousDomaineData[]>([])
   const [rowsMap, setRowsMap] = useState<Record<string, DynamicRow[]>>({})
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-
-  const filteredKpis = sousDomaines.flatMap((sd) =>
-    sd.kpis.filter((k) => !excludeKeys.includes(k.name)).map((k) => ({ ...k, sousDomaine: sd.designation }))
-  )
 
   useEffect(() => {
     let cancelled = false
@@ -91,12 +89,14 @@ export default function DynamicKpiTabs({ domain, excludeKeys, mois, annee, direc
       setLoading(true)
       try {
         const response = await authFetch(`/api/kpis/domain/${domain}`, { cache: "no-store" })
-        if (!response.ok) return
+        if (!response.ok) {
+          if (!cancelled) setLoading(false)
+          return
+        }
         const data = (await response.json()) as SousDomaineData[]
         if (!cancelled) setSousDomaines(data)
+        if (!cancelled) setLoading(false)
       } catch {
-        // ignore
-      } finally {
         if (!cancelled) setLoading(false)
       }
     }
@@ -104,6 +104,12 @@ export default function DynamicKpiTabs({ domain, excludeKeys, mois, annee, direc
     load()
     return () => { cancelled = true }
   }, [domain])
+
+  const filteredKpis = sousDomaines.flatMap((sd) =>
+    sd.kpis
+      .filter((k) => !excludeKeys.includes(k.name))
+      .map((k) => ({ ...k, sousDomaine: sd.designation }))
+  )
 
   useEffect(() => {
     if (!mois || !annee) return
@@ -212,77 +218,104 @@ export default function DynamicKpiTabs({ domain, excludeKeys, mois, annee, direc
   }
 
   if (loading) return null
-  if (filteredKpis.length === 0) return null
+
+  const groupedBySousDomaine = sousDomaines
+    .map((sd) => ({
+      ...sd,
+      sdAllowed: !allowedSousDomaines || allowedSousDomaines.length === 0 || allowedSousDomaines.includes(sd.id),
+      kpis: sd.kpis
+        .filter((k) => !excludeKeys.includes(k.name))
+        .map((k) => ({
+          ...k,
+          sousDomaine: sd.designation,
+          kpiAllowed: !allowedKpis || allowedKpis.length === 0 || allowedKpis.includes(k.id),
+        })),
+    }))
+    .filter((sd) => sd.kpis.length > 0)
+
+  if (groupedBySousDomaine.length === 0) return null
 
   return (
     <div className="space-y-6">
-      {filteredKpis.map((kpi) => {
-        const rows = getRows(kpi.name, kpi.rows)
-        const isSaving = savingKey === kpi.name
+      {groupedBySousDomaine.map((sd) => (
+        <div key={sd.id} className={`space-y-3 ${sd.sdAllowed ? "" : "opacity-40 pointer-events-none"}`}>
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide border-b pb-1">
+            {sd.designation}
+            {!sd.sdAllowed && <span className="ml-2 text-xs text-muted-foreground">(Accès restreint)</span>}
+          </h3>
+          {sd.kpis.map((kpi) => {
+            const rows = getRows(kpi.name, kpi.rows)
+            const isSaving = savingKey === kpi.name
+            const kpiAllowed = kpi.kpiAllowed
 
-        return (
-          <Card key={kpi.name}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold capitalize" style={{ color: "#2db34b" }}>
-                {kpi.name.replace(/_/g, " ")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">
-                          {kpi.name.replace(/_/g, " ")}
-                        </th>
-                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((row, rowIndex) => (
-                        <tr key={rowIndex} className="bg-white">
-                          <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                          <td className="px-1 py-1 border-b">
-                            <AmountInput
-                              value={row.m1}
-                              onChange={(e) => updateCell(kpi.name, rowIndex, "m1", e.target.value)}
-                              className="h-7 px-2 text-xs"
-                              placeholder="0.00"
-                              disabled={isSaving}
-                            />
-                          </td>
-                          <td className="px-1 py-1 border-b">
-                            <AmountInput
-                              value={row.m}
-                              onChange={(e) => updateCell(kpi.name, rowIndex, "m", e.target.value)}
-                              className="h-7 px-2 text-xs"
-                              placeholder="0.00"
-                              disabled={isSaving}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    onClick={() => handleSave(kpi)}
-                    disabled={isSaving}
-                    className="gap-1.5"
-                    style={{ backgroundColor: "#2db34b", color: "white" }}
-                  >
-                    <Save size={13} /> {isSaving ? "Enregistrement..." : "Enregistrer"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
+            return (
+              <Card key={kpi.name} className={kpiAllowed ? "" : "opacity-50"}>
+                <CardHeader className="pb-3">
+                  <CardTitle className={`text-sm font-semibold capitalize ${kpiAllowed ? "" : "text-muted-foreground"}`}
+                    style={kpiAllowed ? { color: "#2db34b" } : undefined}>
+                    {kpi.name.replace(/_/g, " ")}
+                    {!kpiAllowed && <span className="ml-2 text-xs font-normal">(Accès refusé)</span>}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">
+                              {kpi.name.replace(/_/g, " ")}
+                            </th>
+                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
+                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((row, rowIndex) => (
+                            <tr key={rowIndex} className="bg-white">
+                              <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                              <td className="px-1 py-1 border-b">
+                                <AmountInput
+                                  value={row.m1}
+                                  onChange={(e) => updateCell(kpi.name, rowIndex, "m1", e.target.value)}
+                                  className="h-7 px-2 text-xs"
+                                  placeholder="0.00"
+                                  disabled={isSaving || !kpiAllowed}
+                                />
+                              </td>
+                              <td className="px-1 py-1 border-b">
+                                <AmountInput
+                                  value={row.m}
+                                  onChange={(e) => updateCell(kpi.name, rowIndex, "m", e.target.value)}
+                                  className="h-7 px-2 text-xs"
+                                  placeholder="0.00"
+                                  disabled={isSaving || !kpiAllowed}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        onClick={() => handleSave(kpi)}
+                        disabled={isSaving || !kpiAllowed}
+                        className="gap-1.5"
+                        style={kpiAllowed ? { backgroundColor: "#2db34b", color: "white" } : undefined}
+                        variant={kpiAllowed ? "default" : "outline"}
+                      >
+                        <Save size={13} /> {isSaving ? "Enregistrement..." : "Enregistrer"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      ))}
     </div>
   )
 }

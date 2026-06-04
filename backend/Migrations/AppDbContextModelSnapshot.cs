@@ -320,6 +320,18 @@ namespace CheckFillingAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AllowedDomaines")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AllowedKpis")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AllowedSousDomaines")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -368,6 +380,9 @@ namespace CheckFillingAPI.Migrations
                         new
                         {
                             Id = 1,
+                            AllowedDomaines = "",
+                            AllowedKpis = "",
+                            AllowedSousDomaines = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Direction = "Test",
                             Email = "test@gmail.com",
@@ -381,6 +396,9 @@ namespace CheckFillingAPI.Migrations
                         new
                         {
                             Id = 2,
+                            AllowedDomaines = "",
+                            AllowedKpis = "",
+                            AllowedSousDomaines = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Direction = "Administration",
                             Email = "admin@test.com",
@@ -394,6 +412,9 @@ namespace CheckFillingAPI.Migrations
                         new
                         {
                             Id = 3,
+                            AllowedDomaines = "",
+                            AllowedKpis = "",
+                            AllowedSousDomaines = "",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Direction = "Administration",
                             Email = "admin@gmail.com",

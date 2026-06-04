@@ -17,6 +17,7 @@ import { Plus, Trash2, Save, ArrowRight, Pencil } from "lucide-react"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
+import { DomainAccessGuard } from "@/components/domain-access-guard"
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
 const PRIMARY_COLOR = "#2db34b"
@@ -1862,6 +1863,7 @@ function SupportPageContent() {
 
   return (
     <LayoutWrapper user={user}>
+      <DomainAccessGuard user={user} domainKey="Support">
       <>
           <div className="space-y-5 w-full" ref={printRef}>
             <TableauHeader
@@ -1874,6 +1876,7 @@ function SupportPageContent() {
               onBackClick={() => router.push("/dashbord")}
               onStepClick={handleStepClick}
               layout="horizontal"
+              allowedSousDomaines={user.allowedSousDomaines}
             />
 
             <Card className="border border-gray-200">
@@ -1926,6 +1929,8 @@ function SupportPageContent() {
                 mois={mois}
                 annee={annee}
                 direction={effectiveDirection}
+                allowedKpis={user.allowedKpis}
+                allowedSousDomaines={user.allowedSousDomaines}
               />
             </div>
             <div className="mt-4 space-y-1">
@@ -1966,6 +1971,7 @@ function SupportPageContent() {
             </div>
           </div>
       </>
+      </DomainAccessGuard>
     </LayoutWrapper>
   )
 }

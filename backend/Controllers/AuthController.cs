@@ -1,7 +1,9 @@
+using DigitalisationDesTableauxDeBordAPI.Data;
 using DigitalisationDesTableauxDeBordAPI.Models;
 using DigitalisationDesTableauxDeBordAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace DigitalisationDesTableauxDeBordAPI.Controllers;
@@ -11,10 +13,43 @@ namespace DigitalisationDesTableauxDeBordAPI.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly AppDbContext _context;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, AppDbContext context)
     {
         _authService = authService;
+        _context = context;
+    }
+
+    private async Task<(List<int> DomaineIds, List<int> SousDomaineIds)> DeriveFromKpis(List<int> kpiIds)
+    {
+        if (kpiIds.Count == 0) return (new List<int>(), new List<int>());
+
+        var sousDomaineIds = await _context.Kpis
+            .Where(k => kpiIds.Contains(k.Id))
+            .Select(k => k.SousDomaineId)
+            .Distinct()
+            .ToListAsync();
+
+        var domaineIds = await _context.SousDomaines
+            .Where(sd => sousDomaineIds.Contains(sd.Id))
+            .Select(sd => sd.DomaineId)
+            .Distinct()
+            .ToListAsync();
+
+        return (domaineIds, sousDomaineIds);
+    }
+
+    private static List<int> ParseCommaSeparatedIds(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return new List<int>();
+        return raw
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => { int.TryParse(s.Trim(), out var id); return id; })
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
     }
 
     [HttpPost("login")]
@@ -36,6 +71,9 @@ public class AuthController : ControllerBase
             Expires = DateTimeOffset.UtcNow.AddMinutes(240)
         });
 
+        var kpiIds = ParseCommaSeparatedIds(user!.AllowedKpis);
+        var (domaineIds, sousDomaineIds) = await DeriveFromKpis(kpiIds);
+
         return Ok(new
         {
             success = true,
@@ -43,7 +81,7 @@ public class AuthController : ControllerBase
             mustChangePassword,
             user = new
             {
-                id = user!.Id,
+                id = user.Id,
                 email = user.Email,
                 firstName = user.FirstName,
                 lastName = user.LastName,
@@ -51,6 +89,9 @@ public class AuthController : ControllerBase
                 phoneNumber = user.PhoneNumber,
                 role = user.Role,
                 region = user.Region,
+                allowedKpis = kpiIds,
+                allowedDomaines = domaineIds,
+                allowedSousDomaines = sousDomaineIds,
                 createdAt = user.CreatedAt
             }
         });
@@ -106,6 +147,9 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
+        var kpiIds = ParseCommaSeparatedIds(user.AllowedKpis);
+        var (domaineIds, sousDomaineIds) = await DeriveFromKpis(kpiIds);
+
         return Ok(new
         {
             mustChangePassword = user.MustChangePassword,
@@ -119,6 +163,9 @@ public class AuthController : ControllerBase
                 phoneNumber = user.PhoneNumber,
                 role = user.Role,
                 region = user.Region,
+                allowedKpis = kpiIds,
+                allowedDomaines = domaineIds,
+                allowedSousDomaines = sousDomaineIds,
                 createdAt = user.CreatedAt
             }
         });

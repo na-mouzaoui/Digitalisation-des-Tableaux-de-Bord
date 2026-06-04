@@ -18,6 +18,8 @@ import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
+import { useDeclarationAccess } from "@/hooks/use-declaration-access"
+import { DomainAccessGuard } from "@/components/domain-access-guard"
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
 const PRIMARY_COLOR = "#2db34b"
@@ -1201,6 +1203,13 @@ function CommercialPageContent() {
     return declarationTabs.filter((tab) => categoryTabKeys.has(tab.key as tableauTabKey))
   }, [declarationCategoryOptions, declarationTabs, selectedCategoryKey])
   
+  const allowedTabKeys = useDeclarationAccess("commercial", user?.allowedKpis)
+  
+  const accessibleDeclarationTabs = useMemo(() => {
+    if (!allowedTabKeys) return filteredDeclarationTabs
+    return filteredDeclarationTabs.filter((tab) => allowedTabKeys.has(tab.key))
+  }, [filteredDeclarationTabs, allowedTabKeys])
+  
   const selectableYears = useMemo(
     () => YEARS.filter((year) => MONTHS.some((month) => !istableauPeriodLocked(month.value, year, userRole))),
     [tableauPolicyRevision, userRole],
@@ -1253,9 +1262,10 @@ function CommercialPageContent() {
   )
 
   useEffect(() => {
-    if (filteredDeclarationTabs.length === 0) return
-    const firstEnabledTab = filteredDeclarationTabs.find((tab) => !tab.isDisabled)?.key ?? filteredDeclarationTabs[0].key
-    if (!filteredDeclarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
+    const tabs = accessibleDeclarationTabs
+    if (tabs.length === 0) return
+    const firstEnabledTab = tabs.find((tab) => !tab.isDisabled)?.key ?? tabs[0].key
+    if (!tabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
       setActiveTab(firstEnabledTab)
     }
   }, [activeTab, disabledTabKeys, filteredDeclarationTabs])
@@ -2025,6 +2035,7 @@ function CommercialPageContent() {
 
   return (
     <LayoutWrapper user={user}>
+      <DomainAccessGuard user={user} domainKey="commercial">
       {!hasFiscalTabAccess ? (
         <AccessDeniedDialog
           title="Acces refuse"
@@ -2046,6 +2057,7 @@ function CommercialPageContent() {
               onBackClick={() => router.push("/dashbord")}
               onStepClick={handleStepClick}
               layout="horizontal"
+              allowedSousDomaines={user.allowedSousDomaines}
             />
 
             <Card className="border border-gray-200">
@@ -2088,8 +2100,14 @@ function CommercialPageContent() {
             <div className="space-y-4">
               {filteredDeclarationTabs.map((tab) => {
               const key = tab.key as tableauTabKey
+              const isLocked = allowedTabKeys && !allowedTabKeys.has(tab.key)
               return (
-                <div key={key}>
+                <div key={key} className={isLocked ? "opacity-50 pointer-events-none select-none" : ""}>
+                  {isLocked && (
+                    <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                      Accès refusé — vous n'avez pas les droits pour modifier ce tableau.
+                    </div>
+                  )}
                   {renderTabCard(key)}
                 </div>
               )
@@ -2101,6 +2119,8 @@ function CommercialPageContent() {
                 mois={mois}
                 annee={annee}
                 direction={effectiveDirection}
+                allowedKpis={user.allowedKpis}
+                allowedSousDomaines={user.allowedSousDomaines}
               />
             </div>
             <div className="mt-4 space-y-1">
@@ -2142,6 +2162,7 @@ function CommercialPageContent() {
           </div>
         </>
       )}
+      </DomainAccessGuard>
     </LayoutWrapper>
   )
 }

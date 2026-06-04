@@ -17,6 +17,8 @@ import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
+import { useDeclarationAccess } from "@/hooks/use-declaration-access"
+import { DomainAccessGuard } from "@/components/domain-access-guard"
 
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
@@ -537,6 +539,13 @@ function DQRPCPageContent() {
     return declarationTabs.filter((tab) => categoryTabKeys.has(tab.key as tableauTabKey))
   }, [declarationCategoryOptions, declarationTabs, selectedCategoryKey])
   
+  const allowedTabKeys = useDeclarationAccess("dqrpc", user?.allowedKpis)
+  
+  const accessibleDeclarationTabs = useMemo(() => {
+    if (!allowedTabKeys) return filteredDeclarationTabs
+    return filteredDeclarationTabs.filter((tab) => allowedTabKeys.has(tab.key))
+  }, [filteredDeclarationTabs, allowedTabKeys])
+  
   const selectableYears = useMemo(
     () => YEARS.filter((year) => MONTHS.some((month) => !istableauPeriodLocked(month.value, year, userRole))),
     [tableauPolicyRevision, userRole],
@@ -589,12 +598,13 @@ function DQRPCPageContent() {
   )
 
   useEffect(() => {
-    if (declarationTabs.length === 0) return
-    const firstEnabledTab = declarationTabs.find((tab) => !tab.isDisabled)?.key ?? declarationTabs[0].key
-    if (!declarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
+    const tabs = accessibleDeclarationTabs
+    if (tabs.length === 0) return
+    const firstEnabledTab = tabs.find((tab) => !tab.isDisabled)?.key ?? tabs[0].key
+    if (!tabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
       setActiveTab(firstEnabledTab)
     }
-  }, [activeTab, disabledTabKeys, declarationTabs])
+  }, [activeTab, disabledTabKeys, filteredDeclarationTabs])
 
   useEffect(() => {
     if (!selectableYears.includes(annee)) {
@@ -1106,6 +1116,7 @@ function DQRPCPageContent() {
 
   return (
     <LayoutWrapper user={user}>
+      <DomainAccessGuard user={user} domainKey="DQRPC">
       {!hasFiscalTabAccess ? (
         <AccessDeniedDialog
           title="Acces refuse"
@@ -1126,6 +1137,7 @@ function DQRPCPageContent() {
               annee={annee}
               onBackClick={() => router.push("/dashbord")}
               layout="horizontal"
+              allowedSousDomaines={user.allowedSousDomaines}
             />
 
             <Card className="border border-gray-200">
@@ -1166,10 +1178,16 @@ function DQRPCPageContent() {
             </Card>
 
             <div className="space-y-4">
-              {declarationTabs.map((tab) => {
+              {filteredDeclarationTabs.map((tab) => {
               const key = tab.key as tableauTabKey
+              const isLocked = allowedTabKeys && !allowedTabKeys.has(tab.key)
               return (
-                <div key={key}>
+                <div key={key} className={isLocked ? "opacity-50 pointer-events-none select-none" : ""}>
+                  {isLocked && (
+                    <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                      Accès refusé — vous n'avez pas les droits pour modifier ce tableau.
+                    </div>
+                  )}
                   {renderTabCard(key)}
                 </div>
               )
@@ -1181,6 +1199,8 @@ function DQRPCPageContent() {
                 mois={mois}
                 annee={annee}
                 direction={effectiveDirection}
+                allowedKpis={user.allowedKpis}
+                allowedSousDomaines={user.allowedSousDomaines}
               />
             </div>
             <div className="mt-4 space-y-1">
@@ -1222,6 +1242,7 @@ function DQRPCPageContent() {
           </div>
         </>
       )}
+      </DomainAccessGuard>
     </LayoutWrapper>
   )
 }

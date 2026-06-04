@@ -8,15 +8,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
 import { ChevronDown, ChevronRight, Info } from "lucide-react";
 
 interface KpiItem {
@@ -39,25 +30,27 @@ interface DomaineItem {
 
 interface AdminUserKpiAccessProps {
   allowedKpiIds: number[];
+  allowedDomaineIds: number[];
+  allowedSousDomaineIds: number[];
   onAllowedKpiIdsChange: (ids: number[]) => void;
+  onAllowedDomaineIdsChange: (ids: number[]) => void;
+  onAllowedSousDomaineIdsChange: (ids: number[]) => void;
 }
 
 type CheckState = boolean | "indeterminate";
 
 export default function AdminUserKpiAccess({
   allowedKpiIds,
+  allowedDomaineIds,
+  allowedSousDomaineIds,
   onAllowedKpiIdsChange,
+  onAllowedDomaineIdsChange,
+  onAllowedSousDomaineIdsChange,
 }: AdminUserKpiAccessProps) {
   const [hierarchy, setHierarchy] = useState<DomaineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedDomaines, setExpandedDomaines] = useState<Set<number>>(new Set());
   const [expandedSousDomaines, setExpandedSousDomaines] = useState<Set<number>>(new Set());
-  const [domainPopup, setDomainPopup] = useState<{ open: boolean; designation: string; restrictedCount: number; totalCount: number }>({
-    open: false,
-    designation: "",
-    restrictedCount: 0,
-    totalCount: 0,
-  });
 
   useEffect(() => {
     fetchHierarchy();
@@ -127,19 +120,6 @@ export default function AdminUserKpiAccess({
   const getAccessibleCount = (ids: number[]): number =>
     ids.filter((id) => allowedKpiIds.includes(id)).length;
 
-  const handleDomaineClick = (d: DomaineItem) => {
-    const allKpiIds = getDomaineKpiIds(d);
-    const accessible = getAccessibleCount(allKpiIds);
-    if (accessible < allKpiIds.length) {
-      setDomainPopup({
-        open: true,
-        designation: d.designation,
-        restrictedCount: allKpiIds.length - accessible,
-        totalCount: allKpiIds.length,
-      });
-    }
-  };
-
   if (loading) {
     return <div className="text-sm text-muted-foreground py-2">Chargement de la hiérarchie...</div>;
   }
@@ -168,13 +148,7 @@ export default function AdminUserKpiAccess({
                   setExpandedDomaines(newSet);
                 }}
               >
-                <div
-                  className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm font-medium hover:bg-muted/50 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDomaineClick(domaine);
-                  }}
-                >
+                <div className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-sm font-medium hover:bg-muted/50 cursor-pointer">
                   <Checkbox
                     checked={domaineCheckState}
                     onCheckedChange={() => toggleDomaine(domaine)}
@@ -271,21 +245,6 @@ export default function AdminUserKpiAccess({
           })
         )}
       </div>
-
-      <AlertDialog open={domainPopup.open} onOpenChange={(open) => setDomainPopup({ ...domainPopup, open })}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Accès restreint - {domainPopup.designation}</AlertDialogTitle>
-            <AlertDialogDescription>
-              L'utilisateur n'a pas accès à {domainPopup.restrictedCount} tableau(x) sur {domainPopup.totalCount} dans ce domaine.
-              Développez le domaine pour voir les tableaux grisés.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction>Compris</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

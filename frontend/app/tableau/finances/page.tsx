@@ -18,6 +18,8 @@ import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
+import { useDeclarationAccess } from "@/hooks/use-declaration-access"
+import { DomainAccessGuard } from "@/components/domain-access-guard"
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
@@ -723,7 +725,11 @@ function FinancesPageContent() {
     const categoryTabKeys = new Set(selectedCategory.tabKeys)
     return declarationTabs.filter((tab) => categoryTabKeys.has(tab.key as tableauTabKey))
   }, [declarationCategoryOptions, declarationTabs, selectedCategoryKey])
-
+  
+  const allowedTabKeys = useDeclarationAccess("finances", user?.allowedKpis)
+  
+  const accessibleDeclarationTabs = filteredDeclarationTabs
+  
   const selectableYears = useMemo(
     () => YEARS.filter((year) => MONTHS.some((month) => !istableauPeriodLocked(month.value, year, userRole))),
     [tableauPolicyRevision, userRole],
@@ -776,9 +782,10 @@ function FinancesPageContent() {
   )
 
   useEffect(() => {
-    if (filteredDeclarationTabs.length === 0) return
-    const firstEnabledTab = filteredDeclarationTabs.find((tab) => !tab.isDisabled)?.key ?? filteredDeclarationTabs[0].key
-    if (!filteredDeclarationTabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
+    const tabs = accessibleDeclarationTabs
+    if (tabs.length === 0) return
+    const firstEnabledTab = tabs.find((tab) => !tab.isDisabled)?.key ?? tabs[0].key
+    if (!tabs.some((tab) => tab.key === activeTab) || disabledTabKeys.has(activeTab)) {
       setActiveTab(firstEnabledTab)
     }
   }, [activeTab, disabledTabKeys, filteredDeclarationTabs])
@@ -1284,6 +1291,7 @@ function FinancesPageContent() {
 
   return (
     <LayoutWrapper user={user}>
+      <DomainAccessGuard user={user} domainKey="finances">
       {!hasFiscalTabAccess ? (
         <AccessDeniedDialog
           title="Acces refuse"
@@ -1305,6 +1313,7 @@ function FinancesPageContent() {
               onBackClick={() => router.push("/dashbord")}
               onStepClick={handleStepClick}
               layout="horizontal"
+              allowedSousDomaines={user.allowedSousDomaines}
             />
 
             <Card className="border border-gray-200">
@@ -1345,8 +1354,15 @@ function FinancesPageContent() {
             </Card>
 
             <div className="space-y-4">
-              {activeTab === "compte_resultat" && (
-                <div className="space-y-4">
+              {activeTab === "compte_resultat" && (() => {
+              const isLocked = allowedTabKeys && !allowedTabKeys.has("compte_resultat")
+              return (
+                <div className={"space-y-4" + (isLocked ? " opacity-50 pointer-events-none select-none" : "")}>
+                  {isLocked && (
+                    <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                      Accès refusé — vous n'avez pas les droits pour modifier ce tableau.
+                    </div>
+                  )}
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Compte de resultat</CardTitle>
@@ -1402,9 +1418,17 @@ function FinancesPageContent() {
                     </div>
                   </div>
                 </div>
-              )}
-              {activeTab === "avancement_engagement" && (
-                <div className="space-y-4">
+              )
+            })()}
+              {activeTab === "avancement_engagement" && (() => {
+              const isLocked = allowedTabKeys && !allowedTabKeys.has("avancement_engagement")
+              return (
+                <div className={"space-y-4" + (isLocked ? " opacity-50 pointer-events-none select-none" : "")}>
+                  {isLocked && (
+                    <div className="mb-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                      Accès refusé — vous n'avez pas les droits pour modifier ce tableau.
+                    </div>
+                  )}
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Etat d'avancement des engagement (MDA)</CardTitle>
@@ -1460,7 +1484,8 @@ function FinancesPageContent() {
                     </div>
                   </div>
                 </div>
-              )}
+              )
+            })()}
 
               <DynamicKpiTabs
                 domain="finances"
@@ -1468,11 +1493,14 @@ function FinancesPageContent() {
                 mois={mois}
                 annee={annee}
                 direction={effectiveDirection}
+                allowedKpis={user.allowedKpis}
+                allowedSousDomaines={user.allowedSousDomaines}
               />
             </div>
           </div>
         </>
       )}
+      </DomainAccessGuard>
     </LayoutWrapper>
   )
 }

@@ -18,6 +18,7 @@ import { AccessDeniedDialog } from "@/components/access-denied-dialog"
 import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
+import { DomainAccessGuard } from "@/components/domain-access-guard"
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
@@ -1893,6 +1894,7 @@ resolveTabKey(declaration)
 
   return (
     <LayoutWrapper user={user}>
+      <DomainAccessGuard user={user} domainKey="regionale">
       {!hasFiscalTabAccess ? (
         <AccessDeniedDialog
           title="Acces refuse"
@@ -1914,6 +1916,7 @@ resolveTabKey(declaration)
               onBackClick={() => router.push("/dashbord")}
               onStepClick={handleStepClick}
               layout="horizontal"
+              allowedSousDomaines={user.allowedSousDomaines}
             />
 
             <Card className="border border-gray-200">
@@ -1970,6 +1973,8 @@ resolveTabKey(declaration)
                 mois={mois}
                 annee={annee}
                 direction={effectiveDirection}
+                allowedKpis={user.allowedKpis}
+                allowedSousDomaines={user.allowedSousDomaines}
               />
             </div>
             <div className="mt-4 space-y-1">
@@ -2011,6 +2016,7 @@ resolveTabKey(declaration)
           </div>
         </>
       )}
+      </DomainAccessGuard>
     </LayoutWrapper>
   )
 }

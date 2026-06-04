@@ -1,15 +1,17 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { Check } from "lucide-react"
 import { DomainKey } from "@/lib/tableau-domain-steps"
 import { getDomainProgressSteps } from "@/lib/tableau-progress"
+import { authFetch } from "@/lib/auth-fetch"
 
 interface StepNavProps {
   domain: DomainKey
   currentTabKey?: string
   completedTabKeys?: Set<string>
   onStepClick?: (pointKey: string) => void
+  allowedSousDomaines?: number[]
 }
 
 type StepStatus = "completed" | "current" | "pending"
@@ -191,8 +193,42 @@ export function TableauStepNav({
   currentTabKey,
   completedTabKeys = new Set(),
   onStepClick,
+  allowedSousDomaines,
 }: StepNavProps) {
   const { steps } = getProgressIndexes(domain, currentTabKey)
+  const [disabledStepKeys, setDisabledStepKeys] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!allowedSousDomaines || allowedSousDomaines.length === 0) {
+      setDisabledStepKeys(new Set())
+      return
+    }
+    let cancelled = false
+    const fetchData = async () => {
+      try {
+        const res = await authFetch(`/api/kpis/domain/${domain}`, { cache: "no-store" })
+        if (!res.ok || cancelled) return
+        const sousDomaines = await res.json() as { id: number; designation: string; kpis: { id: number; name: string; rows: string[] }[] }[]
+        const allowedSdSet = new Set(allowedSousDomaines)
+        const kpiNamesByAllowedSd = new Set<string>()
+        for (const sd of sousDomaines) {
+          if (allowedSdSet.has(sd.id)) {
+            for (const k of sd.kpis) kpiNamesByAllowedSd.add(k.name)
+          }
+        }
+        const disabled = new Set<string>()
+        for (const step of steps) {
+          const hasAccess = step.points.some((p) => kpiNamesByAllowedSd.has(p.key))
+          if (!hasAccess) disabled.add(step.key)
+        }
+        if (!cancelled) setDisabledStepKeys(disabled)
+      } catch {
+        // ignore
+      }
+    }
+    fetchData()
+    return () => { cancelled = true }
+  }, [domain, allowedSousDomaines, steps])
 
   return (
     <div className="w-full">
@@ -229,32 +265,38 @@ export function TableauStepNav({
             const isStepCompleted = stepStatus === "completed"
             const isActiveStep = step.points.some((point) => point.key === currentTabKey)
 
+            const isDisabled = disabledStepKeys.has(step.key)
+
             return (
               <div
                 key={step.key}
-                className={`relative z-10 flex flex-col items-center gap-3 ${onStepClick ? "cursor-pointer" : ""}`}
-                onClick={() => onStepClick?.(step.points[0].key)}
+                className={`relative z-10 flex flex-col items-center gap-3 ${onStepClick && !isDisabled ? "cursor-pointer" : ""}`}
+                onClick={() => {
+                  if (!isDisabled) onStepClick?.(step.points[0].key)
+                }}
               >
                 {/* Grand cercle pour l'onglet */}
                 <div
                   className={`relative flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold transition-all flex-shrink-0 ${
-                    isStepCompleted
+                    isDisabled
+                      ? "bg-gray-100 text-gray-400"
+                      : isStepCompleted
                       ? `bg-green-500 text-white shadow-md${isActiveStep ? " ring-4 ring-green-200" : ""}`
                       : stepStatus === "current"
                       ? "bg-white text-green-700 ring-4 ring-green-200 shadow-lg"
                       : "bg-gray-200 text-gray-600 shadow-sm"
                   }`}
                 >
-                  {stepStatus === "completed" ? <Check size={24} /> : groupIndex + 1}
+                  {isDisabled ? "—" : stepStatus === "completed" ? <Check size={24} /> : groupIndex + 1}
                 </div>
 
                 {/* Nom de l'onglet */}
                 <div className="text-center">
                   <p
                     className={`text-xs font-semibold leading-tight max-w-[90px] whitespace-nowrap ${
-                      stepStatus === "current"
-                        ? "text-green-700"
-                        : stepStatus === "completed"
+                      isDisabled
+                        ? "text-gray-400"
+                        : stepStatus === "current" || stepStatus === "completed"
                         ? "text-green-700"
                         : "text-gray-600"
                     }`}

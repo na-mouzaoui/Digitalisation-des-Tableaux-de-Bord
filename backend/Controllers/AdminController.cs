@@ -64,6 +64,44 @@ public class AdminController : ControllerBase
         }
     }
 
+    private static List<int> ParseCommaSeparatedIds(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return new List<int>();
+        return raw
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => { int.TryParse(s.Trim(), out var id); return id; })
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+    }
+
+    private static string SerializeCommaSeparatedIds(List<int> ids)
+    {
+        if (ids == null || ids.Count == 0)
+            return "";
+        return string.Join(",", ids.Distinct().OrderBy(x => x));
+    }
+
+    private async Task<(List<int> DomaineIds, List<int> SousDomaineIds)> DeriveDomainAndSdFromKpis(List<int> kpiIds)
+    {
+        if (kpiIds.Count == 0) return (new List<int>(), new List<int>());
+
+        var sousDomaineIds = await _context.Kpis
+            .Where(k => kpiIds.Contains(k.Id))
+            .Select(k => k.SousDomaineId)
+            .Distinct()
+            .ToListAsync();
+
+        var domaineIds = await _context.SousDomaines
+            .Where(sd => sousDomaineIds.Contains(sd.Id))
+            .Select(sd => sd.DomaineId)
+            .Distinct()
+            .ToListAsync();
+
+        return (domaineIds, sousDomaineIds);
+    }
+
     private static string SerializeDisabledTabKeys(IEnumerable<string> keys)
     {
         var normalized = keys
@@ -72,26 +110,6 @@ public class AdminController : ControllerBase
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         return JsonSerializer.Serialize(normalized);
-    }
-
-    private static List<int> ParseAllowedKpiIds(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return new List<int>();
-
-        try
-        {
-            return JsonSerializer.Deserialize<List<int>>(json) ?? new List<int>();
-        }
-        catch
-        {
-            return new List<int>();
-        }
-    }
-
-    private static string SerializeAllowedKpiIds(IEnumerable<int> ids)
-    {
-        return JsonSerializer.Serialize(ids.Distinct().ToList());
     }
 
     private async Task<AdminSetting> GetOrCreateAdminSettingAsync()
@@ -157,7 +175,9 @@ public class AdminController : ControllerBase
                 u.PhoneNumber,
                 u.Role,
                 u.Region,
-                u.AllowedKpisJson,
+                u.AllowedKpis,
+                u.AllowedDomaines,
+                u.AllowedSousDomaines,
                 u.MustChangePassword,
                 u.CreatedAt
             })
@@ -173,10 +193,12 @@ public class AdminController : ControllerBase
             u.PhoneNumber,
             u.Role,
             u.Region,
-            allowedKpiIds = ParseAllowedKpiIds(u.AllowedKpisJson),
+            allowedKpiIds = ParseCommaSeparatedIds(u.AllowedKpis),
+            allowedDomaineIds = ParseCommaSeparatedIds(u.AllowedDomaines),
+            allowedSousDomaineIds = ParseCommaSeparatedIds(u.AllowedSousDomaines),
             u.MustChangePassword,
             u.CreatedAt
-        });
+        }).ToList();
 
         return Ok(result);
     }
@@ -187,7 +209,8 @@ public class AdminController : ControllerBase
         if (!await IsAdmin())
             return Forbid();
 
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
         if (user == null)
             return NotFound();
 
@@ -204,7 +227,9 @@ public class AdminController : ControllerBase
             user.PhoneNumber,
             user.Role,
             user.Region,
-            allowedKpiIds = ParseAllowedKpiIds(user.AllowedKpisJson),
+            allowedKpiIds = ParseCommaSeparatedIds(user.AllowedKpis),
+            allowedDomaineIds = ParseCommaSeparatedIds(user.AllowedDomaines),
+            allowedSousDomaineIds = ParseCommaSeparatedIds(user.AllowedSousDomaines),
             user.MustChangePassword,
             user.CreatedAt
         });
@@ -228,6 +253,11 @@ public class AdminController : ControllerBase
         if (!Regex.IsMatch(request.PhoneNumber ?? "", @"^0\d{9}$"))
             return BadRequest("Numéro de téléphone invalide");
 
+        var kpiIds = request.AllowedKpiIds ?? new List<int>();
+        var (domaineIds, sousDomaineIds) = kpiIds.Count > 0
+            ? await DeriveDomainAndSdFromKpis(kpiIds)
+            : (new List<int>(), new List<int>());
+
         var user = new User
         {
             Email = email,
@@ -238,7 +268,9 @@ public class AdminController : ControllerBase
             PhoneNumber = request.PhoneNumber ?? "",
             Role = request.Role ?? "utilisateur",
             Region = request.Role == "divisionnaire" ? request.Region : null,
-            AllowedKpisJson = request.AllowedKpiIds != null ? SerializeAllowedKpiIds(request.AllowedKpiIds) : "[]",
+            AllowedKpis = SerializeCommaSeparatedIds(kpiIds),
+            AllowedDomaines = SerializeCommaSeparatedIds(domaineIds),
+            AllowedSousDomaines = SerializeCommaSeparatedIds(sousDomaineIds),
             MustChangePassword = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -297,7 +329,25 @@ public class AdminController : ControllerBase
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
         if (request.AllowedKpiIds != null)
-            user.AllowedKpisJson = SerializeAllowedKpiIds(request.AllowedKpiIds);
+        {
+            var kpiIds = request.AllowedKpiIds;
+            user.AllowedKpis = SerializeCommaSeparatedIds(kpiIds);
+
+            var (domaineIds, sousDomaineIds) = kpiIds.Count > 0
+                ? await DeriveDomainAndSdFromKpis(kpiIds)
+                : (new List<int>(), new List<int>());
+
+            user.AllowedDomaines = SerializeCommaSeparatedIds(domaineIds);
+            user.AllowedSousDomaines = SerializeCommaSeparatedIds(sousDomaineIds);
+        }
+        else
+        {
+            if (request.AllowedDomaineIds != null)
+                user.AllowedDomaines = SerializeCommaSeparatedIds(request.AllowedDomaineIds);
+
+            if (request.AllowedSousDomaineIds != null)
+                user.AllowedSousDomaines = SerializeCommaSeparatedIds(request.AllowedSousDomaineIds);
+        }
 
         await _context.SaveChangesAsync();
 

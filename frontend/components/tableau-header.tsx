@@ -16,6 +16,7 @@ interface TableauHeaderProps {
   onBackClick?: () => void
   onStepClick?: (pointKey: string) => void
   layout?: "vertical" | "horizontal"
+  allowedSousDomaines?: number[]
 }
 
 export function TableauHeader({
@@ -28,6 +29,7 @@ export function TableauHeader({
   onBackClick,
   onStepClick,
   layout = "vertical",
+  allowedSousDomaines,
 }: TableauHeaderProps) {
   return (
     <div className="space-y-4 mb-6">
@@ -56,6 +58,7 @@ export function TableauHeader({
           currentTabKey={currentTabKey}
           completedTabKeys={completedTabKeys}
           onStepClick={onStepClick}
+          allowedSousDomaines={allowedSousDomaines}
         />
       </div>
     </div>
