@@ -152,6 +152,8 @@ public class TableauController : ControllerBase
         "parc_abonnes_gp",
         "total_parc_abonnes_technologie",
         "activation",
+        "desactivation",
+        "resiliation",
         "chiffre_affaires_mda",
         "reseau_distribution"
     };

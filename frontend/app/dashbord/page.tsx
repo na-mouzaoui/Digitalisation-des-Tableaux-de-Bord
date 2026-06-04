@@ -153,8 +153,8 @@ interface Savedtableau {
   mttrRows?: MttrRegionRow[]
   
   // Support Tables (RH + Formation + Créances)
-  recouvrementRows?: RecouvrementRow[]
-  recouvrementAnterieurRows?: RecouvrementRow[]
+  creanceRows?: CreanceRow[]
+  creanceAnterieurRows?: CreanceRow[]
   fraisPersonnelRows?: { designation: string; m: string; m1: string }[]
   effectifGspRows?: { gsp: string; m: string; m1: string; part: string }[]
   absenteismeRows?: { motif: string; m: string; m1: string; part: string }[]
@@ -349,8 +349,8 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     disponibiliteReseauRows: [],
     mttrRows: [],
     // Support
-    recouvrementRows: [],
-    recouvrementAnterieurRows: [],
+    creanceRows: [],
+    creanceAnterieurRows: [],
     fraisPersonnelRows: [],
     effectifGspRows: [],
     absenteismeRows: [],
@@ -459,8 +459,8 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     
     // Support Tables (RH + Formation + Créances)
     case "creance_contentieuses":
-      tableau.recouvrementRows = toArray<RecouvrementRow>(parsedData.recouvrementRows)
-      tableau.recouvrementAnterieurRows = toArray<RecouvrementRow>(parsedData.recouvrementAnterieurRows)
+      tableau.creanceRows = toArray<CreanceRow>(parsedData.creanceRows)
+      tableau.creanceAnterieurRows = toArray<CreanceRow>(parsedData.creanceAnterieurRows)
       break
     case "frais_personnel":
       tableau.fraisPersonnelRows = toArray(parsedData.fraisPersonnelRows)
@@ -786,7 +786,7 @@ type DisponibiliteReseauRow = { designation: string; m1Realise: string; mObjecti
 type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; realiseM1: string; ecart: string }
 type MttrRegionRow = { region: string; cities: MttrCityRow[] }
 
-type RecouvrementRow = { designation: string; m1Montant: string; mObjectif: string; mMontant: string; mTaux: string }
+type CreanceRow = { designation: string; m1Montant: string; mObjectif: string; mMontant: string; mTaux: string }
 type MouvementEffectifsRow = { bloc: "arrives" | "departs"; operation: string; mCadresSup: string; mCadres: string; mMaitrise: string; mExecution: string; m1CadresSup: string; m1Cadres: string; m1Maitrise: string; m1Execution: string }
 type MouvementEffectifsDomaineRow = { bloc: "recrutement" | "sortant"; domaine: string; mCdi: string; mCdd: string; mCta: string; m1Cdi: string; m1Cdd: string; m1Cta: string }
 type BudgetFormationRow = { designation: string; m1: string; m: string; evol: string }
@@ -908,8 +908,8 @@ function RechargementBlockDisplay({ rows }: { rows: RechargementRow[] }) {
   return <SimpleEvolTableDisplay title="Rechargement" rows={rows} />
 }
 
-function CreancesContentieusesBlockDisplay({ rows, anterieurRows }: { rows: RecouvrementRow[]; anterieurRows: RecouvrementRow[] }) {
-  const renderTable = (title: string, data: RecouvrementRow[]) => (
+function CreancesContentieusesBlockDisplay({ rows, anterieurRows }: { rows: CreanceRow[]; anterieurRows: CreanceRow[] }) {
+  const renderTable = (title: string, data: CreanceRow[]) => (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-gray-700">{title}</p>
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -954,7 +954,7 @@ function CreancesContentieusesBlockDisplay({ rows, anterieurRows }: { rows: Reco
 function MouvementEffectifsBlockDisplay({ rows }: { rows: MouvementEffectifsRow[] }) {
   const fields = ["mCadresSup", "mCadres", "mMaitrise", "mExecution", "m1CadresSup", "m1Cadres", "m1Maitrise", "m1Execution"] as const
   const sumRows = (bloc: string, field: string) =>
-    rows.filter((r) => r.bloc === bloc && r.operation !== "TOTAL").reduce((acc, r) => acc + num(r[field]), 0)
+    rows.filter((r) => r.bloc === bloc && r.operation !== "TOTAL").reduce((acc, r) => acc + num((r as any)[field]), 0)
   const sumBlocTotal = (bloc: string, flds: readonly string[]) =>
     flds.reduce((acc, f) => acc + sumRows(bloc, f), 0)
 
@@ -1009,8 +1009,9 @@ function MouvementEffectifsBlockDisplay({ rows }: { rows: MouvementEffectifsRow[
 }
 
 function MouvementEffectifsDomaineBlockDisplay({ rows }: { rows: MouvementEffectifsDomaineRow[] }) {
+  const fields = ["mCdi", "mCdd", "mCta", "m1Cdi", "m1Cdd", "m1Cta"] as const
   const sumRows = (bloc: string, field: string) =>
-    rows.filter((r) => r.bloc === bloc && r.domaine !== "TOTAL").reduce((acc, r) => acc + num(r[field]), 0)
+    rows.filter((r) => r.bloc === bloc && r.domaine !== "TOTAL").reduce((acc, r) => acc + num((r as any)[field]), 0)
   const sumBlocTotal = (bloc: string, flds: readonly string[]) =>
     flds.reduce((acc, f) => acc + sumRows(bloc, f), 0)
 
@@ -1050,8 +1051,8 @@ function MouvementEffectifsDomaineBlockDisplay({ rows }: { rows: MouvementEffect
                     {index === 0 && <td rowSpan={4} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Recrutement</td>}
                     {index === 5 && <td rowSpan={4} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Sortant</td>}
                     <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.domaine}</td>
-                    {fields.map((field) => (
-                      <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field] as string)}</td>
+                    {fields.map((field: string) => (
+                      <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt((row as any)[field])}</td>
                     ))}
                   </>
                 )}
@@ -2249,7 +2250,7 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     
     // Tableaux Support (RH + Formation + Créances)
     case "creance_contentieuses":
-      return <CreancesContentieusesBlockDisplay rows={decl.recouvrementRows ?? []} anterieurRows={decl.recouvrementAnterieurRows ?? []} />
+      return <CreancesContentieusesBlockDisplay rows={decl.creanceRows ?? []} anterieurRows={decl.creanceAnterieurRows ?? []} />
     
     // Support RH Sub-tabs
     case "frais_personnel":
@@ -2394,9 +2395,9 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     
     // Tableaux Support (Nouveaux)
     case "creances_contentieuses":
-      return <CreancesContentieusesBlockDisplay rows={decl.recouvrementRows ?? []} anterieurRows={[]} />
+      return <CreancesContentieusesBlockDisplay rows={decl.creanceRows ?? []} anterieurRows={[]} />
     case "creances_contentieuses_anterieur":
-      return <CreancesContentieusesBlockDisplay rows={decl.recouvrementAnterieurRows ?? []} anterieurRows={[]} />
+      return <CreancesContentieusesBlockDisplay rows={decl.creanceAnterieurRows ?? []} anterieurRows={[]} />
     case "mouvement_effectifs_domaine":
       return <MouvementEffectifsDomaineBlockDisplay rows={decl.mouvementEffectifsDomaineRows ?? []} />
     case "budget_formation":
@@ -3321,8 +3322,33 @@ export default function tableauDashboardPage() {
     }
   }
 
+  const gettableauEditRoute = (tabKey: string): string => {
+    const key = tabKey.trim().toLowerCase()
+    if (["encaissement","tva_immo","tva_biens","droits_timbre","ca_tap","etat_tap","ca_siege","irg","taxe2","taxe_masters","taxe_vehicule","taxe_formation","acompte","ibs","taxe_domicil","tva_autoliq","finances_autres","avancement_engagement","compte_resultat","investissement","tresorerie"].includes(key)) return "finances"
+    if (["suivi_infrastructures_reseau","situation_reseaux","evolution_trafic_data","amelioration_qualite","couverture_reseau","action_notable_reseau","realisation_technique_reseau","situation_reseau","trafic_data"].includes(key)) return "DVDRS"
+    if (["disponibilite_reseau","mttr"].includes(key)) return "DQRPC"
+    if (["creance_contentieuses","frais_personnel","effectif_gsp","absenteisme","mouvement_effectifs","mouvement_effectifs_domaine","effectifs_formes_gsp","formations_domaines","budget_formation","rh","formation","creances_contentieuses","creances_contentieuses_anterieur"].includes(key)) return "Support"
+    if (["reclamation","e_payement","total_encaissement","rechargement","recouvrement","parc_abonnes_gp","total_parc_abonnes_technologie","activation","desactivation","resiliation","chiffre_affaires_mda","encaissement_c","parc_abonnes","chiffre_affaires_c","commercial_autres"].includes(key)) return "commercial"
+    if (key === "regionale" || key === "reseau_distribution") return "regionale"
+    return "finances"
+  }
+
   const handleEdit = (decl: Savedtableau, tabKey: string) => {
-    router.push(`/tableau?editId=${encodeURIComponent(decl.id)}&tab=${encodeURIComponent(tabKey)}`)
+    try {
+      const existing = JSON.parse(localStorage.getItem("fiscal_declarations") ?? "[]")
+      const filtered = Array.isArray(existing) ? existing.filter((d: any) => String(d.id) !== String(decl.id)) : []
+      filtered.push(decl)
+      localStorage.setItem("fiscal_declarations", JSON.stringify(filtered))
+    } catch {}
+
+    const route = gettableauEditRoute(tabKey)
+    const params = new URLSearchParams({
+      editId: decl.id,
+      tab: tabKey,
+      mois: decl.mois,
+      annee: decl.annee,
+    })
+    router.push(`/tableau/${route}?${params.toString()}`)
   }
 
   const handleApprove = async (decl: Savedtableau) => {
@@ -3799,11 +3825,17 @@ export default function tableauDashboardPage() {
       </div>
 
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard tableau</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            tableaux tableaus récents
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard tableau</h1>
+            
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">Période en cours</p>
+            <p className="text-xl font-bold text-gray-900">
+              {formattableauPeriod(tableauStats.currentPeriod.mois, tableauStats.currentPeriod.annee)}
+            </p>
+          </div>
         </div>
 
         {/* Stats tiles */}
