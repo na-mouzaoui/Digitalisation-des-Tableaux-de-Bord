@@ -126,11 +126,11 @@ const DEFAULT_REALISATION_TECHNIQUE_RESEAU_ROWS: RealisationTechniqueReseauRow[]
 // ?? Situation Réseau ?????????????????????????????????????????????????????????
 type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
 const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
-  { situation: "Reseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
-  { situation: "Reseau 3G", equipements: "NodeB", m: "", m1: "" },
-  { situation: "Reseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD+TDD)", m: "", m1: "" },
-  { situation: "Reseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD)", m: "", m1: "" },
-  { situation: "Reseaux 5G", equipements: "GNodeB", m: "", m1: "" },
+  { situation: "Réseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
+  { situation: "Réseau 3G", equipements: "NodeB", m: "", m1: "" },
+  { situation: "Réseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD+TDD)", m: "", m1: "" },
+  { situation: "Réseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD)", m: "", m1: "" },
+  { situation: "Réseaux 5G", equipements: "GNodeB", m: "", m1: "" },
 ]
 
 // ?? Trafic Data ??????????????????????????????????????????????????????????????
@@ -230,8 +230,8 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Réseaux</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Équipements</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
@@ -318,9 +318,9 @@ function DynamicWilayaTable<T extends { wilaya: string; mObjectif: string; mReal
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
             </tr>
           </thead>
           <tbody>
@@ -366,9 +366,9 @@ function TabAmeliorationQualite({ rows, setRows, onSave, isSubmitting }: TabAmel
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
             </tr>
           </thead>
           <tbody>
@@ -397,7 +397,7 @@ interface TabCouvertureReseauProps { rows: CouvertureReseauRow[]; setRows: React
 function TabCouvertureReseau({ rows, setRows, onSave, isSubmitting }: TabCouvertureReseauProps) {
   const update = (i: number, field: keyof CouvertureReseauRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
-  return <DynamicWilayaTable colHeader="Couverture Reseau/Wilaya" rows={rows} onAdd={() => setRows((p) => [...p, { ...EMPTY_COUVERTURE_RESEAU_ROW }])} onRemove={(i) => setRows((p) => p.filter((_, idx) => idx !== i))} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <DynamicWilayaTable colHeader="Couverture Réseau/Wilaya" rows={rows} onAdd={() => setRows((p) => [...p, { ...EMPTY_COUVERTURE_RESEAU_ROW }])} onRemove={(i) => setRows((p) => p.filter((_, idx) => idx !== i))} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
 // ?? Composant générique : tableau Objectif / Réalisé / Taux (M + M) ?????????
@@ -467,7 +467,7 @@ function TabActionNotableReseau({ rows, setRows, onSave, isSubmitting }: TabActi
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
               {["Objectif", "Realise", "Taux"].map((h, i) => (
                 <th key={i} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? "" : " border-r"}`}>{h}</th>
               ))}
@@ -499,12 +499,12 @@ function TabActionNotableReseau({ rows, setRows, onSave, isSubmitting }: TabActi
 // 7. CONFIGURATION DES ONGLETS (TABLEAUX CONSERVéS UNIQUEMENT)
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "realisation_technique_reseau", label: "Suivi des infrastructures Reseau 2G/3G/4G", color: PRIMARY_COLOR, title: "SUIVI DES INFRASTRUCTURES RESEAU 2G/3G/4G" },
-  { key: "situation_reseau",            label: "Situation Reseau",                         color: PRIMARY_COLOR, title: "SITUATION RESEAU" },
-  { key: "trafic_data",                 label: "Evolution du Trafic Data",                color: PRIMARY_COLOR, title: "EVOLUTION DU TRAFIC DATA" },
-  { key: "amelioration_qualite",        label: "Amelioration qualite",                     color: PRIMARY_COLOR, title: "AMELIORATION QUALITE" },
-  { key: "couverture_reseau",           label: "Couverture Reseau",                        color: PRIMARY_COLOR, title: "COUVERTURE RESEAU" },
-  { key: "action_notable_reseau",       label: "Action notable sur le Reseau",            color: PRIMARY_COLOR, title: "ACTION NOTABLE SUR LE RESEAU" },
+  { key: "realisation_technique_reseau", label: "Suivi des infrastructures Réseau 2G/3G/4G", color: PRIMARY_COLOR, title: "SUIVI DES INFRASTRUCTURES RÉSEAU 2G/3G/4G" },
+  { key: "situation_reseau",            label: "Situation Réseau",                         color: PRIMARY_COLOR, title: "SITUATION RÉSEAU" },
+  { key: "trafic_data",                 label: "Évolution du Trafic Data",                color: PRIMARY_COLOR, title: "ÉVOLUTION DU TRAFIC DATA" },
+  { key: "amelioration_qualite",        label: "Amélioration qualité",                     color: PRIMARY_COLOR, title: "AMÉLIORATION QUALITÉ" },
+  { key: "couverture_reseau",           label: "Couverture Réseau",                        color: PRIMARY_COLOR, title: "COUVERTURE RÉSEAU" },
+  { key: "action_notable_reseau",       label: "Action notable sur le Réseau",            color: PRIMARY_COLOR, title: "ACTION NOTABLE SUR LE RÉSEAU" },
 ]
 
 const KPI_TAB_KEYS = [
@@ -970,7 +970,7 @@ function DVDRSPageContent() {
       if (!declaration) {
         toast({
           title: "Declaration introuvable",
-          description: "La declaration demandee n'existe pas ou a deja ete supprimee.",
+          description: "La déclaration demandée n'existe pas ou a déjà été supprimée.",
           variant: "destructive",
         })
         return
@@ -1087,27 +1087,27 @@ function DVDRSPageContent() {
 
     if (!selectableYears.includes(annee) || !selectableMonths.some((month) => month.value === mois)) {
       toast({
-        title: "Periode cloturee",
-        description: "Le mois ou l'annee selectionne(e) est hors delai.",
+        title: "Période clôturée",
+        description: "Le mois ou l'année sélectionné(e) est hors délai.",
         variant: "destructive",
       })
       return
     }
 
     if (!mois) {
-      toast({ title: "Mois requis", description: "Veuillez selectionner le mois avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Mois requis", description: "Veuillez sélectionner le mois avant d'enregistrer.", variant: "destructive" })
       return
     }
     if (!annee) {
-      toast({ title: "Annee requise", description: "Veuillez selectionner l'annee avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Année requise", description: "Veuillez sélectionner l'année avant d'enregistrer.", variant: "destructive" })
       return
     }
 
     const isSourcePeriodLocked = !!editingDeclarationId && !!editingSourceMois && !!editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
     if (isSourcePeriodLocked) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1115,8 +1115,8 @@ function DVDRSPageContent() {
 
     if (istableauPeriodLocked(mois, annee, userRole)) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune création ou modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1139,13 +1139,13 @@ function DVDRSPageContent() {
         break
       case "amelioration_qualite":
         if (ameliorationQualiteRows.some((row) => !row.wilaya || !row.m1Realise || !row.mObjectif || !row.mRealise || !row.ecart)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Amelioration qualite.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Amélioration qualité.", variant: "destructive" })
           validationError = true
         }
         break
       case "couverture_reseau":
         if (couvertureReseauRows.some((row) => !row.wilaya || !row.mObjectif || !row.mRealise || !row.m1Objectif || !row.m1Realise || !row.ecart)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseign toutes les lignes du tableau Couverture Reseau.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Couverture Réseau.", variant: "destructive" })
           validationError = true
         }
         break
@@ -1316,8 +1316,8 @@ function DVDRSPageContent() {
     
     const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
-      title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
-      description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
+      title: editingDeclarationId ? "Déclaration modifiée" : "Déclaration enregistrée",
+      description: `La déclaration "${tabLabel}" a été sauvegardée avec succès.`,
     })
     setIsSubmitting(false)
     setActiveTab(tabKey)
@@ -1425,7 +1425,7 @@ function DVDRSPageContent() {
         return (
           <Card key={tabKey}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Suivi des infrastructures Reseau 2G/3G/4G</CardTitle>
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Suivi des infrastructures Reseau 2G/3G/4G/5G</CardTitle>
             </CardHeader>
             <CardContent>
               {renderDisabledNotice(tabKey)}

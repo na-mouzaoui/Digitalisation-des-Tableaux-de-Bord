@@ -127,7 +127,7 @@ const DEFAULT_GENIE_CIVIL_ROWS: GenieCivilRow[] =
 
 // ?? Maintenance & Equipements ????????????????????????????????????????
 type MaintenanceEquipementRow = { label: string; m1Realise: string; m1Objectif: string; mRealise: string; mTaux: string }
-const MAINTENANCE_EQUIPEMENT_LABELS = ["Maintenance curative des sites", "Maintenance preventive des sites", "Acquisition de 100 groupes electrogenes de differentes puissances", "Equipements electriques (transfos MT-BT)", "Alimentation des sites SUCE par une solution solaire", "Acquisition des climatiseurs split-systeme pour les sites techniques"] as const
+const MAINTENANCE_EQUIPEMENT_LABELS = ["Maintenance curative des sites", "Maintenance preventive des sites", "Acquisition de 100 groupes electrogenes de differentes puissances", "Équipements électriques (transfos MT-BT)", "Alimentation des sites SUCE par une solution solaire", "Acquisition des climatiseurs split-système pour les sites techniques"] as const
 const DEFAULT_MAINTENANCE_EQUIPEMENT_ROWS: MaintenanceEquipementRow[] =
   MAINTENANCE_EQUIPEMENT_LABELS.map((label) => ({ label, m1Realise: "", m1Objectif: "", mRealise: "", mTaux: "" }))
 
@@ -200,9 +200,9 @@ function TabCommercialeDr({ rows, setRows, onSave, isSubmitting }: TabCommercial
               <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
           </thead>
@@ -244,9 +244,9 @@ function TabReseauDistribution({ rows, setRows, onSave, isSubmitting }: TabResea
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Recrute</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Recrute</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
             </tr>
           </thead>
@@ -288,9 +288,9 @@ function TabGenieCivil({ rows, setRows, onSave, isSubmitting }: TabGenieCivilPro
               <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
           </thead>
@@ -329,9 +329,9 @@ function TabMaintenanceEquipement({ rows, setRows, onSave, isSubmitting }: TabMa
               <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
           </thead>
@@ -371,9 +371,9 @@ function TabNouveauxSites({ rows, setRows, onSave, isSubmitting }: TabNouveauxSi
               <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
           </thead>
@@ -624,15 +624,15 @@ function TabFormation({ rows, setRows, onSave, isSubmitting }: TabFormationProps
 // 7. CONFIGURATION DES ONGLETS (TABLEAUX CONSERVéS UNIQUEMENT)
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "genie_civil",                    label: "Genie Civil & Environnement",           color: PRIMARY_COLOR, title: "GENIE CIVIL & ENVIRONNEMENT" },
-  { key: "maintenance_equipement",         label: "Maintenance & Equipements",              color: PRIMARY_COLOR, title: "MAINTENANCE & EQUIPEMENTS" },
+  { key: "genie_civil",                    label: "Génie Civil & Environnement",           color: PRIMARY_COLOR, title: "GENIE CIVIL & ENVIRONNEMENT" },
+  { key: "maintenance_equipement",         label: "Maintenance & Équipements",              color: PRIMARY_COLOR, title: "MAINTENANCE & ÉQUIPEMENTS" },
   { key: "nouveaux_sites",                 label: "Nouveaux Sites & Extension Radio",       color: PRIMARY_COLOR, title: "NOUVEAUX SITES & EXTENSION RADIO" },
-  { key: "mttr_debit",                     label: "MTTR & Debit Internet",                  color: PRIMARY_COLOR, title: "MTTR & DEBIT INTERNET" },
+  { key: "mttr_debit",                     label: "MTTR & Débit Internet",                  color: PRIMARY_COLOR, title: "MTTR & DÉBIT INTERNET" },
   { key: "recouvrement_contentieux",       label: "Recouvrement Contentieux",               color: PRIMARY_COLOR, title: "RECOUVREMENT CONTENTIEUX" },
   { key: "ressources_humaines",            label: "Ressources Humaines",                    color: PRIMARY_COLOR, title: "RESSOURCES HUMAINES" },
   { key: "formation",                      label: "Formation",                              color: PRIMARY_COLOR, title: "FORMATION" },
   { key: "acquisition_terrain",            label: "Acquisition Terrain & Location Immeuble", color: PRIMARY_COLOR, title: "ACQUISITION TERRAIN & LOCATION IMMEUBLE" },
-  { key: "realisations_commerciales",                 label: "Commercial",                             color: PRIMARY_COLOR, title: "REALISATIONS COMMERCIALES" },
+  { key: "realisations_commerciales",                 label: "Commercial",                             color: PRIMARY_COLOR, title: "RÉALISATIONS COMMERCIALES" },
 ]
 
 const CUSTOM_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
@@ -1219,7 +1219,7 @@ function RegionalePageContent() {
       if (!declaration) {
         toast({
           title: "Declaration introuvable",
-          description: "La declaration demandee n'existe pas ou a deja ete supprimee.",
+          description: "La déclaration demandée n'existe pas ou a déjà été supprimée.",
           variant: "destructive",
         })
         return
@@ -1322,8 +1322,8 @@ resolveTabKey(declaration)
     
     if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
-        title: "Acces refuse",
-        description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
+        title: "Accès refusé",
+        description: "Votre profil n'est pas autorisé à créer ou modifier ce tableau fiscal.",
         variant: "destructive",
       })
       return
@@ -1331,8 +1331,8 @@ resolveTabKey(declaration)
 
     if (disabledTabKeys.has(tabKey)) {
       toast({
-        title: "Tableau desactive",
-        description: "Le tableau selectionne est desactive par l'administration.",
+        title: "Tableau désactivé",
+        description: "Le tableau sélectionné est désactivé par l'administration.",
         variant: "destructive",
       })
       return
@@ -1340,27 +1340,27 @@ resolveTabKey(declaration)
 
     if (!selectableYears.includes(annee) || !selectableMonths.some((month) => month.value === mois)) {
       toast({
-        title: "Periode cloturee",
-        description: "Le mois ou l'annee selectionne(e) est hors delai.",
+        title: "Période clôturée",
+        description: "Le mois ou l'année sélectionné(e) est hors délai.",
         variant: "destructive",
       })
       return
     }
 
     if (!mois) {
-      toast({ title: "Mois requis", description: "Veuillez selectionner le mois avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Mois requis", description: "Veuillez sélectionner le mois avant d'enregistrer.", variant: "destructive" })
       return
     }
     if (!annee) {
-      toast({ title: "Annee requise", description: "Veuillez selectionner l'annee avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Année requise", description: "Veuillez sélectionner l'année avant d'enregistrer.", variant: "destructive" })
       return
     }
 
     const isSourcePeriodLocked = !!editingDeclarationId && !!editingSourceMois && !!editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
     if (isSourcePeriodLocked) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1368,8 +1368,8 @@ resolveTabKey(declaration)
 
     if (istableauPeriodLocked(mois, annee, userRole)) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune création ou modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1605,8 +1605,8 @@ resolveTabKey(declaration)
     
     const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
-      title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
-      description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
+      title: editingDeclarationId ? "Déclaration modifiée" : "Déclaration enregistrée",
+      description: `La déclaration "${tabLabel}" a été sauvegardée avec succès.`,
     })
     setIsSubmitting(false)
     setActiveTab(tabKey)
@@ -1692,7 +1692,7 @@ resolveTabKey(declaration)
     const existing = getExistingDeclarationForTab(tabKey)
     return existing ? (
       <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-        Ce tableau a deja ete enregistre pour la periode {existing.mois}/{existing.annee}. Vous etes sur le point de le modifier.
+        Ce tableau a déjà été enregistré pour la période {existing.mois}/{existing.annee}. Vous êtes sur le point de le modifier.
       </p>
     ) : null
   }

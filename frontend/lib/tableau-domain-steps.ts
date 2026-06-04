@@ -29,10 +29,10 @@ export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
     { key: "avancement_engagement", label: "Finance DFC" },
   ],
   DVDRS: [
-    { key: "reseau", label: "Reseau technique" },
+    { key: "reseau", label: "Réseau technique" },
   ],
   DQRPC: [
-    { key: "reseau", label: "Qualité Reseau" },
+    { key: "reseau", label: "Qualité Réseau" },
   ],
   commercial: [
     { key: "chiffre_affaires_mda", label: "Chiffre d'Affaires MDA" },

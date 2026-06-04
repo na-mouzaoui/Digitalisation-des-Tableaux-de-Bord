@@ -54,60 +54,65 @@ const IRG_LABELS = [
 ]
 const TAXE2_LABELS = ["Taxe sur l'importation des biens et services"]
 const TAXE12_LABELS = ["Taxe de Formation Professionnelle 1%", "Taxe d'Apprentissage 1%"]
-const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Aoét","Sept","Oct","Nov","Déc"]
+const MONTH_LABELS_SHORT = ["Janv","Fév","Mars","Avr","Mai","Juin","Juil","Août","Sept","Oct","Nov","Déc"]
 
 const TABLEAU_TITLE_MAP: Record<string, string> = {
   // Commercial
-  reclamation: "TABLEAU RECLAMATION",
-  e_payement: "E-PAYEMENT (MDA)",
+  reclamation: "TABLEAU RÉCLAMATION",
+  e_payement: "E-PAIEMENT (MDA)",
   total_encaissement: "ENCAISSEMENT (MDA)",
   rechargement: "RECHARGEMENT",
   recouvrement: "RECOUVREMENT (MDA)",
-  parc_abonnes_gp: "PARC ABONNES GP",
-  total_parc_abonnes_technologie: "TOTAL PARC ABONNES PAR TECHNOLOGIE",
+  parc_abonnes_gp: "PARC ABONNÉS GP",
+  total_parc_abonnes_technologie: "TOTAL PARC ABONNÉS PAR TECHNOLOGIE",
   activation: "ACTIVATION",
   desactivation: "DÉSACTIVATION",
   resiliation: "RÉSILIATION",
   chiffre_affaires_mda: "CHIFFRE D'AFFAIRES (MDA)",
-  // Regionale
-  realisations_commerciales: "REALISATIONS COMMERCIALES",
-  reseau_distribution: "Reseau de Distribution",
-  genie_civil: "GENIE CIVIL & ENVIRONNEMENT",
-  maintenance_equipement: "MAINTENANCE & EQUIPEMENTS",
+
+  // Régionale
+  realisations_commerciales: "Réalisations commerciales",
+  reseau_distribution: "Réseau de distribution",
+  genie_civil: "Génie civil & environnement",
+  maintenance_equipement: "MAINTENANCE & ÉQUIPEMENTS",
   nouveaux_sites: "NOUVEAUX SITES & EXTENSION RADIO",
-  mttr_debit: "MTTR & DEBIT INTERNET",
+  mttr_debit: "MTTR & DÉBIT INTERNET",
   recouvrement_contentieux: "RECOUVREMENT CONTENTIEUX",
   ressources_humaines: "RESSOURCES HUMAINES",
   formation: "FORMATION",
-  acquisition_terrain: "ACQUISITION TERRAIN & LOCATION IMMEUBLE",
+  acquisition_terrain: "ACQUISITION TERRAIN & LOCATION D'IMMEUBLE",
+
   // Support
-  creances_contentieuses: "CREANCE CONTENTIEUSES",
-  creances_contentieuses_anterieur: "Créances Contentieuses Antérieur",
+  creances_contentieuses: "CRÉANCES CONTENTIEUSES",
+  creances_contentieuses_anterieur: "Créances contentieuses antérieures",
   rh: "RH",
-  frais_personnel: "Frais Personnel (MDA)",
+  frais_personnel: "Frais de personnel (MDA)",
   effectif_gsp: "Effectif par GSP",
-  absenteisme: "Absenteisme",
-  mouvement_effectifs: "Mouvement des Effectifs",
-  mouvement_effectifs_domaine: "Mouvement des Effectifs par Domaine",
-  effectifs_formes_gsp: "Effectifs formes par GSP",
-  formations_domaines: "Formations realisees par domaines",
-  budget_formation: "Budget des Formations",
+  absenteisme: "Absentéisme",
+  mouvement_effectifs: "Mouvement des effectifs",
+  mouvement_effectifs_domaine: "Mouvement des effectifs par domaine",
+  effectifs_formes_gsp: "Effectifs formés par GSP",
+  formations_domaines: "Formations réalisées par domaines",
+  budget_formation: "Budget des formations",
+
   // DVDRS
-  realisation_technique_reseau: "SUIVI DES INFRASTRUCTURES RESEAU 2G/3G/4G",
-  situation_reseau: "SITUATION RESEAU",
-  trafic_data: "EVOLUTION DU TRAFIC DATA",
-  amelioration_qualite: "AMELIORATION QUALITE",
-  couverture_reseau: "COUVERTURE RESEAU",
-  action_notable_reseau: "ACTION NOTABLE SUR LE RESEAU",
+  realisation_technique_reseau: "SUIVI DES INFRASTRUCTURES RÉSEAU 2G/3G/4G",
+  situation_reseau: "SITUATION RÉSEAU",
+  trafic_data: "ÉVOLUTION DU TRAFIC DATA",
+  amelioration_qualite: "AMÉLIORATION DE LA QUALITÉ",
+  couverture_reseau: "COUVERTURE RÉSEAU",
+  action_notable_reseau: "ACTION NOTABLE SUR LE RÉSEAU",
+
   // DQRPC
-  disponibilite_reseau: "DISPONIBILITE RESEAU",
+  disponibilite_reseau: "DISPONIBILITÉ RÉSEAU",
   mttr: "MTTR / DR",
+
   // Finances
-  compte_resultat: "COMPTE DE RESULTAT & INVESTISSEMENT (MDA)",
+  compte_resultat: "COMPTE DE RÉSULTAT & INVESTISSEMENT (MDA)",
   investissement: "Investissement (MDA)",
-  avancement_engagement: "ETAT D'AVANCEMENT DES ENGAGEMENTS (MDA)",
+  avancement_engagement: "ÉTAT D'AVANCEMENT DES ENGAGEMENTS (MDA)",
   tresorerie: "Trésorerie Mobilis (MDA)",
-}
+};
 
 interface Savedtableau {
   id: string
@@ -256,15 +261,15 @@ const toStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.map((item) => String(item ?? "")) : []
 
 const TRESORERIE_MOBILIS_DISPLAY_LABELS = [
-  "Solde Debut de période",
+  "Solde Début de période",
   "RECETTE (encaissement)",
   "Client",
   "Roaming",
   "Interco",
   "Autre",
-  "Totale Mois",
-  "totale Cumulé",
-  "DEPENSE (decaissement)",
+  "Total Mois",
+  "Total Cumulé",
+  "DÉPENSE (décaissement)",
   "Exploitations",
   "Totale Mois",
   "Totale Cumulé",
@@ -590,30 +595,30 @@ const DASH_TABS = [
   { key: "tva_autoliq",   label: "16 a TVA Auto Liquidation", color: "#312e81", title: "TVA AUTO LIQUIDATION" },
   
   // Tableaux DVDRS (Réseau Technique)
-  { key: "suivi_infrastructures_reseau",  label: "17 - Suivi Infra Reseau 2G/3G/4G", color: "#2db34b", title: "SUIVI DES INFRASTRUCTURES RESEAU 2G/3G/4G" },
-  { key: "evolution_trafic_data",        label: "18 - Evolution Trafic Data",       color: "#1d6fb8", title: "EVOLUTION DU TRAFIC DATA" },
-  { key: "amelioration_qualite",        label: "19 - Amelioration qualité",          color: "#7c3aed", title: "AMELIORATION QUALITE" },
-  { key: "couverture_reseau",           label: "20 - Couverture Réseau",             color: "#0891b2", title: "COUVERTURE RESEAU" },
-  { key: "action_notable_reseau",       label: "21 - Action Notable Réseau",         color: "#ea580c", title: "ACTION NOTABLE SUR LE RESEAU" },
-  { key: "situation_reseaux",           label: "22 - Situation Reseaux",             color: "#2db34b", title: "SITUATION RESEAUX" },
+  { key: "suivi_infrastructures_reseau",  label: "17 - Suivi Infra Réseau 2G/3G/4G", color: "#2db34b", title: "SUIVI DES INFRASTRUCTURES RÉSEAU 2G/3G/4G" },
+  { key: "evolution_trafic_data",        label: "18 - Évolution Trafic Data",       color: "#1d6fb8", title: "ÉVOLUTION DU TRAFIC DATA" },
+  { key: "amelioration_qualite",        label: "19 - Amélioration qualité",          color: "#7c3aed", title: "AMÉLIORATION QUALITÉ" },
+  { key: "couverture_reseau",           label: "20 - Couverture Réseau",             color: "#0891b2", title: "COUVERTURE RÉSEAU" },
+  { key: "action_notable_reseau",       label: "21 - Action Notable Réseau",         color: "#ea580c", title: "ACTION NOTABLE SUR LE RÉSEAU" },
+  { key: "situation_reseaux",           label: "22 - Situation Réseaux",             color: "#2db34b", title: "SITUATION RESEAUX" },
   
   // Tableaux DQRPC (Qualité Réseau)
-  { key: "disponibilite_reseau",  label: "23 - Disponibilité Réseau", color: "#2db34b", title: "DISPONIBILITE RESEAU" },
+  { key: "disponibilite_reseau",  label: "23 - Disponibilité Réseau", color: "#2db34b", title: "DISPONIBILITÉ RÉSEAU" },
   { key: "mttr",                label: "24 - MTTR",              color: "#1d6fb8", title: "MTTR / DR" },
   
   // Tableaux Support (RH + Formation + Créances)
-  { key: "creances_contentieuses",      label: "25 - Creances contentieuses",    color: "#2db34b", title: "CREANCES CONTENTIEUSES" },
+  { key: "creances_contentieuses",      label: "25 - Créances contentieuses",    color: "#2db34b", title: "CREANCES CONTENTIEUSES" },
   { key: "rh",                      label: "26 - RH",                    color: "#1d6fb8", title: "RESSOURCES HUMAINES" },
   { key: "formation",               label: "27 - Formation",             color: "#7c3aed", title: "FORMATION" },
   
   // Tableaux Commercial
-  { key: "reclamation",   label: "28 - Reclamation",                color: "#2db34b", title: "RECLAMATION" },
+  { key: "reclamation",   label: "28 - Réclamation",                color: "#2db34b", title: "RÉCLAMATION" },
   { key: "e_payement",   label: "29 - E-payment",                  color: "#1d6fb8", title: "E-PAYMENT" },
   { key: "rechargement",label: "30 - Rechargement",               color: "#7c3aed", title: "RECHARGEMENT" },
   { key: "encaissement_c",label: "31 - Encaissement",                 color: "#0891b2", title: "ENCAISSEMENT" },
   { key: "recouvrement",label: "32 - Recouvrement",                color: "#ea580c", title: "RECOUVREMENT" },
-  { key: "parc_abonnes", label: "33 - Parc Abonnes",                color: "#be123c", title: "PARC ABONNES" },
-  { key: "activation",  label: "34 - Activation SIM",             color: "#854d0e", title: "ACTIVATION DESIM" },
+  { key: "parc_abonnes", label: "33 - Parc Abonnés",                color: "#be123c", title: "PARC ABONNÉS" },
+  { key: "activation",  label: "34 - Activation SIM",             color: "#854d0e", title: "ACTIVATION DE SIM" },
   { key: "chiffre_affaires_c", label: "35 - Chiffre d'affaires",      color: "#0f766e", title: "CHIFFRE D'AFFAIRES" },
   
   // Tableaux Régionale
@@ -698,7 +703,7 @@ function RemindersCard({
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-amber-900">
-              Periode: <span className="font-semibold">{currentPeriod}</span>.
+              Période: <span className="font-semibold">{currentPeriod}</span>.
               Directions suivies: <span className="font-semibold">{reminders.length}</span>.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
@@ -1084,12 +1089,12 @@ function ReclamationBlockDisplay({ rows }: { rows: ReclamationRow[] }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Tableau Reclamation</p>
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Tableau Réclamation</p>
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full text-sm border-collapse">
           <thead>
             <tr className="bg-gray-50">
-              <th colSpan={2} className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-40">Reclamations</th>
+              <th colSpan={2} className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-40">Réclamations</th>
               <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">M</th>
               <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">M-1</th>
             </tr>
@@ -1397,7 +1402,7 @@ function TresorerieMobilisBlockDisplay({ rows }: { rows: TresorerieMobilisRow[] 
 function RealisationTechniqueReseauDisplay({ rows }: { rows: RealisationTechniqueReseauRow[] }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Suivi des infrastructures Reseau 2G/3G/4G</p>
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Suivi des infrastructures Réseau 2G/3G/4G/5G</p>
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full text-sm">
           <thead>
@@ -1433,12 +1438,12 @@ function RealisationTechniqueReseauDisplay({ rows }: { rows: RealisationTechniqu
 function SituationReseauDisplay({ rows }: { rows: SituationReseauRow[] }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Situation Reseaux</p>
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Situation Réseaux</p>
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Réseaux</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
@@ -1579,7 +1584,7 @@ function AmeliorationQualiteDisplay({ rows }: { rows: AmeliorationQualiteRow[] }
 function ActionNotableReseauDisplay({ rows }: { rows: ActionNotableReseauRow[] }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Action notable sur le reseau</p>
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Action notable sur le réseau</p>
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full text-sm">
           <thead>
@@ -1617,7 +1622,7 @@ function ActionNotableReseauDisplay({ rows }: { rows: ActionNotableReseauRow[] }
 function DisponibiliteReseauDisplay({ rows }: { rows: DisponibiliteReseauRow[] }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Disponibilite reseau</p>
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Disponibilite réseau</p>
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full text-sm">
           <thead>
@@ -2238,7 +2243,7 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     case "amelioration_qualite":
       return <AmeliorationQualiteDisplay rows={decl.ameliorationQualiteRows ?? []} />
     case "couverture_reseau":
-      return <DynamicWilayaTableDisplay title="Couverture Reseau/Wilaya" rows={decl.couvertureReseauRows ?? []} />
+      return <DynamicWilayaTableDisplay title="Couverture Réseau/Wilaya" rows={decl.couvertureReseauRows ?? []} />
     case "action_notable_reseau":
       return <ActionNotableReseauDisplay rows={decl.actionNotableReseauRows ?? []} />
     
@@ -3315,7 +3320,7 @@ export default function tableauDashboardPage() {
       link.click()
       URL.revokeObjectURL(link.href)
 
-      toast({ title: "Export Excel termine", description: "Le tableau a ete exporte avec sa structure." })
+      toast({ title: "Export Excel terminé", description: "Le tableau a été exporté avec sa structure." })
     } catch (error) {
       console.error("Excel export failed", error)
       toast({ title: "Erreur export", description: "Impossible d'exporter le tableau en Excel.", variant: "destructive" })

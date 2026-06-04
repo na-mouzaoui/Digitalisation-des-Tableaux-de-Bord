@@ -55,7 +55,7 @@ export default function AdminPage() {
               variant="outline"
               onClick={() => router.push("/dashbord")}
             >
-              Retour a la plateforme
+              Retour à la plateforme
             </Button>
 
             <Button variant="outline" onClick={handleLogout}>

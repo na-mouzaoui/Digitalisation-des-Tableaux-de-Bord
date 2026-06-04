@@ -186,13 +186,13 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteRes
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Designations</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Désignations</th>
               <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
-              {["Budget", "Realise", "Taux"].map((h, i) => (
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              {["Budget", "Réalisé", "Taux"].map((h, i) => (
                 <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">{h}</th>
               ))}
             </tr>
@@ -247,9 +247,9 @@ type AvancementEngagementRow = { designation: string; m1: string; m: string; evo
 const AVANCEMENT_ENGAGEMENT_LABELS = [
   "Montant de l'investissement",
   "Dépense d'investissement engagées",
-  "Droits de Douane Exonorés",
+  "Droits de Douane Exonérés",
   "TVA Exonérée",
-  "Taux et d'investissement",
+  "Taux d'investissement",
   "Total des emplois créés",
 ] as const
 
@@ -272,7 +272,7 @@ const TRESORERIE_MOBILIS_LABELS = [
   "Autre",
   "Totale Mois",
   "totale Cumulé",
-  "DEPENSE (decaissement)",
+  "DEPENSE (décaissement)",
   "Exploitations",
   "Totale Mois",
   "Totale Cumulé",
@@ -362,7 +362,7 @@ function TabAvancementEngagement({ rows, setRows, onSave, isSubmitting }: TabAva
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Etat d'avancement des engagement (MDA)</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">État d'avancement des engagements (MDA)</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evolution</th>
@@ -422,7 +422,7 @@ function TabTresorerieMobilis({ rows, setRows, onSave, isSubmitting }: TabTresor
                 {index === 1 ? (
                   <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">RECETTE (encaissement)</td>
                 ) : index === 8 ? (
-                  <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">DEPENSE (decaissement)</td>
+                  <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">DÉPENSE (décaissement)</td>
                 ) : index === 0 || (index >= 6 && index <= 7) || index >= 10 ? (
                   <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
                 ) : null}
@@ -452,8 +452,8 @@ function TabTresorerieMobilis({ rows, setRows, onSave, isSubmitting }: TabTresor
 // 7. CONFIGURATION DES ONGLETS
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "compte_resultat", label: "Compte de resultat", color: PRIMARY_COLOR, title: "COMPTE DE RESULTAT & INVESTISSEMENT (MDA)" },
-  { key: "avancement_engagement", label: "Finance DFC", color: PRIMARY_COLOR, title: "ETAT D'AVANCEMENT DES ENGAGEMENTS (MDA)" },
+  { key: "compte_resultat", label: "Compte de résultat", color: PRIMARY_COLOR, title: "COMPTE DE RÉSULTAT & INVESTISSEMENT (MDA)" },
+  { key: "avancement_engagement", label: "Finance DFC", color: PRIMARY_COLOR, title: "ÉTAT D'AVANCEMENT DES ENGAGEMENTS (MDA)" },
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
@@ -865,8 +865,8 @@ function FinancesPageContent() {
       const declaration = declarations.find((item) => safeString(item.id) === editQuery.editId)
       if (!declaration) {
         toast({
-          title: "Declaration introuvable",
-          description: "La declaration demandee n'existe pas ou a deja ete supprimee.",
+          title: "Déclaration introuvable",
+          description: "La déclaration demandée n'existe pas ou a déjà été supprimée.",
           variant: "destructive",
         })
         return
@@ -988,27 +988,27 @@ function FinancesPageContent() {
 
     if (!selectableYears.includes(annee) || !selectableMonths.some((month) => month.value === mois)) {
       toast({
-        title: "Periode cloturee",
-        description: "Le mois ou l'annee selectionne(e) est hors delai.",
+        title: "Période clôturée",
+        description: "Le mois ou l'année sélectionné(e) est hors délai.",
         variant: "destructive",
       })
       return
     }
 
     if (!mois) {
-      toast({ title: "Mois requis", description: "Veuillez selectionner le mois avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Mois requis", description: "Veuillez sélectionner le mois avant d'enregistrer.", variant: "destructive" })
       return
     }
     if (!annee) {
-      toast({ title: "Annee requise", description: "Veuillez selectionner l'annee avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Année requise", description: "Veuillez sélectionner l'année avant d'enregistrer.", variant: "destructive" })
       return
     }
 
     const isSourcePeriodLocked = !!editingDeclarationId && !!editingSourceMois && !!editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
     if (isSourcePeriodLocked) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1016,8 +1016,8 @@ function FinancesPageContent() {
 
     if (istableauPeriodLocked(mois, annee, userRole)) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune création ou modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1188,8 +1188,8 @@ function FinancesPageContent() {
 
     const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
-      title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
-      description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
+      title: editingDeclarationId ? "Déclaration modifiée" : "Déclaration enregistrée",
+      description: `La déclaration "${tabLabel}" a été sauvegardée avec succès.`,
     })
     setIsSubmitting(false)
     setActiveTab(tabKey)
@@ -1365,7 +1365,7 @@ function FinancesPageContent() {
                   )}
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Compte de resultat</CardTitle>
+                      <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Compte de résultat</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {renderExistingWarning("compte_resultat")}

@@ -122,7 +122,7 @@ const DEFAULT_RECLAMATION_ROWS: ReclamationRow[] = [
   { category: "traitees", type: "GP",  mGp: "", mB2b: "", m1Gp: "", m1B2b: "" },
   { category: "traitees", type: "B2B", mGp: "", mB2b: "", m1Gp: "", m1B2b: "" },
 ]
-const DEFAULT_RECLAMATION_LABELS = ["Recues GP", "Recues B2B", "Traitees GP", "Traitees B2B"] as const
+const DEFAULT_RECLAMATION_LABELS = ["Reçues GP", "Reçues B2B", "Traitées GP", "Traitées B2B"] as const
 
 // ?? E-Payement ???????????????????????????????????????????????????????????????
 type EPayementRow = { rechargement: string; m: string; m1: string; evol: string }
@@ -138,9 +138,9 @@ const DEFAULT_RECHARGEMENT_ROWS: RechargementRow[] = RECHARGEMENT_LABELS.map((de
 // ?? Situation Reseaux
 type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
 const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
-  { situation: "Reseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
-  { situation: "Reseau 3G", equipements: "NodeB", m: "", m1: "" },
-  { situation: "Reseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD+TDD)\neNodeB (Evolved NodeB) (FDD)", m: "", m1: "" },
+  { situation: "Réseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
+  { situation: "Réseau 3G", equipements: "NodeB", m: "", m1: "" },
+  { situation: "Réseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD+TDD)\neNodeB (Evolved NodeB) (FDD)", m: "", m1: "" },
 ]
 
 // ?? Total Encaissement ???????????????????????????????????????????????????????
@@ -512,8 +512,8 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50">
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Reseaux</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Réseaux</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Équipements</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
@@ -632,14 +632,14 @@ function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: Simp
 interface TabParcAbonnesGpProps { rows: ParcAbonnesGpRow[]; setRows: React.Dispatch<React.SetStateAction<ParcAbonnesGpRow[]>>; onSave: () => void; isSubmitting: boolean }
 function TabParcAbonnesGp({ rows, setRows, onSave, isSubmitting }: TabParcAbonnesGpProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Parc Abonnes GP" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Parc Abonnés GP" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
 // ?? 6g. Total Parc Abonnés par Technologie ???????????????????????????????????
 interface TabTotalParcAbonnesTechnologieProps { rows: TotalParcAbonnesTechnologieRow[]; setRows: React.Dispatch<React.SetStateAction<TotalParcAbonnesTechnologieRow[]>>; onSave: () => void; isSubmitting: boolean }
 function TabTotalParcAbonnesTechnologie({ rows, setRows, onSave, isSubmitting }: TabTotalParcAbonnesTechnologieProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Total Parc Abonnes par Technologie" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Total Parc Abonnés par Technologie" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
 // ?? 6j. Activation ???????????????????????????????????????????????????????????
@@ -704,9 +704,9 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
             </tr>
             <tr className="bg-gray-50">
               <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">
-                Realise
+                Réalisé
               </th>
-              {["Objectif", "Realise", "Taux"].map((h, i) => (
+              {["Objectif", "Réalisé", "Taux"].map((h, i) => (
                 <th key={i + 3} className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">
                   {h}
                 </th>
@@ -803,7 +803,7 @@ type tableauCategoryKey =
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
   { key: "chiffre_affaires", label: "Chiffre d'affaires",          tabKeys: ["chiffre_affaires_mda"] },
-  { key: "parc_abonnes",   label: "Parc abonne",                  tabKeys: ["parc_abonnes_gp", "total_parc_abonnes_technologie"] },
+  { key: "parc_abonnes",   label: "Parc abonné",                  tabKeys: ["parc_abonnes_gp", "total_parc_abonnes_technologie"] },
   { key: "activation_desactivation_sim", label: "Activation", tabKeys: ["activation", "desactivation", "resiliation"] },
   { key: "reclamation",    label: "Reclamation",                  tabKeys: ["reclamation"] },
   { key: "e_payment",      label: "E-payment",                    tabKeys: ["e_payement"] },
@@ -1356,8 +1356,8 @@ function CommercialPageContent() {
       const declaration = declarations.find((item) => safeString(item.id) === editQuery.editId)
       if (!declaration) {
         toast({
-          title: "Declaration introuvable",
-          description: "La declaration demandee n'existe pas ou a deja ete supprimee.",
+          title: "Déclaration introuvable",
+          description: "La déclaration demandée n'existe pas ou a déjà été supprimée.",
           variant: "destructive",
         })
         return
@@ -1479,27 +1479,27 @@ function CommercialPageContent() {
 
     if (!selectableYears.includes(annee) || !selectableMonths.some((month) => month.value === mois)) {
       toast({
-        title: "Periode cloturee",
-        description: "Le mois ou l'annee selectionne(e) est hors delai.",
+        title: "Période clôturée",
+        description: "Le mois ou l'année sélectionné(e) est hors délai.",
         variant: "destructive",
       })
       return
     }
 
     if (!mois) {
-      toast({ title: "Mois requis", description: "Veuillez selectionner le mois avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Mois requis", description: "Veuillez sélectionner le mois avant d'enregistrer.", variant: "destructive" })
       return
     }
     if (!annee) {
-      toast({ title: "Annee requise", description: "Veuillez selectionner l'annee avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Année requise", description: "Veuillez sélectionner l'année avant d'enregistrer.", variant: "destructive" })
       return
     }
 
     const isSourcePeriodLocked = !!editingDeclarationId && !!editingSourceMois && !!editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
     if (isSourcePeriodLocked) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1507,8 +1507,8 @@ function CommercialPageContent() {
 
     if (istableauPeriodLocked(mois, annee, userRole)) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune création ou modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1766,8 +1766,8 @@ function CommercialPageContent() {
     
     const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
-      title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
-      description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
+      title: editingDeclarationId ? "Déclaration modifiée" : "Déclaration enregistrée",
+      description: `La déclaration "${tabLabel}" a été sauvegardée avec succès.`,
     })
     setIsSubmitting(false)
     setActiveTab(tabKey)
@@ -1823,7 +1823,7 @@ function CommercialPageContent() {
       return `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`
     }
     if (istableauPeriodLocked(mois, annee, userRole)) {
-      return `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`
+      return `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune création ou modification n'est autorisée.`
     }
     return ""
   })()
@@ -1831,7 +1831,7 @@ function CommercialPageContent() {
   const renderDisabledNotice = (tabKey: tableauTabKey) =>
     disabledTabKeys.has(tabKey) ? (
       <p className="mb-3 rounded border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600">
-        Ce tableau est desactive par l'administration. Il apparait en grise et ne peut pas etre enregistre.
+        Ce tableau est désactivé par l'administration. Il apparaît en grisé et ne peut pas être enregistré.
       </p>
     ) : null
 
@@ -1862,7 +1862,7 @@ function CommercialPageContent() {
     const existing = getExistingDeclarationForTab(tabKey)
     return existing ? (
       <p className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-        Ce tableau a deja ete enregistre pour la periode {existing.mois}/{existing.annee}. Vous etes sur le point de le modifier.
+        Ce tableau a déjà été enregistré pour la période {existing.mois}/{existing.annee}. Vous êtes sur le point de le modifier.
       </p>
     ) : null
   }
@@ -1873,7 +1873,7 @@ function CommercialPageContent() {
         return (
           <Card key={tabKey}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Tableau Reclamation</CardTitle>
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Tableau Réclamation</CardTitle>
             </CardHeader>
             <CardContent>
               {renderDisabledNotice(tabKey)}

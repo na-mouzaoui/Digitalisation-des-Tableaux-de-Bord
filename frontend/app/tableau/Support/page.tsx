@@ -110,17 +110,17 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 
 // ?? Frais Personnel ???????????????????????????????????????????????????????????
 type FraisPersonnelRow = { designation: string; m: string; m1: string }
-const FRAIS_PERSONNEL_LABELS = ["Objectif", "Realisation", "Taux d'atteinte", "Salaire Moyen"] as const
+const FRAIS_PERSONNEL_LABELS = ["Objectif", "Réalisation", "Taux d'atteinte", "Salaire Moyen"] as const
 const DEFAULT_FRAIS_PERSONNEL_ROWS: FraisPersonnelRow[] = FRAIS_PERSONNEL_LABELS.map((designation) => ({ designation, m: "", m1: "" }))
 
 // ?? Effectif GSP ??????????????????????????????????????????????????????????????
 type EffectifGspRow = { gsp: string; m: string; m1: string; part: string }
-const EFFECTIF_GSP_LABELS = ["Cadres Sup", "Cadres", "Maitrise", "Execution", "Total"] as const
+const EFFECTIF_GSP_LABELS = ["Cadres Sup", "Cadres", "Maîtrise", "Execution", "Total"] as const
 const DEFAULT_EFFECTIF_GSP_ROWS: EffectifGspRow[] = EFFECTIF_GSP_LABELS.map((gsp) => ({ gsp, m: "", m1: "", part: "" }))
 
 // ?? Absentéisme ???????????????????????????????????????????????????????????????
 type AbsenteismeRow = { motif: string; m: string; m1: string; part: string }
-const ABSENTEISME_LABELS = ["Irregulieres", "Cadre Disciplinaire", "Cadre Medical", "Autorisees", "TOTAL"] as const
+const ABSENTEISME_LABELS = ["Irrégulières", "Cadre Disciplinaire", "Cadre Medical", "Autorisées", "TOTAL"] as const
 const DEFAULT_ABSENTEISME_ROWS: AbsenteismeRow[] = ABSENTEISME_LABELS.map((motif) => ({ motif, m: "", m1: "", part: "" }))
 
 // ?? Mouvement Effectifs ???????????????????????????????????????????????????????
@@ -291,8 +291,8 @@ interface OrtTableProps {
   m1Simple?: boolean
 }
 function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update, m1Simple }: OrtTableProps) {
-  const m1Headers = m1Simple ? ["Realise"] : ["Objectif", "Realise", "Taux"]
-  const mHeaders = ["Objectif", "Realise", "Taux"]
+  const m1Headers = m1Simple ? ["Réalisé"] : ["Objectif", "Réalisé", "Taux"]
+  const mHeaders = ["Objectif", "Réalisé", "Taux"]
   const m1Fields = m1Simple ? ["m1Realise"] : ["m1Objectif", "m1Realise", "m1Taux"]
   const mFields = ["mObjectif", "mRealise", "mTaux"]
   const allFields = [...mFields, ...m1Fields]
@@ -620,7 +620,7 @@ function TabBudgetFormation({ rows, setRows, onSave, isSubmitting }: TabBudgetFo
 // 7. CONFIGURATION DES ONGLETS (6 tableaux conservés)
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "creances_contentieuses", label: "Creance contentieuses", color: PRIMARY_COLOR, title: "CREANCE CONTENTIEUSES" },
+  { key: "creances_contentieuses", label: "Créance contentieuses", color: PRIMARY_COLOR, title: "CRÉANCE CONTENTIEUSES" },
   { key: "rh", label: "RH", color: PRIMARY_COLOR, title: "RH" },
   { key: "formation", label: "Formation", color: PRIMARY_COLOR, title: "FORMATION" },
 ]
@@ -1211,7 +1211,7 @@ function SupportPageContent() {
       if (!declaration) {
         toast({
           title: "Declaration introuvable",
-          description: "La declaration demandee n'existe pas ou a deja ete supprimee.",
+          description: "La déclaration demandée n'existe pas ou a déjà été supprimée.",
           variant: "destructive",
         })
         return
@@ -1322,27 +1322,27 @@ function SupportPageContent() {
 
     if (!selectableYears.includes(annee) || !selectableMonths.some((month) => month.value === mois)) {
       toast({
-        title: "Periode cloturee",
-        description: "Le mois ou l'annee selectionne(e) est hors delai.",
+        title: "Période clôturée",
+        description: "Le mois ou l'année sélectionné(e) est hors délai.",
         variant: "destructive",
       })
       return
     }
 
     if (!mois) {
-      toast({ title: "Mois requis", description: "Veuillez selectionner le mois avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Mois requis", description: "Veuillez sélectionner le mois avant d'enregistrer.", variant: "destructive" })
       return
     }
     if (!annee) {
-      toast({ title: "Annee requise", description: "Veuillez selectionner l'annee avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Année requise", description: "Veuillez sélectionner l'année avant d'enregistrer.", variant: "destructive" })
       return
     }
 
     const isSourcePeriodLocked = !!editingDeclarationId && !!editingSourceMois && !!editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
     if (isSourcePeriodLocked) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1350,8 +1350,8 @@ function SupportPageContent() {
 
     if (istableauPeriodLocked(mois, annee, userRole)) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune création ou modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -1397,7 +1397,7 @@ function SupportPageContent() {
         break
       case "formations_domaines":
         if (formationsDomainesRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
-          toast({ title: "Champs incomplets", description: "Veuillez renseignerr toutes les lignes du tableau Formations realisees par domaines.", variant: "destructive" })
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Formations réalisées par domaines.", variant: "destructive" })
           validationError = true
         }
         break
@@ -1605,8 +1605,8 @@ function SupportPageContent() {
     
     const tabLabel = SUPPORT_TAB_LABELS[tabKey] ?? tabKey
     toast({
-      title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
-      description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
+      title: editingDeclarationId ? "Déclaration modifiée" : "Déclaration enregistrée",
+      description: `La déclaration "${tabLabel}" a été sauvegardée avec succès.`,
     })
     setIsSubmitting(false)
     setActiveTab(tabKey)
@@ -1672,9 +1672,9 @@ function SupportPageContent() {
     absenteisme: "Absenteisme",
     mouvement_effectifs: "Mouvement des Effectifs",
     mouvement_effectifs_domaine: "Mouvement des Effectifs par Domaine",
-    creances_contentieuses: "Creances contentieuses",
-    effectifs_formes_gsp: "Effectifs formes par GSP",
-    formations_domaines: "Formations realisees par domaines",
+    creances_contentieuses: "Créances contentieuses",
+    effectifs_formes_gsp: "Effectifs formés par GSP",
+    formations_domaines: "Formations réalisées par domaines",
     budget_formation: "Budget des Formations",
   }
 
@@ -1832,7 +1832,7 @@ function SupportPageContent() {
         return (
           <Card key={tabKey}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Formations realisees par domaines</CardTitle>
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Formations réalisées par domaines</CardTitle>
             </CardHeader>
             <CardContent>
               {renderDisabledNotice(tabKey)}

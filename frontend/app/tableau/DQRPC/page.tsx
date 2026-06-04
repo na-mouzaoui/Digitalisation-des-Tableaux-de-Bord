@@ -113,7 +113,7 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 
 // ?? Disponibilité Réseau ??????????????????????????????????????????????????????
 type DisponibiliteReseauRow = { designation: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
-const DISPONIBILITE_RESEAU_LABELS = ["Disponibilite des Services", "Disponibilite Coeur Reseau", "Disponibilite Acces Radio 2G", "Disponibilite Acces Radio 3G", "Disponibilite Acces Radio 4G", "Drop call 2G", "RAB Voice Drop 3G", "ERAB Drop 4G", "MTTR", "2G Congestion Rate", "Disponibilite Globale reseau"] as const
+const DISPONIBILITE_RESEAU_LABELS = ["Disponibilité des Services", "Disponibilité Cœur Réseau", "Disponibilité Accès Radio 2G", "Disponibilité Accès Radio 3G", "Disponibilité Accès Radio 4G", "Drop call 2G", "RAB Voice Drop 3G", "ERAB Drop 4G", "MTTR", "2G Congestion Rate", "Disponibilité Globale réseau"] as const
 const DEFAULT_DISPONIBILITE_RESEAU_ROWS: DisponibiliteReseauRow[] = DISPONIBILITE_RESEAU_LABELS.map((designation) => ({ designation, m1Realise: "", mObjectif: "", mRealise: "", mTaux: "" }))
 
 // ?? MTTR ??????????????????????????????????????????????????????????????????????
@@ -128,9 +128,9 @@ const DEFAULT_MTTR_ROWS: MttrRegionRow[] = MTTR_REGIONS.map((region) => ({ regio
 // ?? Situation Reseaux ????????????????????????????????????????????????????
 type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
 const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
-  { situation: "Reseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
-  { situation: "Reseau 3G", equipements: "NodeB", m: "", m1: "" },
-  { situation: "Reseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD+TDD)\neNodeB (Evolved NodeB) (FDD)", m: "", m1: "" },
+  { situation: "Réseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
+  { situation: "Réseau 3G", equipements: "NodeB", m: "", m1: "" },
+  { situation: "Réseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD+TDD)\neNodeB (Evolved NodeB) (FDD)", m: "", m1: "" },
 ]
 
 
@@ -171,7 +171,7 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
               {["Objectif", "Realise", "Taux"].map((h, i) => (
                 <th key={i} className={`px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? "" : " border-r"}`}>{h}</th>
               ))}
@@ -233,7 +233,7 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
               {["WILAYA", "Objectif", "Realise"].map((h, i) => (
                 <th key={i} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? " border-r" : ""}`}>{h}</th>
               ))}
@@ -275,7 +275,7 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
 // 7. CONFIGURATION DES ONGLETS
 // ?????????????????????????????????????????????????????????????????????????????
 const TABS = [
-  { key: "disponibilite_reseau",           label: "Disponibilite reseau",                  color: PRIMARY_COLOR, title: "DISPONIBILITE RESEAU" },
+  { key: "disponibilite_reseau",           label: "Disponibilité réseau",                  color: PRIMARY_COLOR, title: "DISPONIBILITÉ RÉSEAU" },
   { key: "mttr",                           label: "MTTR",                                  color: PRIMARY_COLOR, title: "MTTR / DR" },
 ]
 
@@ -677,7 +677,7 @@ function DQRPCPageContent() {
       if (!declaration) {
         toast({
           title: "Declaration introuvable",
-          description: "La declaration demandee n'existe pas ou a deja ete supprimee.",
+          description: "La déclaration demandée n'existe pas ou a déjà été supprimée.",
           variant: "destructive",
         })
         return
@@ -789,27 +789,27 @@ function DQRPCPageContent() {
 
     if (!selectableYears.includes(annee) || !selectableMonths.some((month) => month.value === mois)) {
       toast({
-        title: "Periode cloturee",
-        description: "Le mois ou l'annee selectionne(e) est hors delai.",
+        title: "Période clôturée",
+        description: "Le mois ou l'année sélectionné(e) est hors délai.",
         variant: "destructive",
       })
       return
     }
 
     if (!mois) {
-      toast({ title: "Mois requis", description: "Veuillez selectionner le mois avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Mois requis", description: "Veuillez sélectionner le mois avant d'enregistrer.", variant: "destructive" })
       return
     }
     if (!annee) {
-      toast({ title: "Annee requise", description: "Veuillez selectionner l'annee avant d'enregistrer.", variant: "destructive" })
+      toast({ title: "Année requise", description: "Veuillez sélectionner l'année avant d'enregistrer.", variant: "destructive" })
       return
     }
 
     const isSourcePeriodLocked = !!editingDeclarationId && !!editingSourceMois && !!editingSourceAnnee && istableauPeriodLocked(editingSourceMois, editingSourceAnnee, userRole)
     if (isSourcePeriodLocked) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(editingSourceMois, editingSourceAnnee, userRole)} Aucune modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -817,8 +817,8 @@ function DQRPCPageContent() {
 
     if (istableauPeriodLocked(mois, annee, userRole)) {
       toast({
-        title: "Periode cloturee",
-        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune creation ou modification n'est autorisee.`,
+        title: "Période clôturée",
+        description: `${gettableauPeriodLockMessage(mois, annee, userRole)} Aucune création ou modification n'est autorisée.`,
         variant: "destructive",
       })
       return
@@ -978,8 +978,8 @@ function DQRPCPageContent() {
     
     const tabLabel = TABS.find((t) => t.key === tabKey)?.label ?? tabKey
     toast({
-      title: editingDeclarationId ? "Declaration modifiee" : "Declaration enregistree",
-      description: `La declaration "${tabLabel}" a ete sauvegardee avec succes.`,
+      title: editingDeclarationId ? "Déclaration modifiée" : "Déclaration enregistrée",
+      description: `La déclaration "${tabLabel}" a été sauvegardée avec succès.`,
     })
     setIsSubmitting(false)
     setActiveTab(tabKey)
@@ -1085,7 +1085,7 @@ function DQRPCPageContent() {
         return (
           <Card key={tabKey}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Disponibilite reseau</CardTitle>
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Disponibilité réseau</CardTitle>
             </CardHeader>
             <CardContent>
               {renderDisabledNotice(tabKey)}

@@ -25,7 +25,7 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
       key: "avancement_engagement",
       label: "Finance DFC",
       points: [
-        { key: "avancement_engagement", label: "Etat d'avancement des engagement (MDA)" },
+        { key: "avancement_engagement", label: "État d'avancement des engagements (MDA)" },
         { key: "tresorerie", label: "Trésorerie Mobilis (MDA)" },
       ],
     },
@@ -33,7 +33,7 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
   DVDRS: [
     {
       key: "reseau",
-      label: "Reseau technique",
+      label: "Réseau technique",
       points: [
         { key: "realisation_technique_reseau", label: "Suivi Infrastructures Réseau 2G/3G/4G" },
         { key: "situation_reseau", label: "Situation Réseau" },
@@ -47,7 +47,7 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
   DQRPC: [
     {
       key: "reseau",
-      label: "Qualité Reseau",
+      label: "Qualité Réseau",
       points: [
         { key: "disponibilite_reseau", label: "Disponibilité Réseau" },
         { key: "mttr", label: "MTTR / DR" },
@@ -57,12 +57,12 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
   commercial: [
     {
       key: "chiffre_affaires",
-      label: "Chiffre d'affaire",
+      label: "Chiffre d'affaires",
       points: [{ key: "chiffre_affaires_mda", label: "Chiffre d'Affaires MDA" }],
     },
     {
       key: "parc_abonnes",
-      label: "Parc Abonne",
+      label: "Parc Abonné",
       points: [
         { key: "parc_abonnes_gp", label: "Parc Abonnés GP" },
         { key: "total_parc_abonnes_technologie", label: "Parc Abonnés par technologie" },
@@ -79,7 +79,7 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
     },
     {
       key: "reclamation",
-      label: "Reclamation",
+      label: "Réclamation",
       points: [
         { key: "reclamation", label: "Réclamation" },
       ],
@@ -142,7 +142,7 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
       key: "realisations_commerciales",
       label: "Commercial",
       points: [
-        { key: "realisations_commerciales", label: "Realisations Commerciales" },
+        { key: "realisations_commerciales", label: "Réalisations Commerciales" },
         { key: "reseau_distribution", label: "Réseau de Distribution" },
       ],
     },
