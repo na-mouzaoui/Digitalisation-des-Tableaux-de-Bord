@@ -602,7 +602,7 @@ const DASH_TABS = [
   { key: "mttr",                label: "24 - MTTR",              color: "#1d6fb8", title: "MTTR / DR" },
   
   // Tableaux Support (RH + Formation + Créances)
-  { key: "creance_contentieuses",      label: "25 - Creance contentieuses",    color: "#2db34b", title: "CREANCE CONTENTIEUSES" },
+  { key: "creances_contentieuses",      label: "25 - Creances contentieuses",    color: "#2db34b", title: "CREANCES CONTENTIEUSES" },
   { key: "rh",                      label: "26 - RH",                    color: "#1d6fb8", title: "RESSOURCES HUMAINES" },
   { key: "formation",               label: "27 - Formation",             color: "#7c3aed", title: "FORMATION" },
   

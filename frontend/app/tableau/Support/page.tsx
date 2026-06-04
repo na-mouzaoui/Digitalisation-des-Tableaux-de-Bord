@@ -674,7 +674,7 @@ const istableauTabKey = (value: string): value is tableauTabKey =>
 const resolveSupportParentTabKey = (tabKey: string): "creances_contentieuses" | "rh" | "formation" => {
   if (SUPPORT_RH_TAB_KEYS.has(tabKey as tableauTabKey)) return "rh"
   if (SUPPORT_FORMATION_TAB_KEYS.has(tabKey as tableauTabKey)) return "formation"
-  if (tabKey === "creances_contentieuses" || tabKey === "creances_contentieuses_anterieur") return "creances_contentieuses"
+  if (tabKey === "creances_contentieuses" || tabKey === "creances_contentieuses_anterieur" || tabKey === "creance_contentieuses") return "creances_contentieuses"
   return tabKey === "formation" ? "formation" : "rh"
 }
 
@@ -853,7 +853,7 @@ function SupportPageContent() {
   }, [])
 
   // Global meta
-  const [activeTab, setActiveTab] = useState("frais_personnel")
+  const [activeTab, setActiveTab] = useState("creances_contentieuses")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)

@@ -1006,12 +1006,13 @@ function CommercialPageContent() {
     const requestedTab = safeString(params.get("tab")).trim()
     if (requestedTab && istableauTabKey(requestedTab)) {
       setActiveTab(requestedTab)
+      setSelectedCategoryKey(findtableauCategoryKeyForTab(requestedTab))
     }
   }, [])
 
   // Global meta
-  const [activeTab, setActiveTab] = useState("reclamation")
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>("reclamation")
+  const [activeTab, setActiveTab] = useState<string>(tableau_CATEGORY_OPTIONS[0]?.tabKeys[0] ?? "reclamation")
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<tableauCategoryKey>(tableau_CATEGORY_OPTIONS[0]?.key ?? "reclamation")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_tableau_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_tableau_PERIOD.annee)

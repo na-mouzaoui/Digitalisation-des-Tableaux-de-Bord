@@ -893,8 +893,8 @@ function RegionalePageContent() {
   }, [])
 
   // Global meta
-  const [activeTab, setActiveTab] = useState("genie_civil")
-  const [selectedCategoryKey, setSelectedCategoryKey] = useState<CategoryKey>("reseau")
+  const [activeTab, setActiveTab] = useState("realisations_commerciales")
+  const [selectedCategoryKey, setSelectedCategoryKey] = useState<CategoryKey>("commerciale")
   const [direction, setDirection] = useState("")
   const [mois, setMois] = useState(INITIAL_PERIOD.mois)
   const [annee, setAnnee] = useState(INITIAL_PERIOD.annee)
