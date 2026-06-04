@@ -10,91 +10,150 @@ import { useToast } from "@/hooks/use-toast"
 import { authFetch } from "@/lib/auth-fetch"
 import { Plus, Trash2, Save } from "lucide-react"
 
-const CATEGORY_OPTIONS = [
+type TabDef = { key: string; label: string }
+
+type SubdomainDef = {
+  key: string
+  label: string
+  tabs: TabDef[]
+}
+
+type DomainDef = {
+  key: string
+  label: string
+  domain: string
+  subdomains: SubdomainDef[]
+}
+
+const DOMAIN_OPTIONS: DomainDef[] = [
   {
     key: "commerciale",
     label: "Commerciale",
     domain: "Commerciale",
-    tabs: [
-      { key: "reclamation", label: "Reclamation" },
-      { key: "e_payement", label: "E-PAYEMENT" },
-      { key: "total_encaissement", label: "Totale des encaissements" },
-      { key: "rechargement", label: "Rechargement" },
-      { key: "recouvrement", label: "Recouvrement" },
-        { key: "parc_abonnes_gp", label: "Parc Abonnes GP" },
-      { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnes par technologie" },
-      { key: "activation", label: "Activation" },
-      { key: "chiffre_affaires_mda", label: "Chiffre d'Affaires (MDA)" },
+    subdomains: [
+      {
+        key: "reclamation",
+        label: "Reclamation",
+        tabs: [{ key: "reclamation", label: "Reclamation" }],
+      },
+      {
+        key: "paiement",
+        label: "Paiement",
+        tabs: [{ key: "e_payement", label: "E-PAYEMENT" }],
+      },
+      {
+        key: "encaissement",
+        label: "Encaissement",
+        tabs: [{ key: "total_encaissement", label: "Totale des encaissements" }],
+      },
+      {
+        key: "rechargement",
+        label: "Rechargement",
+        tabs: [{ key: "rechargement", label: "Rechargement" }],
+      },
+      {
+        key: "recouvrement",
+        label: "Recouvrement",
+        tabs: [{ key: "recouvrement", label: "Recouvrement" }],
+      },
+      {
+        key: "parc_abonne",
+        label: "Parc abonne",
+        tabs: [
+          { key: "parc_abonnes_gp", label: "Parc Abonnes GP" },
+          { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnes par technologie" },
+        ],
+      },
+      {
+        key: "activation_desactivation",
+        label: "Activation / Desactivation / Resiliation",
+        tabs: [
+          { key: "activation", label: "Activation" },
+          { key: "desactivation", label: "Desactivation" },
+          { key: "resiliation", label: "Resiliation" },
+        ],
+      },
+      {
+        key: "chiffre_affaires",
+        label: "Chiffre d'affaires",
+        tabs: [{ key: "chiffre_affaires_mda", label: "Chiffre d'Affaires (MDA)" }],
+      },
     ],
   },
   {
     key: "dvdrs",
     label: "DVDRS",
     domain: "DVDRS",
-    tabs: [
-      { key: "suivi_infrastructures_reseau", label: "Suivi des infrastructures reseau 2G/3G/4G" },
-      { key: "evolution_trafic_data", label: "Evolution du Trafic Data" },
-      { key: "amelioration_qualite", label: "Amelioration qualite" },
-      { key: "couverture_reseau", label: "Couverture Reseau" },
-      { key: "action_notable_reseau", label: "Action notable sur le Reseau" },
-      { key: "situation_reseaux", label: "Situation Reseaux" },
+    subdomains: [
+      { key: "suivi_infrastructures_reseau", label: "Suivi des infrastructures reseau 2G/3G/4G", tabs: [{ key: "suivi_infrastructures_reseau", label: "Suivi des infrastructures reseau 2G/3G/4G" }] },
+      { key: "evolution_trafic_data", label: "Evolution du Trafic Data", tabs: [{ key: "evolution_trafic_data", label: "Evolution du Trafic Data" }] },
+      { key: "amelioration_qualite", label: "Amelioration qualite", tabs: [{ key: "amelioration_qualite", label: "Amelioration qualite" }] },
+      { key: "couverture_reseau", label: "Couverture Reseau", tabs: [{ key: "couverture_reseau", label: "Couverture Reseau" }] },
+      { key: "action_notable_reseau", label: "Action notable sur le Reseau", tabs: [{ key: "action_notable_reseau", label: "Action notable sur le Reseau" }] },
+      { key: "situation_reseaux", label: "Situation Reseaux", tabs: [{ key: "situation_reseaux", label: "Situation Reseaux" }] },
     ],
   },
   {
     key: "dqrpc",
     label: "DQRPC",
     domain: "DQRPC",
-    tabs: [
-      { key: "realisation_technique_reseau", label: "Realisation technique Reseau" },
-      { key: "amelioration_qualite", label: "Amelioration qualite" },
-      { key: "mttr", label: "MTTR" },
+    subdomains: [
+      { key: "realisation_technique_reseau", label: "Realisation technique Reseau", tabs: [{ key: "realisation_technique_reseau", label: "Realisation technique Reseau" }] },
+      { key: "amelioration_qualite", label: "Amelioration qualite", tabs: [{ key: "amelioration_qualite", label: "Amelioration qualite" }] },
+      { key: "mttr", label: "MTTR", tabs: [{ key: "mttr", label: "MTTR" }] },
     ],
   },
   {
     key: "support",
     label: "Support",
     domain: "Support",
-    tabs: [
-      { key: "creance_contentieuses", label: "Creance contentieuses" },
-      { key: "creances_contentieuses_anterieur", label: "Creance contentieuses anterieur" },
-      { key: "rh", label: "RH" },
-      { key: "formation", label: "Formation" },
-      { key: "frais_personnel", label: "Frais personnel" },
-      { key: "effectif_gsp", label: "Effectif GSP" },
-      { key: "absenteisme", label: "Absenteisme" },
-      { key: "mouvement_effectifs", label: "Mouvement effectifs" },
-      { key: "mouvement_effectifs_domaine", label: "Mouvement effectifs domaine" },
-      { key: "effectifs_formes_gsp", label: "Effectifs formes GSP" },
-      { key: "formations_domaines", label: "Formations domaines" },
+    subdomains: [
+      {
+        key: "creances",
+        label: "Creances",
+        tabs: [
+          { key: "creance_contentieuses", label: "Creance contentieuses" },
+          { key: "creances_contentieuses_anterieur", label: "Creance contentieuses anterieur" },
+        ],
+      },
+      { key: "rh", label: "RH", tabs: [{ key: "rh", label: "RH" }] },
+      { key: "formation", label: "Formation", tabs: [{ key: "formation", label: "Formation" }] },
+      { key: "frais_personnel", label: "Frais personnel", tabs: [{ key: "frais_personnel", label: "Frais personnel" }] },
+      { key: "effectif_gsp", label: "Effectif GSP", tabs: [{ key: "effectif_gsp", label: "Effectif GSP" }] },
+      { key: "absenteisme", label: "Absenteisme", tabs: [{ key: "absenteisme", label: "Absenteisme" }] },
+      { key: "mouvement_effectifs", label: "Mouvement effectifs", tabs: [{ key: "mouvement_effectifs", label: "Mouvement effectifs" }] },
+      { key: "mouvement_effectifs_domaine", label: "Mouvement effectifs domaine", tabs: [{ key: "mouvement_effectifs_domaine", label: "Mouvement effectifs domaine" }] },
+      { key: "effectifs_formes_gsp", label: "Effectifs formes GSP", tabs: [{ key: "effectifs_formes_gsp", label: "Effectifs formes GSP" }] },
+      { key: "formations_domaines", label: "Formations domaines", tabs: [{ key: "formations_domaines", label: "Formations domaines" }] },
     ],
   },
   {
     key: "finance",
     label: "Finance",
     domain: "Finances",
-    tabs: [
-      { key: "compte_resultat", label: "Compte de resultat" },
+    subdomains: [
+      { key: "compte_resultat", label: "Compte de resultat", tabs: [{ key: "compte_resultat", label: "Compte de resultat" }] },
     ],
   },
   {
     key: "regionale",
     label: "Regionale",
     domain: "Regionale",
-    tabs: [
-      { key: "realisation_technique_reseau", label: "Realisation technique Reseau" },
-      { key: "amelioration_qualite", label: "Amelioration qualite" },
-      { key: "mttr", label: "MTTR" },
+    subdomains: [
+      { key: "realisation_technique_reseau", label: "Realisation technique Reseau", tabs: [{ key: "realisation_technique_reseau", label: "Realisation technique Reseau" }] },
+      { key: "amelioration_qualite", label: "Amelioration qualite", tabs: [{ key: "amelioration_qualite", label: "Amelioration qualite" }] },
+      { key: "mttr", label: "MTTR", tabs: [{ key: "mttr", label: "MTTR" }] },
     ],
   },
-] as const
+]
 
-type CategoryKey = (typeof CATEGORY_OPTIONS)[number]["key"]
-type DomainKey = (typeof CATEGORY_OPTIONS)[number]["domain"]
+type DomainKey = (typeof DOMAIN_OPTIONS)[number]["key"]
 
 export default function AdminTableauRows() {
   const { toast } = useToast()
-  const [category, setCategory] = useState<CategoryKey>("commerciale")
-  const [tabKey, setTabKey] = useState<string>(CATEGORY_OPTIONS[0].tabs[0]?.key ?? "")
+  const [domainKey, setDomainKey] = useState<DomainKey>("commerciale")
+  const [subdomainKey, setSubdomainKey] = useState<string>("")
+  const [tabKey, setTabKey] = useState<string>("")
   const [rows, setRows] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -102,20 +161,40 @@ export default function AdminTableauRows() {
   const [disabledTabKeys, setDisabledTabKeys] = useState<Set<string>>(new Set())
   const [togglingKey, setTogglingKey] = useState<string | null>(null)
 
-  const tabs = useMemo(() => {
-    return CATEGORY_OPTIONS.find((item) => item.key === category)?.tabs ?? []
-  }, [category])
+  const subdomains = useMemo(() => {
+    return DOMAIN_OPTIONS.find((item) => item.key === domainKey)?.subdomains ?? []
+  }, [domainKey])
 
-  const domain = useMemo(() => CATEGORY_OPTIONS.find((item) => item.key === category)?.domain ?? "", [category])
+  const selectedSubdomain = useMemo(() => {
+    return subdomains.find((sd) => sd.key === subdomainKey) ?? null
+  }, [subdomains, subdomainKey])
+
+  const tabs = useMemo(() => {
+    return selectedSubdomain?.tabs ?? []
+  }, [selectedSubdomain])
+
+  const domain = useMemo(() => DOMAIN_OPTIONS.find((item) => item.key === domainKey)?.domain ?? "", [domainKey])
 
   useEffect(() => {
-    if (!tabs.length) {
+    if (subdomains.length > 0) {
+      const first = subdomains[0].key
+      if (subdomainKey !== first) {
+        setSubdomainKey(first)
+      }
+    } else {
+      setSubdomainKey("")
       setTabKey("")
       setRows([])
-      return
     }
+  }, [subdomains])
 
-    setTabKey(tabs[0].key)
+  useEffect(() => {
+    if (tabs.length > 0) {
+      setTabKey(tabs[0].key)
+    } else {
+      setTabKey("")
+      setRows([])
+    }
   }, [tabs])
 
   useEffect(() => {
@@ -289,17 +368,33 @@ export default function AdminTableauRows() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="space-y-2">
-          <Label>Categorie</Label>
-          <Select value={category} onValueChange={(value) => setCategory(value as CategoryKey)}>
+          <Label>Domaine</Label>
+          <Select value={domainKey} onValueChange={(value) => setDomainKey(value as DomainKey)}>
             <SelectTrigger>
-              <SelectValue placeholder="Choisir une categorie" />
+              <SelectValue placeholder="Choisir un domaine" />
             </SelectTrigger>
             <SelectContent>
-              {CATEGORY_OPTIONS.map((item) => (
+              {DOMAIN_OPTIONS.map((item) => (
                 <SelectItem key={item.key} value={item.key}>
                   {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Sous-domaine</Label>
+          <Select value={subdomainKey} onValueChange={setSubdomainKey}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choisir un sous-domaine" />
+            </SelectTrigger>
+            <SelectContent>
+              {subdomains.map((sd) => (
+                <SelectItem key={sd.key} value={sd.key}>
+                  {sd.label}
                 </SelectItem>
               ))}
             </SelectContent>
