@@ -1339,7 +1339,7 @@ function InvestissementBlockDisplay({ rows }: { rows: InvestissementRow[] }) {
             {rows.map((row, index) => (
               <tr key={`${row.designation}-${index}`} className={INVESTISSEMENT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
                 {index === 0 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Fonctionement</td>}
-                {index === 2 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">TECHNIQUE</td>}
+                {index === 2 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Technique</td>}
                 {index > 3 && <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>}
                 <td className="px-3 py-2 border-b text-center text-xs font-medium text-gray-600">{(index === 0 || index === 2) ? "PREVU" : (index === 1 || index === 3) ? "ENGAGE" : ""}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>

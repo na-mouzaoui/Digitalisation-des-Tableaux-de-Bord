@@ -266,7 +266,7 @@ namespace CheckFillingAPI.Migrations
                     (142, 31, "Reste à réaliser", 3),
                     (143, 31, "Taux de Réalisation", 4),
                     (144, 32, "Chiffre d'affaire GP", 0),
-                    (145, 32, "Chiffre d'affair ME", 1),
+                    (145, 32, "Chiffre d'affair B2B", 1),
                     (146, 32, "Chiffre d'affairs Interco -roming", 2),
                     (147, 32, "Total CA", 3),
                     (148, 32, "Consommation de l'exercice", 4),
