@@ -635,23 +635,12 @@ public class AdminController : ControllerBase
         var setting = await GetOrCreateAdminSettingAsync();
         var disabledTabKeys = ParseDisabledTabKeys(setting.DisabledTabKeysJson);
 
-        var kpiKeys = await _context.Kpis
+        var allKeys = await _context.Kpis
             .AsNoTracking()
             .Select(k => k.Nom)
             .Distinct()
             .OrderBy(k => k)
             .ToListAsync();
-
-        var tableauKeys = await _context.Tableaus
-            .AsNoTracking()
-            .Select(t => t.TabKey)
-            .Distinct()
-            .ToListAsync();
-
-        var allKeys = kpiKeys.Concat(tableauKeys)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(k => k)
-            .ToList();
 
         return Ok(new
         {

@@ -13,7 +13,6 @@ public class AppDbContext : DbContext
     public DbSet<Region> Regions { get; set; }
     public DbSet<Wilaya> Wilayas { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
-    public DbSet<Tableau> Tableaus { get; set; }
     public DbSet<AdminSetting> AdminSettings { get; set; }
     public DbSet<Domaine> Domaines { get; set; }
     public DbSet<SousDomaine> SousDomaines { get; set; }
@@ -42,8 +41,8 @@ public class AppDbContext : DbContext
             entity.ToTable("DR");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
-            entity.Property(e => e.Name).HasColumnName("nom").HasMaxLength(150).IsRequired();
-            entity.Property(e => e.VillesJson).HasColumnName("wilayas").HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Nom).HasColumnName("nom").HasMaxLength(150).IsRequired();
+            entity.Property(e => e.Wilayas).HasColumnName("wilayas").HasMaxLength(2000);
             entity.Ignore(e => e.CreatedAt);
         });
 
@@ -53,7 +52,6 @@ public class AppDbContext : DbContext
             entity.ToTable("Wilaya");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id").ValueGeneratedOnAdd();
-            entity.Property(e => e.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
             entity.Property(e => e.Nom).HasColumnName("nom").HasMaxLength(150).IsRequired();
         });
 
@@ -67,30 +65,6 @@ public class AppDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Action);
-        });
-
-        // Tableau configuration
-        modelBuilder.Entity<Tableau>(entity =>
-        {
-            entity.ToTable("Tableau");
-            entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.User)
-                  .WithMany()
-                  .HasForeignKey(e => e.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(e => e.ApprovedByUser)
-                .WithMany()
-                .HasForeignKey(e => e.ApprovedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasIndex(e => e.UserId);
-            entity.HasIndex(e => new { e.UserId, e.TabKey, e.Mois, e.Annee });
-            entity.HasIndex(e => e.IsApproved);
-            entity.Property(e => e.DataJson).IsRequired();
-            entity.Property(e => e.TabKey).HasMaxLength(50).IsRequired();
-            entity.Property(e => e.Direction).HasMaxLength(200);
-            entity.Property(e => e.Mois).HasMaxLength(10);
-            entity.Property(e => e.Annee).HasMaxLength(10);
-            entity.Property(e => e.IsApproved).HasDefaultValue(false);
         });
 
         // AdminSetting configuration
@@ -222,7 +196,25 @@ public class AppDbContext : DbContext
             entity.Property(e => e.M_CDD).HasColumnType("decimal(18,2)");
             entity.Property(e => e.M_CTA).HasColumnType("decimal(18,2)");
 
-            entity.HasIndex(e => new { e.Id_SousKpi, e.Id_Periode }).IsUnique();
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ApprovedByUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.ApprovedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ApprovedByDirecteurUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.ApprovedByDirecteurUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.ApprovedByDivisionnaireUser)
+                  .WithMany()
+                  .HasForeignKey(e => e.ApprovedByDivisionnaireUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.Id_Periode, e.Id_SousKpi });
         });
 
         // Seed data

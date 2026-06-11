@@ -28,11 +28,27 @@ public class RegionsController : ControllerBase
         return int.Parse(userIdClaim ?? "0");
     }
 
-    private static List<string> ParseWilayas(string? value)
+    private static bool AreWilayaIds(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return new List<string>();
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        return value.Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .All(w => int.TryParse(w.Trim(), out _));
+    }
 
+    private static List<int> ParseWilayaIds(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return new();
+        return value
+            .Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => int.TryParse(w.Trim(), out var id) ? id : -1)
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+    }
+
+    private static List<string> ParseWilayaNames(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return new();
         return value
             .Split(';', StringSplitOptions.RemoveEmptyEntries)
             .Select(w => w.Trim())
@@ -41,26 +57,50 @@ public class RegionsController : ControllerBase
             .ToList();
     }
 
-    private static string SerializeWilayas(IEnumerable<string>? values)
+    private async Task<List<string>> ResolveWilayaNamesAsync(List<int> ids)
     {
-        if (values == null)
-            return string.Empty;
-
-        return string.Join(';', values
-            .Select(w => (w ?? string.Empty).Trim())
-            .Where(w => !string.IsNullOrWhiteSpace(w))
-            .Distinct(StringComparer.OrdinalIgnoreCase));
+        if (ids.Count == 0) return new();
+        return await _context.Wilayas
+            .Where(w => ids.Contains(w.Id))
+            .OrderBy(w => w.Nom)
+            .Select(w => w.Nom)
+            .ToListAsync();
     }
 
-    private static List<string> GetRequestedWilayas(RegionUpdateBase request)
+    private static string SerializeWilayaIds(List<int>? ids)
     {
+        if (ids == null || ids.Count == 0) return string.Empty;
+        return string.Join(';', ids.Distinct().OrderBy(id => id));
+    }
+
+    private async Task<List<int>> GetWilayaIdsFromRequest(RegionUpdateBase request)
+    {
+        if (request.WilayaIds != null && request.WilayaIds.Count > 0)
+            return request.WilayaIds.Distinct().ToList();
+
+        var names = new List<string>();
         if (request.Wilayas != null)
-            return request.Wilayas;
+            names = request.Wilayas;
+        else if (request.Villes != null)
+            names = request.Villes;
 
-        if (request.Villes != null)
-            return request.Villes;
+        if (names.Count == 0) return new();
 
-        return new List<string>();
+        return await _context.Wilayas
+            .Where(w => names.Contains(w.Nom))
+            .Select(w => w.Id)
+            .ToListAsync();
+    }
+
+    private async Task<List<string>> GetWilayaNamesFromStored(string? stored)
+    {
+        if (string.IsNullOrWhiteSpace(stored)) return new();
+        if (AreWilayaIds(stored))
+        {
+            var ids = ParseWilayaIds(stored);
+            return await ResolveWilayaNamesAsync(ids);
+        }
+        return ParseWilayaNames(stored);
     }
 
     [HttpGet("wilayas")]
@@ -68,7 +108,7 @@ public class RegionsController : ControllerBase
     {
         var wilayas = await _context.Wilayas
             .OrderBy(w => w.Nom)
-            .Select(w => new { w.Id, w.Code, Name = w.Nom })
+            .Select(w => new { w.Id, Name = w.Nom })
             .ToListAsync();
 
         return Ok(wilayas);
@@ -79,17 +119,22 @@ public class RegionsController : ControllerBase
     public async Task<IActionResult> GetAllRegions()
     {
         var regions = await _context.Regions
-            .OrderBy(r => r.Name)
+            .OrderBy(r => r.Nom)
             .ToListAsync();
 
-        return Ok(regions.Select(r => new
+        var result = new List<object>();
+        foreach (var r in regions)
         {
-            r.Id,
-            r.Name,
-            Villes = ParseWilayas(r.VillesJson),
-            Wilayas = ParseWilayas(r.VillesJson),
-            r.CreatedAt
-        }));
+            result.Add(new
+            {
+                r.Id,
+                Nom = r.Nom,
+                Wilayas = await GetWilayaNamesFromStored(r.Wilayas),
+                r.CreatedAt
+            });
+        }
+
+        return Ok(result);
     }
 
     // GET: api/regions/{id}
@@ -103,9 +148,8 @@ public class RegionsController : ControllerBase
         return Ok(new
         {
             region.Id,
-            region.Name,
-            Villes = ParseWilayas(region.VillesJson),
-            Wilayas = ParseWilayas(region.VillesJson),
+            Nom = region.Nom,
+            Wilayas = await GetWilayaNamesFromStored(region.Wilayas),
             region.CreatedAt
         });
     }
@@ -115,16 +159,15 @@ public class RegionsController : ControllerBase
     public async Task<IActionResult> GetRegionByName(string name)
     {
         var trimmedName = name?.Trim() ?? string.Empty;
-        var region = await _context.Regions.FirstOrDefaultAsync(r => r.Name == trimmedName);
+        var region = await _context.Regions.FirstOrDefaultAsync(r => r.Nom == trimmedName);
         if (region == null)
             return NotFound();
 
         return Ok(new
         {
             region.Id,
-            region.Name,
-            Villes = ParseWilayas(region.VillesJson),
-            Wilayas = ParseWilayas(region.VillesJson),
+            Nom = region.Nom,
+            Wilayas = await GetWilayaNamesFromStored(region.Wilayas),
             region.CreatedAt
         });
     }
@@ -137,28 +180,31 @@ public class RegionsController : ControllerBase
         if (region == null)
             return NotFound();
 
-        var oldValues = new { region.Name, Villes = ParseWilayas(region.VillesJson) };
+        var oldWilayaNames = await GetWilayaNamesFromStored(region.Wilayas);
+        var oldValues = new { Nom = region.Nom, Wilayas = oldWilayaNames };
 
         if (!string.IsNullOrWhiteSpace(request.Name))
         {
             var newName = request.Name.Trim();
-            var duplicate = await _context.Regions.AnyAsync(r => r.Id != id && r.Name == newName);
+            var duplicate = await _context.Regions.AnyAsync(r => r.Id != id && r.Nom == newName);
             if (duplicate)
             {
                 return Conflict(new { message = "Une région avec ce nom existe déjà" });
             }
 
-            region.Name = newName;
+            region.Nom = newName;
         }
 
-        if (request.Villes != null || request.Wilayas != null)
+        if (request.WilayaIds != null || request.Villes != null || request.Wilayas != null)
         {
-            region.VillesJson = SerializeWilayas(GetRequestedWilayas(request));
+            var ids = await GetWilayaIdsFromRequest(request);
+            region.Wilayas = SerializeWilayaIds(ids);
         }
 
         await _context.SaveChangesAsync();
 
-        var newValues = new { region.Name, Villes = ParseWilayas(region.VillesJson) };
+        var newWilayaNames = await GetWilayaNamesFromStored(region.Wilayas);
+        var newValues = new { Nom = region.Nom, Wilayas = newWilayaNames };
         await _auditService.LogAction(
             GetCurrentUserId(), 
             "UPDATE_REGION", 
@@ -170,9 +216,8 @@ public class RegionsController : ControllerBase
         return Ok(new
         {
             region.Id,
-            region.Name,
-            Villes = ParseWilayas(region.VillesJson),
-            Wilayas = ParseWilayas(region.VillesJson),
+            Nom = region.Nom,
+            Wilayas = await GetWilayaNamesFromStored(region.Wilayas),
             region.CreatedAt
         });
     }
@@ -187,37 +232,37 @@ public class RegionsController : ControllerBase
         }
 
         var name = request.Name.Trim();
-        var existingRegion = await _context.Regions.FirstOrDefaultAsync(r => r.Name == name);
+        var existingRegion = await _context.Regions.FirstOrDefaultAsync(r => r.Nom == name);
         if (existingRegion != null)
         {
             return Conflict(new { message = "Une région avec ce nom existe déjà" });
         }
 
-        var requestedWilayas = GetRequestedWilayas(request);
+        var requestedWilayaIds = await GetWilayaIdsFromRequest(request);
         var region = new Region
         {
-            Name = name,
-            VillesJson = SerializeWilayas(requestedWilayas),
+            Nom = name,
+            Wilayas = SerializeWilayaIds(requestedWilayaIds),
             CreatedAt = DateTime.UtcNow
         };
 
         _context.Regions.Add(region);
         await _context.SaveChangesAsync();
 
+        var createdWilayaNames = await GetWilayaNamesFromStored(region.Wilayas);
         await _auditService.LogAction(
             GetCurrentUserId(),
             "CREATE_REGION",
             "Region",
             region.Id,
-            new { region.Name, Villes = requestedWilayas }
+            new { Nom = region.Nom, Wilayas = createdWilayaNames }
         );
 
         return CreatedAtAction(nameof(GetRegion), new { id = region.Id }, new
         {
             region.Id,
-            region.Name,
-            Villes = ParseWilayas(region.VillesJson),
-            Wilayas = ParseWilayas(region.VillesJson),
+            Nom = region.Nom,
+            Wilayas = createdWilayaNames,
             region.CreatedAt
         });
     }
@@ -232,7 +277,7 @@ public class RegionsController : ControllerBase
             return NotFound(new { message = "Région non trouvée" });
         }
 
-        var usersInRegion = await _context.Users.AnyAsync(u => u.Region == region.Name);
+        var usersInRegion = await _context.Users.AnyAsync(u => u.Region == region.Nom);
         if (usersInRegion)
         {
             return BadRequest(new { message = "Impossible de supprimer une région assignée é des utilisateurs" });
@@ -240,8 +285,8 @@ public class RegionsController : ControllerBase
 
         var deletedData = new
         {
-            region.Name,
-            Villes = ParseWilayas(region.VillesJson)
+            Nom = region.Nom,
+            Wilayas = await GetWilayaNamesFromStored(region.Wilayas)
         };
 
         _context.Regions.Remove(region);
@@ -263,6 +308,7 @@ public class RegionUpdateBase
 {
     public List<string>? Villes { get; set; }
     public List<string>? Wilayas { get; set; }
+    public List<int>? WilayaIds { get; set; }
 }
 
 public class UpdateRegionRequest : RegionUpdateBase

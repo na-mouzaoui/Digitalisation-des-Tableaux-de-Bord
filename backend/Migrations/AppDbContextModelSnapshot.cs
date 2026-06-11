@@ -143,16 +143,15 @@ namespace CheckFillingAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Name")
+                    b.Property<string>("Nom")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)")
                         .HasColumnName("nom");
 
-                    b.Property<string>("VillesJson")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                    b.Property<string>("Wilayas")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
                         .HasColumnName("wilayas");
 
                     b.HasKey("Id");
@@ -245,71 +244,6 @@ namespace CheckFillingAPI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("StepComments");
-                });
-
-            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Tableau", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Annee")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ApprovedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DataJson")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Direction")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("IsApproved")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Mois")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("TabKey")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("IsApproved");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "TabKey", "Mois", "Annee");
-
-                    b.ToTable("Tableau", (string)null);
                 });
 
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.User", b =>
@@ -434,6 +368,21 @@ namespace CheckFillingAPI.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ApprovedByDirecteurUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ApprovedByDivisionnaireUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DataJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("Debit_Ecart")
                         .HasColumnType("decimal(18,2)");
@@ -572,10 +521,25 @@ namespace CheckFillingAPI.Migrations
                     b.Property<decimal?>("Taux_M_1")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Id_SousKpi", "Id_Periode")
-                        .IsUnique();
+                    b.HasIndex("ApprovedByDirecteurUserId");
+
+                    b.HasIndex("ApprovedByDivisionnaireUserId");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("Id_SousKpi");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "Id_Periode", "Id_SousKpi");
 
                     b.ToTable("Valeurs", (string)null);
                 });
@@ -588,12 +552,6 @@ namespace CheckFillingAPI.Migrations
                         .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("code");
 
                     b.Property<string>("Nom")
                         .IsRequired()
@@ -661,12 +619,28 @@ namespace CheckFillingAPI.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Tableau", b =>
+            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Valeur", b =>
                 {
+                    b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.User", "ApprovedByDirecteurUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByDirecteurUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.User", "ApprovedByDivisionnaireUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByDivisionnaireUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.User", "ApprovedByUser")
                         .WithMany()
                         .HasForeignKey("ApprovedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.SousKpi", "SousKpi")
+                        .WithMany()
+                        .HasForeignKey("Id_SousKpi")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.User", "User")
                         .WithMany()
@@ -674,20 +648,15 @@ namespace CheckFillingAPI.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("ApprovedByDirecteurUser");
+
+                    b.Navigation("ApprovedByDivisionnaireUser");
+
                     b.Navigation("ApprovedByUser");
 
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Valeur", b =>
-                {
-                    b.HasOne("DigitalisationDesTableauxDeBordAPI.Models.SousKpi", "SousKpi")
-                        .WithMany()
-                        .HasForeignKey("Id_SousKpi")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("SousKpi");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DigitalisationDesTableauxDeBordAPI.Models.Domaine", b =>

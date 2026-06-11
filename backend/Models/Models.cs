@@ -23,15 +23,14 @@ public class User
 public class Region
 {
     public int Id { get; set; }
-    public string Name { get; set; } = string.Empty; // nord, sud, est, ouest
-    public string VillesJson { get; set; } = "[]"; // Liste des villes en JSON
+    public string Nom { get; set; } = string.Empty; // nord, sud, est, ouest
+    public string? Wilayas { get; set; } // Liste des IDs wilayas séparés par ";"
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class Wilaya
 {
     public int Id { get; set; }
-    public string Code { get; set; } = string.Empty;
     public string Nom { get; set; } = string.Empty;
 }
 
@@ -48,24 +47,7 @@ public class AuditLog
     public User User { get; set; } = null!;
 }
 
-public class Tableau
-{
-    public int Id { get; set; }
-    public int UserId { get; set; }
-    public string TabKey { get; set; } = "";        // ex: "tva_immo", "encaissement"
-    public string Mois { get; set; } = "";          // "01" é "12"
-    public string Annee { get; set; } = "";         // "2025"
-    public string Direction { get; set; } = "";     // Direction de l'utilisateur
-    public string DataJson { get; set; } = "{}";   // Données du tableau en JSON
-    public bool IsApproved { get; set; } = false;
-    public int? ApprovedByUserId { get; set; }
-    public DateTime? ApprovedAt { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public User User { get; set; } = null!;
-    public User? ApprovedByUser { get; set; }
-}
 
 public class StepComment
 {
@@ -181,7 +163,21 @@ public class Valeur
     public decimal? M_CDD { get; set; }
     public decimal? M_CTA { get; set; }
 
+    public int UserId { get; set; }
+    public int? ApprovedByUserId { get; set; }
+    public int? ApprovedByDirecteurUserId { get; set; }
+    public int? ApprovedByDivisionnaireUserId { get; set; }
+
+    public string? DataJson { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
     public SousKpi SousKpi { get; set; } = null!;
+    public User User { get; set; } = null!;
+    public User? ApprovedByUser { get; set; }
+    public User? ApprovedByDirecteurUser { get; set; }
+    public User? ApprovedByDivisionnaireUser { get; set; }
 }
 
 // DTOs
@@ -214,11 +210,60 @@ public class UpdateUserRequest
     public List<int>? AllowedSousDomaineIds { get; set; }
 }
 
-public class TableauRequest
+public class SaveValeursRequest
 {
     public string TabKey { get; set; } = string.Empty;
     public string Mois { get; set; } = string.Empty;
     public string Annee { get; set; } = string.Empty;
     public string? Direction { get; set; }
-    public string DataJson { get; set; } = "{}";
+    public string? DataJson { get; set; }
+    public List<ValeurRowData> Rows { get; set; } = new();
+}
+
+public class ValeurRowData
+{
+    public string? Designation { get; set; }
+    public decimal? M { get; set; }
+    public decimal? M_1 { get; set; }
+    public decimal? Evol { get; set; }
+    public decimal? Part_Pct { get; set; }
+    public decimal? Ecart { get; set; }
+    public decimal? Objectif_2026 { get; set; }
+    public string? Situation_Actuelle { get; set; }
+    public decimal? M_Objectif { get; set; }
+    public decimal? M_Realise { get; set; }
+    public decimal? M_Taux { get; set; }
+    public decimal? M_1_Objectif { get; set; }
+    public decimal? M_1_Realise { get; set; }
+    public decimal? M_1_Taux { get; set; }
+    public string? M_Wilaya { get; set; }
+    public decimal? Taux_M { get; set; }
+    public decimal? Taux_M_1 { get; set; }
+    public decimal? M_1_Montant_Recouvre { get; set; }
+    public decimal? M_Montant_Mis_Recouvrement { get; set; }
+    public decimal? M_Montant_Recouvre { get; set; }
+    public decimal? M_Taux_Recouvrement { get; set; }
+    public decimal? M_Objectif_Recouvrement { get; set; }
+    public decimal? M_1_Recrute { get; set; }
+    public decimal? M_Recrute { get; set; }
+    public decimal? MTTR_Objectif { get; set; }
+    public decimal? MTTR_Realise { get; set; }
+    public decimal? MTTR_Ecart { get; set; }
+    public decimal? Debit_Objectif { get; set; }
+    public decimal? Debit_Realise { get; set; }
+    public decimal? Debit_Ecart { get; set; }
+    public decimal? M_1_Cadres_Sup { get; set; }
+    public decimal? M_1_Cadres { get; set; }
+    public decimal? M_1_Maitrise { get; set; }
+    public decimal? M_1_Execution { get; set; }
+    public decimal? M_Cadres_Sup { get; set; }
+    public decimal? M_Cadres { get; set; }
+    public decimal? M_Maitrise { get; set; }
+    public decimal? M_Execution { get; set; }
+    public decimal? M_1_CDI { get; set; }
+    public decimal? M_1_CDD { get; set; }
+    public decimal? M_1_CTA { get; set; }
+    public decimal? M_CDI { get; set; }
+    public decimal? M_CDD { get; set; }
+    public decimal? M_CTA { get; set; }
 }

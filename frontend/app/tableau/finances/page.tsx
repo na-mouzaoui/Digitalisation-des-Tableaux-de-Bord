@@ -20,30 +20,27 @@ import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 import { useDeclarationAccess } from "@/hooks/use-declaration-access"
 import { DomainAccessGuard } from "@/components/domain-access-guard"
+import { getPreviousPeriod, mapMtoM1 } from "@/lib/auto-populate-m1"
+import { isAdmintableauRole, isRegionaltableauRole, isFinancetableauRole, getManageabletableauTabKeysForDirection, istableauTabDisabledByPolicy } from "@/lib/fiscal-tab-access"
+import { getCurrenttableauPeriod, gettableauPeriodLockMessage, istableauPeriodLocked } from "@/lib/fiscal-period-deadline"
+import { synctableauPolicy } from "@/lib/fiscal-policy"
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
 const PRIMARY_COLOR = "#2db34b"
 
 // ?????????????????????????????????????????????????????????????????????????????
-// 2. STUBS POLITIQUE FISCALE
-// ?????????????????????????????????????????????????????????????????????????????
-const getCurrenttableauPeriod = (now: Date = new Date()) => ({
-  mois: String(now.getMonth() + 1).padStart(2, "0"),
-  annee: String(now.getFullYear()),
-})
-const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
-const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
-const synctableauPolicy = async (_direction?: string | null) => null
-const isAdmintableauRole = (_role?: string | null) => false
-const isRegionaltableauRole = (_role?: string | null) => false
-const isFinancetableauRole = (_role?: string | null) => false
-const getManageabletableauTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
-const istableauTabDisabledByPolicy = (_tabKey?: string) => false
-
-// ?????????????????????????????????????????????????????????????????????????????
 // 3. HELPERS DE FORMATAGE DES MONTANTS
 // ?????????????????????????????????????????????????????????????????????????????
+const isTotalRow = (d: string) => /total/i.test(d)
+
+const calcEvol = (m: string, m1: string) => {
+  const mNum = num(m)
+  const m1Num = num(m1)
+  if (m1Num === 0) return "0.0"
+  return ((mNum - m1Num) / m1Num * 100).toFixed(1)
+}
+
 const fmt = (v: number | string) => {
   if (v === "" || isNaN(Number(v))) return ""
   const n = Number(v)
@@ -118,6 +115,7 @@ const COMPTE_RESULTAT_LABELS = [
   "Chiffre d'affair B2B",
   "Chiffre d'affairs Interco -roming",
   "Total CA",
+  "Autres produits",
   "Consommation de l'exercice",
   "Service Exterieurs et autres consommations",
   "VALEUR AJOUTEE D'EXPLOITATION",
@@ -172,13 +170,19 @@ interface TabCompteResultatProps {
   setRows: React.Dispatch<React.SetStateAction<CompteResultatRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
 
-function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteResultatProps) {
+function TabCompteResultat({ rows, setRows, onSave, isSubmitting, mois }: TabCompteResultatProps) {
   const update = (index: number, field: keyof CompteResultatRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
-  const mFields = ["mBudget", "mRealise", "mTaux"] as const
+  const mFields = ["mBudget", "mRealise"] as const
+  const calcTaux = (row: CompteResultatRow) => {
+    const realise = parseFloat(row.mRealise ?? "0") || 0
+    const budget = parseFloat(row.mBudget ?? "0") || 0
+    return budget ? ((realise / budget) * 100).toFixed(1) : "0.0"
+  }
 
   return (
     <div className="space-y-3">
@@ -187,8 +191,8 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteRes
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Désignations</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
@@ -209,6 +213,7 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting }: TabCompteRes
                     <AmountInput value={row[field]} onChange={(e) => update(index, field, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
                   </td>
                 ))}
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcTaux(row)} %</td>
               </tr>
             ))}
           </tbody>
@@ -265,7 +270,6 @@ type TresorerieMobilisRow = { designation: string; m1: string; m: string; evol: 
 
 const TRESORERIE_MOBILIS_LABELS = [
   "Solde Debut de période",
-  "RECETTE (encaissement)",
   "Client",
   "Roaming",
   "Interco",
@@ -286,20 +290,31 @@ const DEFAULT_TRESORERIE_MOBILIS_ROWS: TresorerieMobilisRow[] = TRESORERIE_MOBIL
   evol: "",
 }))
 
-const TRESORERIE_MOBILIS_GREEN_INDICES = new Set([6, 10, 12])
+const TRESORERIE_MOBILIS_GREEN_INDICES = new Set([5, 9, 11])
 
 interface TabInvestissementProps {
   rows: InvestissementRow[]
   setRows: React.Dispatch<React.SetStateAction<InvestissementRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
 
-function TabInvestissement({ rows, setRows, onSave, isSubmitting }: TabInvestissementProps) {
+const TRESORERIE_NO_EVOL = new Set([0, 5, 9, 11])
+
+function TabInvestissement({ rows, setRows, onSave, isSubmitting, mois }: TabInvestissementProps) {
   const update = (index: number, field: keyof InvestissementRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
   const NO_EVOL_INDICES = new Set([4, 5, 6])
+  const prevuRows = rows.filter((_, i) => i === 0 || i === 2)
+  const engageRows = rows.filter((_, i) => i === 1 || i === 3)
+  const sumPrevuM1 = prevuRows.reduce((s, r) => s + num(r.m1), 0)
+  const sumPrevuM = prevuRows.reduce((s, r) => s + num(r.m), 0)
+  const sumEngageM1 = engageRows.reduce((s, r) => s + num(r.m1), 0)
+  const sumEngageM = engageRows.reduce((s, r) => s + num(r.m), 0)
+  const tauxM1 = sumEngageM1 === 0 ? "N/A" : fmt((sumPrevuM1 / sumEngageM1) * 100)
+  const tauxM = sumEngageM === 0 ? "N/A" : fmt((sumPrevuM / sumEngageM) * 100)
 
   return (
     <div className="space-y-3">
@@ -309,33 +324,42 @@ function TabInvestissement({ rows, setRows, onSave, isSubmitting }: TabInvestiss
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">INVESTISSEMENT (MDA)</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"></th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={row.designation} className={INVESTISSEMENT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
-                {index === 0 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Fonctionement</td>}
-                {index === 2 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Technique</td>}
-                {index > 3 && <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>}
-                <td className="px-3 py-2 border-b text-center text-xs font-medium text-gray-600">{(index === 0 || index === 2) ? "PREVU" : (index === 1 || index === 3) ? "ENGAGE" : ""}</td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-                {NO_EVOL_INDICES.has(index) ? (
-                  <td className="px-3 py-2 border-b"></td>
-                ) : (
+            {rows.map((row, index) => {
+              const isPrevuTtl = row.designation === "Totale Prevu"
+              const isEngageTtl = row.designation === "Totale Engage"
+              const isTtl = isPrevuTtl || isEngageTtl
+              const isTaux = index === 6
+              const tM1 = isPrevuTtl ? sumPrevuM1 : isEngageTtl ? sumEngageM1 : 0
+              const tM = isPrevuTtl ? sumPrevuM : isEngageTtl ? sumEngageM : 0
+              const dM1 = isTtl ? fmt(tM1) : null
+              const dM = isTtl ? fmt(tM) : null
+              const dEvol = isTtl ? calcEvol(String(tM), String(tM1)) : calcEvol(row.m, row.m1)
+              return (
+                <tr key={row.designation} className={INVESTISSEMENT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
+                  {index === 0 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Fonctionement</td>}
+                  {index === 2 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Technique</td>}
+                  {index > 3 && <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>}
+                  <td className="px-3 py-2 border-b text-center text-xs font-medium text-gray-600">{(index === 0 || index === 2) ? "PREVU" : (index === 1 || index === 3) ? "ENGAGE" : ""}</td>
                   <td className="px-1 py-1 border-b">
-                    <AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM1}</span> : isTaux ? <span className="block px-2 text-xs text-right font-semibold">{tauxM1}</span> : <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
                   </td>
-                )}
-              </tr>
-            ))}
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM}</span> : isTaux ? <span className="block px-2 text-xs text-right font-semibold">{tauxM}</span> : <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  {NO_EVOL_INDICES.has(index) ? (
+                    <td className="px-3 py-2 border-b"></td>
+                  ) : (
+                    <td className="px-1 py-1 border-b text-xs text-right font-semibold">{dEvol} %</td>
+                  )}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -350,9 +374,10 @@ interface TabAvancementEngagementProps {
   setRows: React.Dispatch<React.SetStateAction<AvancementEngagementRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
 
-function TabAvancementEngagement({ rows, setRows, onSave, isSubmitting }: TabAvancementEngagementProps) {
+function TabAvancementEngagement({ rows, setRows, onSave, isSubmitting, mois }: TabAvancementEngagementProps) {
   const update = (index: number, field: keyof AvancementEngagementRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
@@ -363,8 +388,8 @@ function TabAvancementEngagement({ rows, setRows, onSave, isSubmitting }: TabAva
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">État d'avancement des engagements (MDA)</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evolution</th>
             </tr>
           </thead>
@@ -378,9 +403,7 @@ function TabAvancementEngagement({ rows, setRows, onSave, isSubmitting }: TabAva
                 <td className="px-1 py-1 border-b">
                   <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
                 </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcEvol(row.m, row.m1)} %</td>
               </tr>
             ))}
           </tbody>
@@ -397,11 +420,35 @@ interface TabTresorerieMobilisProps {
   setRows: React.Dispatch<React.SetStateAction<TresorerieMobilisRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
 
-function TabTresorerieMobilis({ rows, setRows, onSave, isSubmitting }: TabTresorerieMobilisProps) {
+function TabTresorerieMobilis({ rows, setRows, onSave, isSubmitting, mois }: TabTresorerieMobilisProps) {
   const update = (index: number, field: keyof TresorerieMobilisRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  const recetteRows = rows.filter((_, i) => i >= 1 && i <= 4)
+  const sumRecetteM1 = recetteRows.reduce((s, r) => s + num(r.m1), 0)
+  const sumRecetteM = recetteRows.reduce((s, r) => s + num(r.m), 0)
+  const depRows = rows.filter((_, i) => i === 7 || i === 8)
+  const sumDepM1 = depRows.reduce((s, r) => s + num(r.m1), 0)
+  const sumDepM = depRows.reduce((s, r) => s + num(r.m), 0)
+  const soldeDebut = rows[0]
+  const soldeDebutM1 = num(soldeDebut?.m1 ?? "0")
+  const soldeDebutM = num(soldeDebut?.m ?? "0")
+
+  const getTotalM1 = (i: number) => {
+    if (i === 5) return sumRecetteM1
+    if (i === 9) return sumDepM1
+    if (i === 11) return soldeDebutM1 + sumRecetteM1 - sumDepM1
+    return 0
+  }
+  const getTotalM = (i: number) => {
+    if (i === 5) return sumRecetteM
+    if (i === 9) return sumDepM
+    if (i === 11) return soldeDebutM + sumRecetteM - sumDepM
+    return 0
+  }
 
   return (
     <div className="space-y-3">
@@ -411,35 +458,46 @@ function TabTresorerieMobilis({ rows, setRows, onSave, isSubmitting }: TabTresor
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Trésorerie Mobilis (MDA)</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"></th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evolution</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${row.designation}-${index}`} className={TRESORERIE_MOBILIS_GREEN_INDICES.has(index) ? "bg-green-100 font-semibold" : "bg-white"}>
-                {index === 1 ? (
-                  <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">RECETTE (encaissement)</td>
-                ) : index === 8 ? (
-                  <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">DÉPENSE (décaissement)</td>
-                ) : index === 0 || (index >= 6 && index <= 7) || index >= 10 ? (
-                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                ) : null}
-                <td className="px-3 py-2 border-b text-center text-xs font-medium text-gray-600">
-                  {(index >= 2 && index <= 5) ? ["Client", "Roaming", "Interco", "Autre"][index - 2] : index === 8 ? "Investissements" : index === 9 ? "Exploitations" : ""}
-                </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-              </tr>
-            ))}
+            {rows.map((row, index) => {
+              const isAutoSum = [5, 9, 11].includes(index)
+              const noEvol = TRESORERIE_NO_EVOL.has(index)
+              const tM1 = isAutoSum ? getTotalM1(index) : 0
+              const tM = isAutoSum ? getTotalM(index) : 0
+              const dM1 = isAutoSum ? fmt(tM1) : null
+              const dM = isAutoSum ? fmt(tM) : null
+              const dEvol = isAutoSum ? calcEvol(String(tM), String(tM1)) : calcEvol(row.m, row.m1)
+              return (
+                <tr key={`${row.designation}-${index}`} className={TRESORERIE_MOBILIS_GREEN_INDICES.has(index) ? "bg-green-100 font-semibold" : "bg-white"}>
+                  {index === 1 ? (
+                    <td rowSpan={4} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">RECETTE (encaissement)</td>
+                  ) : index === 7 ? (
+                    <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">DÉPENSE (décaissement)</td>
+                  ) : index === 0 || (index >= 5 && index <= 6) || index >= 9 ? (
+                    <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                  ) : null}
+                  <td className="px-3 py-2 border-b text-center text-xs font-medium text-gray-600">
+                    {(index >= 1 && index <= 4) ? ["Client", "Roaming", "Interco", "Autre"][index - 1] : index === 7 ? "Investissements" : index === 8 ? "Exploitations" : ""}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isAutoSum ? <span className="block px-2 text-xs text-right">{dM1}</span> : <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isAutoSum ? <span className="block px-2 text-xs text-right">{dM}</span> : <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  {noEvol ? (
+                    <td className="px-3 py-2 border-b"></td>
+                  ) : (
+                    <td className="px-1 py-1 border-b text-xs text-right font-semibold">{dEvol} %</td>
+                  )}
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -483,6 +541,16 @@ const MONTHS = [
   { value: "09", label: "Septembre" }, { value: "10", label: "Octobre" },
   { value: "11", label: "Novembre" }, { value: "12", label: "Decembre" },
 ]
+
+const getMonthLabel = (mois: string, diff: number = 0): string => {
+  const monthNum = Number.parseInt(mois, 10)
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return `M${diff === 0 ? "" : diff}`
+  let targetMonth = monthNum + diff
+  if (targetMonth < 1) targetMonth += 12
+  if (targetMonth > 12) targetMonth -= 12
+  const key = String(targetMonth).padStart(2, "0")
+  return MONTHS.find((m) => m.value === key)?.label ?? key
+}
 
 const CURRENT_YEAR = new Date().getFullYear()
 const INITIAL_tableau_PERIOD = getCurrenttableauPeriod()
@@ -558,18 +626,15 @@ const normalizeAvancementEngagementRows = (rows?: AvancementEngagementRow[]): Av
 
 const normalizeTresorerieMobilisRows = (rows?: TresorerieMobilisRow[]): TresorerieMobilisRow[] => {
   const src = Array.isArray(rows) ? rows : []
-  // Migration from old 12-row format to current 13-row format
-  if (src.length === 12) {
-    const map12to13 = [0, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    return TRESORERIE_MOBILIS_LABELS.map((designation, i) => {
-      const j = map12to13[i]
-      return {
-        designation,
-        m1: j >= 0 ? safeString(src[j]?.m1) : "",
-        m: j >= 0 ? safeString(src[j]?.m) : "",
-        evol: j >= 0 ? safeString(src[j]?.evol) : "",
-      }
-    })
+  // Migration from old 13-row format to current 12-row format
+  if (src.length === 13) {
+    const srcWithoutRecette = src.filter((_, i) => i !== 1)
+    return TRESORERIE_MOBILIS_LABELS.map((designation, i) => ({
+      designation,
+      m1: safeString(srcWithoutRecette[i]?.m1),
+      m: safeString(srcWithoutRecette[i]?.m),
+      evol: safeString(srcWithoutRecette[i]?.evol),
+    }))
   }
   return TRESORERIE_MOBILIS_LABELS.map((designation, i) => ({
     designation,
@@ -604,7 +669,7 @@ function FinancesPageContent() {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => r.json())
-      .then((data: { id: number; name: string }[]) => setRegions(data))
+      .then((data: { id: number; nom: string }[]) => setRegions(data))
       .catch(() => {})
   }, [])
 
@@ -677,7 +742,8 @@ function FinancesPageContent() {
 
   useEffect(() => {
     const labels = kpiRows["compte_resultat"]
-    const finalLabels = labels && labels.length > 0 ? labels : COMPTE_RESULTAT_LABELS
+    const finalLabels = (labels && labels.length > 0 ? labels : COMPTE_RESULTAT_LABELS)
+      .map((l) => l.replace(/ME\b/g, "B2B"))
     setCompteResultatRows((prev) => finalLabels.map((designation, i) => ({
       designation,
       mBudget: safeString(prev[i]?.mBudget),
@@ -758,6 +824,52 @@ function FinancesPageContent() {
   )
 
   const effectiveDirection = resolveDirectionForRole(safeString(direction).trim() || safeString(user?.direction).trim() || "Siege")
+
+  useEffect(() => {
+    if (!kpiRows || Object.keys(kpiRows).length === 0) return
+    if (!tableauDeclarations || tableauDeclarations.length === 0) return
+    if (!effectiveDirection) return
+
+    const prevPeriod = getPreviousPeriod(mois, annee)
+
+    const autoPopulate = <T extends Record<string, string>>(
+      tabKey: string,
+      setter: React.Dispatch<React.SetStateAction<T[]>>,
+    ) => {
+      const hasExisting = tableauDeclarations.some(
+        (d) => d.tabKey === tabKey && d.mois === mois && d.annee === annee && d.direction === effectiveDirection,
+      )
+      if (hasExisting) return
+
+      const prevDecl = tableauDeclarations.find(
+        (d) => d.tabKey === tabKey && d.mois === prevPeriod.mois && d.annee === prevPeriod.annee && d.direction === effectiveDirection,
+      )
+      if (!prevDecl) return
+
+      try {
+        const data = JSON.parse(prevDecl.dataJson)
+        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]))
+        if (!arrayKey) return
+        const prevRows: Record<string, string>[] = data[arrayKey]
+
+        setter((prev) =>
+          prev.map((row, i) => {
+            const prevRow = prevRows[i]
+            if (!prevRow) return row
+            const m1Values = mapMtoM1(prevRow)
+            return { ...row, ...m1Values } as unknown as T
+          }),
+        )
+      } catch {
+
+      }
+    }
+
+    autoPopulate("compte_resultat", setCompteResultatRows)
+    autoPopulate("investissement", setInvestissementRows)
+    autoPopulate("avancement_engagement", setAvancementEngagementRows)
+    autoPopulate("tresorerie", setTresorerieMobilisRows)
+  }, [kpiRows, tableauDeclarations, mois, annee, effectiveDirection])
 
   useEffect(() => {
     if (!userRole) return
@@ -966,9 +1078,7 @@ function FinancesPageContent() {
 
   const handleSave = async (tabKey: tableauTabKey) => {
     const saveDirection = effectiveDirection
-    const isAdminEditing = isAdminRole && !!editingDeclarationId
-
-    if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
+    if (!isAdminRole && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
         title: "Acces refuse",
         description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
@@ -1124,22 +1234,6 @@ function FinancesPageContent() {
           },
         })
       }
-
-      await fetch(`${apiBase}/api/step-comment`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          tabKey,
-          mois,
-          annee,
-          direction: saveDirection,
-          comment: tabComment,
-        }),
-      })
 
       const createResponse = await fetch(`${apiBase}/api/fiscal`, {
         method: "POST",
@@ -1369,7 +1463,7 @@ function FinancesPageContent() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {renderExistingWarning("compte_resultat")}
-                      <TabCompteResultat rows={compteResultatRows} setRows={setCompteResultatRows} onSave={() => handleSave("compte_resultat")} isSubmitting={isSubmitting} />
+                      <TabCompteResultat rows={compteResultatRows} setRows={setCompteResultatRows} onSave={() => handleSave("compte_resultat")} isSubmitting={isSubmitting} mois={mois} />
                     </CardContent>
                   </Card>
                   <Card>
@@ -1378,7 +1472,7 @@ function FinancesPageContent() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {renderExistingWarning("investissement")}
-                      <TabInvestissement rows={investissementRows} setRows={setInvestissementRows} onSave={() => handleSave("investissement")} isSubmitting={isSubmitting} />
+                      <TabInvestissement rows={investissementRows} setRows={setInvestissementRows} onSave={() => handleSave("investissement")} isSubmitting={isSubmitting} mois={mois} />
                     </CardContent>
                   </Card>
                   <div className="mt-4 space-y-1">
@@ -1435,7 +1529,7 @@ function FinancesPageContent() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {renderExistingWarning("avancement_engagement")}
-                      <TabAvancementEngagement rows={avancementEngagementRows} setRows={setAvancementEngagementRows} onSave={() => handleSave("avancement_engagement")} isSubmitting={isSubmitting} />
+                      <TabAvancementEngagement rows={avancementEngagementRows} setRows={setAvancementEngagementRows} onSave={() => handleSave("avancement_engagement")} isSubmitting={isSubmitting} mois={mois} />
                     </CardContent>
                   </Card>
                   <Card>
@@ -1444,7 +1538,7 @@ function FinancesPageContent() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {renderExistingWarning("tresorerie")}
-                      <TabTresorerieMobilis rows={tresorerieMobilisRows} setRows={setTresorerieMobilisRows} onSave={() => handleSave("tresorerie")} isSubmitting={isSubmitting} />
+                      <TabTresorerieMobilis rows={tresorerieMobilisRows} setRows={setTresorerieMobilisRows} onSave={() => handleSave("tresorerie")} isSubmitting={isSubmitting} mois={mois} />
                     </CardContent>
                   </Card>
                   <div className="mt-4 space-y-1">

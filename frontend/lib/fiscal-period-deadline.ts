@@ -35,12 +35,20 @@ const getDeadlineDayForRole = (role?: string | null): number => {
   return 10
 }
 
-export const getCurrenttableauPeriod = (now: Date = new Date()) => {
-  const referenceDate = now.getDate() >= 11 ? now : new Date(now.getFullYear(), now.getMonth() - 1, 1)
+export function getMonthLabel(mois: string, diff: number = 0): string {
+  const monthNum = Number.parseInt(mois, 10)
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return `M${diff === 0 ? "" : diff}`
+  let targetMonth = monthNum + diff
+  if (targetMonth < 1) targetMonth += 12
+  if (targetMonth > 12) targetMonth -= 12
+  const key = String(targetMonth).padStart(2, "0")
+  return MONTH_LABELS[key] ?? key
+}
 
+export const getCurrenttableauPeriod = (now: Date = new Date()) => {
   return {
-    mois: String(referenceDate.getMonth() + 1).padStart(2, "0"),
-    annee: String(referenceDate.getFullYear()),
+    mois: String(now.getMonth() + 1).padStart(2, "0"),
+    annee: String(now.getFullYear()),
   }
 }
 

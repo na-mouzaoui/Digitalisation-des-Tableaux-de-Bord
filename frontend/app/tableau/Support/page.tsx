@@ -18,26 +18,13 @@ import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 import { DomainAccessGuard } from "@/components/domain-access-guard"
+import { getPreviousPeriod, mapMtoM1 } from "@/lib/auto-populate-m1"
+import { isAdmintableauRole, isRegionaltableauRole, isFinancetableauRole, getManageabletableauTabKeysForDirection, istableauTabDisabledByPolicy } from "@/lib/fiscal-tab-access"
+import { getCurrenttableauPeriod, gettableauPeriodLockMessage, istableauPeriodLocked } from "@/lib/fiscal-period-deadline"
+import { synctableauPolicy } from "@/lib/fiscal-policy"
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
 const PRIMARY_COLOR = "#2db34b"
-
-
-// ?????????????????????????????????????????????????????????????????????????????
-// 2. STUBS POLITIQUE FISCALE
-// ?????????????????????????????????????????????????????????????????????????????
-const getCurrenttableauPeriod = (now: Date = new Date()) => ({
-  mois: String(now.getMonth() + 1).padStart(2, "0"),
-  annee: String(now.getFullYear()),
-})
-const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
-const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
-const synctableauPolicy = async (_direction?: string | null) => null
-const isAdmintableauRole = (_role?: string | null) => false
-const isRegionaltableauRole = (_role?: string | null) => false
-const isFinancetableauRole = (_role?: string | null) => false
-const getManageabletableauTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
-const istableauTabDisabledByPolicy = (_tabKey?: string) => false
 
 
 // ?????????????????????????????????????????????????????????????????????????????
@@ -77,6 +64,15 @@ const num = (v: string) => {
   const normalized = normalizeAmountInput(v)
   return parseFloat(normalized.endsWith(".") ? normalized.slice(0, -1) : normalized) || 0
 }
+
+const calcEvol = (m: string, m1: string) => {
+  const mNum = num(m)
+  const m1Num = num(m1)
+  if (m1Num === 0) return "0.0"
+  return ((mNum - m1Num) / m1Num * 100).toFixed(1)
+}
+
+const isTotalRow = (label: string) => /total/i.test(label)
 
 const toPercent = (numerator: number, denominator: number) =>
   denominator ? (numerator / denominator) * 100 : 0
@@ -164,10 +160,11 @@ const DEFAULT_MOUVEMENT_EFFECTIFS_DOMAINE_ROWS: MouvementEffectifsDomaineRow[] =
 
 // ?? Recouvrement Créances Contentieuses ???????????????????????????????????????
 type RecouvrementRow = { designation: string; m1Montant: string; mObjectif: string; mMontant: string; mTaux: string }
-const RECOUVREMENT_LABELS = ["N-2 (2024)", "N-1 (2025)", "Total"] as const
-const RECOUVREMENT_ANTERIEUR_LABELS = ["Antérieur au 01/01/2024"] as const
+type RecouvrementAnterieurRow = { designation: string; m1Montant: string; mMontant: string; evol: string }
+const RECOUVREMENT_LABELS = ["N-2", "N-1", "Total"] as const
+const RECOUVREMENT_ANTERIEUR_LABELS = ["Antérieur au 01/01/"] as const
 const DEFAULT_RECOUVREMENT_ROWS: RecouvrementRow[] = RECOUVREMENT_LABELS.map((designation) => ({ designation, m1Montant: "", mObjectif: "", mMontant: "", mTaux: "" }))
-const DEFAULT_RECOUVREMENT_ANTERIEUR_ROWS: RecouvrementRow[] = RECOUVREMENT_ANTERIEUR_LABELS.map((designation) => ({ designation, m1Montant: "", mObjectif: "", mMontant: "", mTaux: "" }))
+const DEFAULT_RECOUVREMENT_ANTERIEUR_ROWS: RecouvrementAnterieurRow[] = RECOUVREMENT_ANTERIEUR_LABELS.map((designation) => ({ designation, m1Montant: "", mMontant: "", evol: "" }))
 
 // ?? Budget des Formations ???????????????????????????????????????????????????
 type BudgetFormationRow = { designation: string; m1: string; m: string; evol: string }
@@ -204,13 +201,21 @@ function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting
 //    Réutilisé par : Effectif GSP, Absentéisme
 interface SimplePartTableProps {
   colHeader: string
+  mois: string
   rows: Array<{ m: string; m1: string; part: string } & Record<string, string>>
   labelKey: string
   update: (index: number, field: "m" | "m1" | "part", value: string) => void
   onSave: () => void
   isSubmitting: boolean
 }
-function SimplePartTable({ colHeader, rows, labelKey, update, onSave, isSubmitting }: SimplePartTableProps) {
+function SimplePartTable({ colHeader, mois, rows, labelKey, update, onSave, isSubmitting }: SimplePartTableProps) {
+  const nonTotalRows = rows.filter((r) => !isTotalRow(r[labelKey]))
+  const sumM = nonTotalRows.reduce((s, r) => s + num(r.m), 0)
+  const sumM1 = nonTotalRows.reduce((s, r) => s + num(r.m1), 0)
+  const calcPart = (row: typeof rows[number]) => {
+    const mVal = num(row.m1)
+    return sumM1 ? ((mVal / sumM1) * 100).toFixed(1) : "0.0"
+  }
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -218,20 +223,29 @@ function SimplePartTable({ colHeader, rows, labelKey, update, onSave, isSubmitti
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{colHeader}</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Part %</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={index} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.part} onChange={(e) => update(index, "part", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-              </tr>
-            ))}
+            {rows.map((row, index) => {
+              const isTtl = isTotalRow(row[labelKey])
+              const dM1 = isTtl ? fmt(sumM) : null
+              const dM = isTtl ? fmt(sumM1) : null
+              return (
+                <tr key={index} className={isTtl ? "bg-green-100 font-semibold" : "bg-white"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM1}</span> : <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM}</span> : <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcPart(row)} %</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -244,12 +258,13 @@ function SimplePartTable({ colHeader, rows, labelKey, update, onSave, isSubmitti
 //    Réutilisé par : Creances Contentieuses
 interface SimpleEvolTableProps {
   colHeader: string
+  mois: string
   rows: Array<{ designation: string; m: string; m1: string; evol: string }>
   update: (index: number, field: "m" | "m1" | "evol", value: string) => void
   onSave: () => void
   isSubmitting: boolean
 }
-function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: SimpleEvolTableProps) {
+function SimpleEvolTable({ colHeader, mois, rows, update, onSave, isSubmitting }: SimpleEvolTableProps) {
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -257,8 +272,8 @@ function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: Simp
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{colHeader}</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -283,19 +298,31 @@ function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: Simp
 //    Réutilisé par : Effectifs Formés, Formations
 interface OrtTableProps {
   colHeader: string
+  mois: string
   rows: Array<Record<string, string>>
   labelKey: string
   onSave: () => void
   isSubmitting: boolean
   update: (index: number, field: string, value: string) => void
   m1Simple?: boolean
+  totalIndex?: number
+  totalValues?: Record<string, string>
 }
-function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update, m1Simple }: OrtTableProps) {
+function OrtTable({ colHeader, mois, rows, labelKey, onSave, isSubmitting, update, m1Simple, totalIndex, totalValues }: OrtTableProps) {
   const m1Headers = m1Simple ? ["Réalisé"] : ["Objectif", "Réalisé", "Taux"]
   const mHeaders = ["Objectif", "Réalisé", "Taux"]
   const m1Fields = m1Simple ? ["m1Realise"] : ["m1Objectif", "m1Realise", "m1Taux"]
-  const mFields = ["mObjectif", "mRealise", "mTaux"]
+  const mFields = ["mObjectif", "mRealise"]
   const allFields = [...mFields, ...m1Fields]
+  const calcTaux = (r: Record<string, string>) => {
+    const realise = num(r.mRealise ?? "")
+    const objectif = num(r.mObjectif ?? "")
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
+  const nonTotalRows = totalIndex !== undefined ? rows.filter((_, i) => i !== totalIndex) : rows.filter((r) => !isTotalRow(r[labelKey]))
+  const sumObjectif = totalValues ? num(totalValues.mObjectif) : nonTotalRows.reduce((s, r) => s + num(r.mObjectif ?? ""), 0)
+  const sumRealise = totalValues ? num(totalValues.mRealise) : nonTotalRows.reduce((s, r) => s + num(r.mRealise ?? ""), 0)
+  const sumM1Realise = totalValues ? num(totalValues.m1Realise) : nonTotalRows.reduce((s, r) => s + num(r.m1Realise ?? ""), 0)
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -303,8 +330,8 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update, m1S
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={m1Simple ? 1 : 3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={m1Simple ? 1 : 3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               {m1Headers.map((h, i) => (
@@ -316,16 +343,28 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update, m1S
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={index} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
-                {allFields.map((field) => (
-                  <td key={field} className="px-1 py-1 border-b">
-                    <AmountInput value={row[field] ?? ""} onChange={(e) => update(index, field, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {rows.map((row, index) => {
+              const isTtl = totalValues ? index === totalIndex : (totalIndex !== undefined ? index === totalIndex : isTotalRow(row[labelKey]))
+              const dM1Rs = isTtl ? fmt(totalValues ? num(totalValues.m1Realise) : sumM1Realise) : null
+              const dObj = isTtl ? fmt(totalValues ? num(totalValues.mObjectif) : sumObjectif) : null
+              const dRs = isTtl ? fmt(totalValues ? num(totalValues.mRealise) : sumRealise) : null
+              return (
+                <tr key={index} className={isTtl ? "bg-green-100 font-semibold" : "bg-white"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
+                  {m1Fields.map((field) => (
+                    <td key={field} className="px-1 py-1 border-b">
+                      {isTtl ? <span className="block px-2 text-xs text-right">{dM1Rs}</span> : <AmountInput value={row[field] ?? ""} onChange={(e) => update(index, field, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                    </td>
+                  ))}
+                  {mFields.map((field) => (
+                    <td key={field} className="px-1 py-1 border-b">
+                      {isTtl ? <span className="block px-2 text-xs text-right">{field === "mObjectif" ? dObj : dRs}</span> : <AmountInput value={row[field] ?? ""} onChange={(e) => update(index, field, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                    </td>
+                  ))}
+                  <td className="px-1 py-1 border-b text-xs text-right font-semibold">{isTtl ? (totalValues?.mTaux ?? calcTaux({ mRealise: String(sumRealise), mObjectif: String(sumObjectif) })) : calcTaux(row)} %</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -335,10 +374,22 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update, m1S
 }
 
 // ?? 6a. Frais Personnel ???????????????????????????????????????????????????????
-interface TabFraisPersonnelProps { rows: FraisPersonnelRow[]; setRows: React.Dispatch<React.SetStateAction<FraisPersonnelRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabFraisPersonnel({ rows, setRows, onSave, isSubmitting }: TabFraisPersonnelProps) {
+interface TabFraisPersonnelProps { rows: FraisPersonnelRow[]; setRows: React.Dispatch<React.SetStateAction<FraisPersonnelRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabFraisPersonnel({ rows, setRows, onSave, isSubmitting, mois }: TabFraisPersonnelProps) {
   const update = (index: number, field: "m" | "m1", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  const rowsWithTaux = rows.map((row, idx) => {
+    if (idx === 2 && rows.length >= 2) {
+      const oM = num(rows[0].m), oM1 = num(rows[0].m1)
+      const rM = num(rows[1].m), rM1 = num(rows[1].m1)
+      const m = oM === 0 ? "N/A" : fmt((rM / oM) * 100)
+      const m1 = oM1 === 0 ? "N/A" : fmt((rM1 / oM1) * 100)
+      return { ...row, m, m1 }
+    }
+    return row
+  })
+  const isReadonly = (d: string) => d === "Taux d'atteinte"
 
   return (
     <div className="space-y-3">
@@ -347,16 +398,20 @@ function TabFraisPersonnel({ rows, setRows, onSave, isSubmitting }: TabFraisPers
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Frais personnel (MDA)</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
+            {rowsWithTaux.map((row, index) => (
               <tr key={row.designation} className="bg-white">
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m}  onChange={(e) => update(index, "m",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b">
+                  {isReadonly(row.designation) ? <span className="block px-2 text-xs text-right font-semibold">{row.m}</span> : <AmountInput value={row.m}  onChange={(e) => update(index, "m",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                </td>
+                <td className="px-1 py-1 border-b">
+                  {isReadonly(row.designation) ? <span className="block px-2 text-xs text-right font-semibold">{row.m1}</span> : <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -368,29 +423,30 @@ function TabFraisPersonnel({ rows, setRows, onSave, isSubmitting }: TabFraisPers
 }
 
 // ?? 6b. Effectif GSP ??????????????????????????????????????????????????????????
-interface TabEffectifGspProps { rows: EffectifGspRow[]; setRows: React.Dispatch<React.SetStateAction<EffectifGspRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabEffectifGsp({ rows, setRows, onSave, isSubmitting }: TabEffectifGspProps) {
+interface TabEffectifGspProps { rows: EffectifGspRow[]; setRows: React.Dispatch<React.SetStateAction<EffectifGspRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabEffectifGsp({ rows, setRows, onSave, isSubmitting, mois }: TabEffectifGspProps) {
   const update = (i: number, f: "m" | "m1" | "part", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimplePartTable colHeader="GSP" rows={rows} labelKey="gsp" update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimplePartTable colHeader="GSP" mois={mois} rows={rows} labelKey="gsp" update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
 // ?? 6c. Absentéisme ???????????????????????????????????????????????????????????
-interface TabAbsenteismeProps { rows: AbsenteismeRow[]; setRows: React.Dispatch<React.SetStateAction<AbsenteismeRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabAbsenteisme({ rows, setRows, onSave, isSubmitting }: TabAbsenteismeProps) {
+interface TabAbsenteismeProps { rows: AbsenteismeRow[]; setRows: React.Dispatch<React.SetStateAction<AbsenteismeRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabAbsenteisme({ rows, setRows, onSave, isSubmitting, mois }: TabAbsenteismeProps) {
   const update = (i: number, f: "m" | "m1" | "part", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimplePartTable colHeader="Absenteisme (jours)" rows={rows} labelKey="motif" update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimplePartTable colHeader="Absenteisme (jours)" mois={mois} rows={rows} labelKey="motif" update={update} onSave={onSave} isSubmitting={isSubmitting} />
 }
 
 // ?? 6d. Mouvement Effectifs ???????????????????????????????????????????????????
-interface TabMouvementEffectifsProps { rows: MouvementEffectifsRow[]; setRows: React.Dispatch<React.SetStateAction<MouvementEffectifsRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabMouvementEffectifs({ rows, setRows, onSave, isSubmitting }: TabMouvementEffectifsProps) {
+interface TabMouvementEffectifsProps { rows: MouvementEffectifsRow[]; setRows: React.Dispatch<React.SetStateAction<MouvementEffectifsRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabMouvementEffectifs({ rows, setRows, onSave, isSubmitting, mois }: TabMouvementEffectifsProps) {
   type EditableField = keyof Pick<MouvementEffectifsRow, "mCadresSup" | "mCadres" | "mMaitrise" | "mExecution" | "m1CadresSup" | "m1Cadres" | "m1Maitrise" | "m1Execution">
   const update = (index: number, field: EditableField, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
   const fields: EditableField[] = ["mCadresSup", "mCadres", "mMaitrise", "mExecution", "m1CadresSup", "m1Cadres", "m1Maitrise", "m1Execution"]
+  const excludedOps = ["Stagiaires", "Personnes a besoins specifiques"]
   const sumRows = (bloc: string, field: EditableField) =>
-    rows.filter((r) => r.bloc === bloc && r.operation !== "TOTAL").reduce((acc, r) => acc + num(r[field]), 0)
+    rows.filter((r) => r.bloc === bloc && r.operation !== "TOTAL" && !excludedOps.includes(r.operation)).reduce((acc, r) => acc + num(r[field]), 0)
   const sumBlocTotal = (bloc: string, fields: EditableField[]) =>
     fields.reduce((acc, f) => acc + sumRows(bloc, f), 0)
 
@@ -402,8 +458,8 @@ function TabMouvementEffectifs({ rows, setRows, onSave, isSubmitting }: TabMouve
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Type d'operation</th>
-              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               {["Cadres Sup", "Cadres", "Maitrise", "Execution"].map((h, i) => (
@@ -447,8 +503,8 @@ function TabMouvementEffectifs({ rows, setRows, onSave, isSubmitting }: TabMouve
 }
 
 // ?? 6e. Mouvement Effectifs par Domaine ???????????????????????????????????????
-interface TabMouvementEffectifsDomaineProps { rows: MouvementEffectifsDomaineRow[]; setRows: React.Dispatch<React.SetStateAction<MouvementEffectifsDomaineRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabMouvementEffectifsDomaine({ rows, setRows, onSave, isSubmitting }: TabMouvementEffectifsDomaineProps) {
+interface TabMouvementEffectifsDomaineProps { rows: MouvementEffectifsDomaineRow[]; setRows: React.Dispatch<React.SetStateAction<MouvementEffectifsDomaineRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabMouvementEffectifsDomaine({ rows, setRows, onSave, isSubmitting, mois }: TabMouvementEffectifsDomaineProps) {
   type EditableField = keyof Pick<MouvementEffectifsDomaineRow, "mCdi" | "mCdd" | "mCta" | "m1Cdi" | "m1Cdd" | "m1Cta">
   const update = (index: number, field: EditableField, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
@@ -467,8 +523,8 @@ function TabMouvementEffectifsDomaine({ rows, setRows, onSave, isSubmitting }: T
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs par Domaine</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Domaine</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               {[["CDI", 0], ["CDD", 1], ["CTA", 2]].map(([h, i]) => (
@@ -512,8 +568,17 @@ function TabMouvementEffectifsDomaine({ rows, setRows, onSave, isSubmitting }: T
 }
 
 // ?? 6f. Recouvrement Créances Contentieuses ??????????????????????????????????
-function TabRecouvrement({ rows, setRows }: { rows: RecouvrementRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementRow[]>> }) {
+function TabRecouvrement({ rows, setRows, mois, annee }: { rows: RecouvrementRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementRow[]>>; mois: string; annee: string }) {
   const update = (i: number, f: keyof RecouvrementRow, v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
+  const calcTaux = (r: RecouvrementRow) => {
+    const montant = parseFloat(r.mMontant ?? "0") || 0
+    const objectif = parseFloat(r.mObjectif ?? "0") || 0
+    return objectif ? ((montant / objectif) * 100).toFixed(1) : "0.0"
+  }
+  const nonTotalRows = rows.filter((r) => !isTotalRow(r.designation))
+  const sumM1 = nonTotalRows.reduce((s, r) => s + num(r.m1Montant), 0)
+  const sumObj = nonTotalRows.reduce((s, r) => s + num(r.mObjectif), 0)
+  const sumM = nonTotalRows.reduce((s, r) => s + num(r.mMontant), 0)
 
   return (
     <div className="space-y-3">
@@ -522,8 +587,8 @@ function TabRecouvrement({ rows, setRows }: { rows: RecouvrementRow[]; setRows: 
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 border-b border-r bg-transparent"></th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 border-b border-r bg-transparent"></th>
@@ -534,21 +599,70 @@ function TabRecouvrement({ rows, setRows }: { rows: RecouvrementRow[]; setRows: 
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
+            {rows.map((row, index) => {
+              const isTtl = isTotalRow(row.designation)
+              const dM1 = isTtl ? fmt(sumM1) : null
+              const dObj = isTtl ? fmt(sumObj) : null
+              const dM = isTtl ? fmt(sumM) : null
+              return (
+                <tr key={`${row.designation}-${index}`} className={isTtl ? "bg-green-100 font-semibold" : "bg-white"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{formatDesignation(row.designation, annee)}</td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM1}</span> : <AmountInput value={row.m1Montant} onChange={(e) => update(index, "m1Montant", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dObj}</span> : <AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM}</span> : <AmountInput value={row.mMontant} onChange={(e) => update(index, "mMontant", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b text-xs text-right font-semibold">{isTtl ? calcTaux({ ...row, mMontant: String(sumM), mObjectif: String(sumObj) }) : calcTaux(row)} %</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ?? 6g. Recouvrement Créances Contentieuses Antérieur ?????????????????????????
+function TabRecouvrementAnterieur({ rows, setRows, mois, annee }: { rows: RecouvrementAnterieurRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementAnterieurRow[]>>; mois: string; annee: string }) {
+  const update = (i: number, f: keyof RecouvrementAnterieurRow, v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
+  const rowsWithEvol = rows.map((row) => {
+    const evol = (num(row.mMontant) === 0 && num(row.m1Montant) === 0) ? "" : calcEvol(row.mMontant, row.m1Montant)
+    return { ...row, evol }
+  })
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 border-b border-r bg-transparent"></th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 border-b border-r bg-transparent"></th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Montant Recouvré (KDA)</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Montant Recouvré (KDA)</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rowsWithEvol.map((row, index) => (
               <tr key={`${row.designation}-${index}`} className="bg-white">
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{formatDesignation(row.designation, annee)}</td>
                 <td className="px-1 py-1 border-b">
                   <AmountInput value={row.m1Montant} onChange={(e) => update(index, "m1Montant", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
                 </td>
                 <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-                <td className="px-1 py-1 border-b">
                   <AmountInput value={row.mMontant} onChange={(e) => update(index, "mMontant", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
                 </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{row.evol ? `${row.evol} %` : ""}</td>
               </tr>
             ))}
           </tbody>
@@ -559,26 +673,59 @@ function TabRecouvrement({ rows, setRows }: { rows: RecouvrementRow[]; setRows: 
 }
 
 // ?? 6e. Effectifs Formés GSP ?????????????????????????????????????????????????
-interface TabEffectifsFormesGspProps { rows: EffectifsFormesGspRow[]; setRows: React.Dispatch<React.SetStateAction<EffectifsFormesGspRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabEffectifsFormesGsp({ rows, setRows, onSave, isSubmitting }: TabEffectifsFormesGspProps) {
+interface TabEffectifsFormesGspProps { rows: EffectifsFormesGspRow[]; setRows: React.Dispatch<React.SetStateAction<EffectifsFormesGspRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabEffectifsFormesGsp({ rows, setRows, onSave, isSubmitting, mois }: TabEffectifsFormesGspProps) {
   const update = (index: number, field: keyof EffectifsFormesGspRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
-  return <OrtTable colHeader="Effectifs Formes par GSP" rows={rows as any} labelKey="gsp" update={(i, f, v) => update(i, f as keyof EffectifsFormesGspRow, v)} onSave={onSave} isSubmitting={isSubmitting} m1Simple />
+  const totalIndex = rows.length - 1
+  const dataRows = totalIndex >= 0 ? rows.filter((_, i) => i !== totalIndex) : rows
+  const sumObj = dataRows.reduce((s, r) => s + num(r.mObjectif), 0)
+  const sumRs = dataRows.reduce((s, r) => s + num(r.mRealise), 0)
+  const sumM1Rs = dataRows.reduce((s, r) => s + num(r.m1Realise), 0)
+  const totalTaux = sumObj === 0 ? "0.0" : ((sumRs / sumObj) * 100).toFixed(1)
+  return <OrtTable colHeader="Effectifs Formes par GSP" mois={mois} rows={rows as any} labelKey="gsp" update={(i, f, v) => update(i, f as keyof EffectifsFormesGspRow, v)} onSave={onSave} isSubmitting={isSubmitting} m1Simple totalIndex={totalIndex} totalValues={{ mObjectif: fmt(sumObj), mRealise: fmt(sumRs), m1Realise: fmt(sumM1Rs), mTaux: totalTaux }} />
 }
 
 // ?? 6f. Formations par Domaines ??????????????????????????????????????????????
-interface TabFormationsDomainesProps { rows: FormationsDomainesRow[]; setRows: React.Dispatch<React.SetStateAction<FormationsDomainesRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabFormationsDomaines({ rows, setRows, onSave, isSubmitting }: TabFormationsDomainesProps) {
+interface TabFormationsDomainesProps { rows: FormationsDomainesRow[]; setRows: React.Dispatch<React.SetStateAction<FormationsDomainesRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabFormationsDomaines({ rows, setRows, onSave, isSubmitting, mois }: TabFormationsDomainesProps) {
   const update = (index: number, field: keyof FormationsDomainesRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
-  return <OrtTable colHeader="Domaines" rows={rows as any} labelKey="domaine" update={(i, f, v) => update(i, f as keyof FormationsDomainesRow, v)} onSave={onSave} isSubmitting={isSubmitting} m1Simple />
+  const totalIndex = rows.length - 1
+  const dataRows = totalIndex >= 0 ? rows.filter((_, i) => i !== totalIndex) : rows
+  const sumObj = dataRows.reduce((s, r) => s + num(r.mObjectif), 0)
+  const sumRs = dataRows.reduce((s, r) => s + num(r.mRealise), 0)
+  const sumM1Rs = dataRows.reduce((s, r) => s + num(r.m1Realise), 0)
+  const totalTaux = sumObj === 0 ? "0.0" : ((sumRs / sumObj) * 100).toFixed(1)
+  return <OrtTable colHeader="Domaines" mois={mois} rows={rows as any} labelKey="domaine" update={(i, f, v) => update(i, f as keyof FormationsDomainesRow, v)} onSave={onSave} isSubmitting={isSubmitting} m1Simple totalIndex={totalIndex} totalValues={{ mObjectif: fmt(sumObj), mRealise: fmt(sumRs), m1Realise: fmt(sumM1Rs), mTaux: totalTaux }} />
 }
 
 // ?? 6g. Budget des Formations ????????????????????????????????????????????
-interface TabBudgetFormationProps { rows: BudgetFormationRow[]; setRows: React.Dispatch<React.SetStateAction<BudgetFormationRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabBudgetFormation({ rows, setRows, onSave, isSubmitting }: TabBudgetFormationProps) {
+interface TabBudgetFormationProps { rows: BudgetFormationRow[]; setRows: React.Dispatch<React.SetStateAction<BudgetFormationRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabBudgetFormation({ rows, setRows, onSave, isSubmitting, mois }: TabBudgetFormationProps) {
   const update = (index: number, field: keyof BudgetFormationRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  const nonTotalRows = rows.filter((r) => !isTotalRow(r.designation))
+  const totalM1 = nonTotalRows.reduce((s, r) => s + num(r.m1), 0)
+  const totalM = nonTotalRows.reduce((s, r) => s + num(r.m), 0)
+
+  const rowsWithAutoCalc = rows.map((row, idx) => {
+    if (idx === 3 && rows.length >= 3) {
+      const m1 = fmt(num(rows[1].m1) - num(rows[2].m1))
+      const m = fmt(num(rows[1].m) - num(rows[2].m))
+      return { ...row, m1, m }
+    }
+    if (idx === 4 && rows.length >= 3) {
+      const m1 = num(rows[1].m1) === 0 ? "N/A" : fmt((num(rows[2].m1) / num(rows[1].m1)) * 100)
+      const m = num(rows[1].m) === 0 ? "N/A" : fmt((num(rows[2].m) / num(rows[1].m)) * 100)
+      return { ...row, m1, m }
+    }
+    return row
+  })
+  const isReadonly = (d: string) => d === "Reste à réaliser" || d === "Taux de Réalisation"
+  const isTauxRow = (d: string) => d === "Taux de Réalisation"
+  const isBudgetAnnuel = (d: string) => d === "Budget Annuel"
 
   return (
     <div className="space-y-3">
@@ -587,26 +734,33 @@ function TabBudgetFormation({ rows, setRows, onSave, isSubmitting }: TabBudgetFo
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Budget des Formations</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evolution</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${row.designation}-${index}`} className="bg-white">
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
-                </td>
-              </tr>
-            ))}
+            {rowsWithAutoCalc.map((row, index) => {
+              const isTtl = isTotalRow(row.designation)
+              const isRo = isReadonly(row.designation)
+              const isTx = isTauxRow(row.designation)
+              const isBa = isBudgetAnnuel(row.designation)
+              const dM1 = isTtl ? fmt(totalM1) : null
+              const dM = isTtl ? fmt(totalM) : null
+              const dEvol = isBa ? "N/A" : (isTtl ? calcEvol(String(totalM), String(totalM1)) : calcEvol(row.m, row.m1))
+              return (
+                <tr key={`${row.designation}-${index}`} className={isTtl ? "bg-green-100 font-semibold" : "bg-white"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM1}</span> : isRo ? <span className="block px-2 text-xs text-right font-semibold">{isTx ? `${row.m1} %` : row.m1}</span> : <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM}</span> : isRo ? <span className="block px-2 text-xs text-right font-semibold">{isTx ? `${row.m} %` : row.m}</span> : <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b text-xs text-right font-semibold">{dEvol}{isBa ? "" : " %"}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -686,6 +840,27 @@ const MONTHS = [
   { value: "09", label: "Septembre" },{ value: "10", label: "Octobre" },
   { value: "11", label: "Novembre" }, { value: "12", label: "Decembre" },
 ]
+
+const getMonthLabel = (mois: string, diff: number = 0): string => {
+  const monthNum = Number.parseInt(mois, 10)
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return `M${diff === 0 ? "" : diff}`
+  let targetMonth = monthNum + diff
+  if (targetMonth < 1) targetMonth += 12
+  if (targetMonth > 12) targetMonth -= 12
+  const key = String(targetMonth).padStart(2, "0")
+  return MONTHS.find((m) => m.value === key)?.label ?? key
+}
+
+const formatDesignation = (designation: string, annee: string): string => {
+  const yearNum = Number.parseInt(annee, 10)
+  if (isNaN(yearNum)) return designation
+  const base = designation.replace(/\s*\(\d{4}\)/g, "").trim()
+  if (base === "N-2") return `N-2 (${yearNum - 2})`
+  if (base === "N-1") return `N-1 (${yearNum - 1})`
+  if (base.startsWith("Antérieur au 01/01/")) return `Antérieur au 01/01/${yearNum - 2}`
+  return designation
+}
+
 const CURRENT_YEAR = new Date().getFullYear()
 const INITIAL_tableau_PERIOD = getCurrenttableauPeriod()
 const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
@@ -703,7 +878,7 @@ interface Savedtableau {
   mois: string
   annee: string
   recouvrementRows?: RecouvrementRow[]
-  recouvrementAnterieurRows?: RecouvrementRow[]
+  recouvrementAnterieurRows?: RecouvrementAnterieurRow[]
   fraisPersonnelRows?: FraisPersonnelRow[]
   effectifGspRows?: EffectifGspRow[]
   absenteismeRows?: AbsenteismeRow[]
@@ -768,6 +943,12 @@ const normalizeRecouvrementRows = (rows?: RecouvrementRow[], labels?: readonly s
   return l.map((designation, i) => ({ designation, m1Montant: safeString(src[i]?.m1Montant), mObjectif: safeString(src[i]?.mObjectif), mMontant: safeString(src[i]?.mMontant), mTaux: safeString(src[i]?.mTaux) }))
 }
 
+const normalizeRecouvrementAnterieurRows = (rows?: RecouvrementAnterieurRow[], labels?: readonly string[]): RecouvrementAnterieurRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  const l = labels ?? RECOUVREMENT_ANTERIEUR_LABELS
+  return l.map((designation, i) => ({ designation, m1Montant: safeString(src[i]?.m1Montant), mMontant: safeString(src[i]?.mMontant), evol: safeString(src[i]?.evol) }))
+}
+
 const normalizeEffectifsFormesGspRows = (rows?: EffectifsFormesGspRow[]): EffectifsFormesGspRow[] => {
   const src = Array.isArray(rows) ? rows : []
   return EFFECTIFS_FORMES_GSP_LABELS.map((gsp, i) => ({ gsp, mObjectif: safeString(src[i]?.mObjectif), mRealise: safeString(src[i]?.mRealise), mTaux: safeString(src[i]?.mTaux), m1Realise: safeString(src[i]?.m1Realise) }))
@@ -817,7 +998,7 @@ function SupportPageContent() {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => r.json())
-      .then((data: { id: number; name: string }[]) => setRegions(data))
+      .then((data: { id: number; nom: string }[]) => setRegions(data))
       .catch(() => {})
   }, [])
 
@@ -879,7 +1060,7 @@ function SupportPageContent() {
   const [mouvementEffectifsRows, setMouvementEffectifsRows] = useState<MouvementEffectifsRow[]>(DEFAULT_MOUVEMENT_EFFECTIFS_ROWS.map((row) => ({ ...row })))
   const [mouvementEffectifsDomaineRows, setMouvementEffectifsDomaineRows] = useState<MouvementEffectifsDomaineRow[]>(DEFAULT_MOUVEMENT_EFFECTIFS_DOMAINE_ROWS.map((row) => ({ ...row })))
   const [recouvrementRows, setRecouvrementRows] = useState<RecouvrementRow[]>(DEFAULT_RECOUVREMENT_ROWS.map((row) => ({ ...row })))
-  const [recouvrementAnterieurRows, setRecouvrementAnterieurRows] = useState<RecouvrementRow[]>(DEFAULT_RECOUVREMENT_ANTERIEUR_ROWS.map((row) => ({ ...row })))
+  const [recouvrementAnterieurRows, setRecouvrementAnterieurRows] = useState<RecouvrementAnterieurRow[]>(DEFAULT_RECOUVREMENT_ANTERIEUR_ROWS.map((row) => ({ ...row })))
   const [effectifsFormesGspRows, setEffectifsFormesGspRows] = useState<EffectifsFormesGspRow[]>(DEFAULT_EFFECTIFS_FORMES_GSP_ROWS.map((row) => ({ ...row })))
   const [formationsDomainesRows, setFormationsDomainesRows] = useState<FormationsDomainesRow[]>(DEFAULT_FORMATIONS_DOMAINES_ROWS.map((row) => ({ ...row })))
   const [budgetFormationRows, setBudgetFormationRows] = useState<BudgetFormationRow[]>(DEFAULT_BUDGET_FORMATION_ROWS.map((row) => ({ ...row })))
@@ -998,9 +1179,8 @@ function SupportPageContent() {
       setRecouvrementAnterieurRows((prev) => creanceAnterieurLabels.map((designation, i) => ({
         designation,
         m1Montant: safeString(prev[i]?.m1Montant),
-        mObjectif: safeString(prev[i]?.mObjectif),
         mMontant: safeString(prev[i]?.mMontant),
-        mTaux: safeString(prev[i]?.mTaux),
+        evol: safeString((prev[i] as any)?.evol ?? ""),
       })))
 
       const effectifsFormesLabels = getLabels("effectifs_formes_gsp", EFFECTIFS_FORMES_GSP_LABELS)
@@ -1025,7 +1205,7 @@ function SupportPageContent() {
         m1Taux: safeString(prev[i]?.m1Taux),
       })))
     }, [kpiRows])
-  
+
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),
     [adminSelectedDirection, tableauPolicyRevision, isAdminRole, userRole],
@@ -1080,6 +1260,58 @@ function SupportPageContent() {
   )
 
   const effectiveDirection = resolveDirectionForRole(safeString(direction).trim() || safeString(user?.direction).trim() || "Siege")
+
+  useEffect(() => {
+    if (!kpiRows || Object.keys(kpiRows).length === 0) return
+    if (!tableauDeclarations || tableauDeclarations.length === 0) return
+    if (!effectiveDirection) return
+
+    const prevPeriod = getPreviousPeriod(mois, annee)
+
+    const autoPopulate = <T extends Record<string, string>>(
+      tabKey: string,
+      setter: React.Dispatch<React.SetStateAction<T[]>>,
+    ) => {
+      const hasExisting = tableauDeclarations.some(
+        (d) => d.tabKey === tabKey && d.mois === mois && d.annee === annee && d.direction === effectiveDirection,
+      )
+      if (hasExisting) return
+
+      const prevDecl = tableauDeclarations.find(
+        (d) => d.tabKey === tabKey && d.mois === prevPeriod.mois && d.annee === prevPeriod.annee && d.direction === effectiveDirection,
+      )
+      if (!prevDecl) return
+
+      try {
+        const data = JSON.parse(prevDecl.dataJson)
+        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]))
+        if (!arrayKey) return
+        const prevRows: Record<string, string>[] = data[arrayKey]
+
+        setter((prev) =>
+          prev.map((row, i) => {
+            const prevRow = prevRows[i]
+            if (!prevRow) return row
+            const m1Values = mapMtoM1(prevRow)
+            return { ...row, ...m1Values } as unknown as T
+          }),
+        )
+      } catch {
+
+      }
+    }
+
+    autoPopulate("frais_personnel", setFraisPersonnelRows)
+    autoPopulate("effectif_gsp", setEffectifGspRows)
+    autoPopulate("absenteisme", setAbsenteismeRows)
+    autoPopulate("mouvement_effectifs", setMouvementEffectifsRows)
+    autoPopulate("mouvement_effectifs_domaine", setMouvementEffectifsDomaineRows)
+    autoPopulate("creances_contentieuses", setRecouvrementRows)
+    autoPopulate("creances_contentieuses_anterieur", setRecouvrementAnterieurRows)
+    autoPopulate("effectifs_formes_gsp", setEffectifsFormesGspRows)
+    autoPopulate("formations_domaines", setFormationsDomainesRows)
+    autoPopulate("budget_formation", setBudgetFormationRows)
+  }, [kpiRows, tableauDeclarations, mois, annee, effectiveDirection])
 
   useEffect(() => {
     if (!userRole) return
@@ -1243,7 +1475,7 @@ function SupportPageContent() {
       setMouvementEffectifsRows(normalizeMouvementEffectifsRows(declaration.mouvementEffectifsRows))
       setMouvementEffectifsDomaineRows(normalizeMouvementEffectifsDomaineRows(declaration.mouvementEffectifsDomaineRows))
       setRecouvrementRows(normalizeRecouvrementRows(declaration.recouvrementRows))
-      setRecouvrementAnterieurRows(normalizeRecouvrementRows(declaration.recouvrementAnterieurRows, RECOUVREMENT_ANTERIEUR_LABELS))
+      setRecouvrementAnterieurRows(normalizeRecouvrementAnterieurRows((declaration as any).recouvrementAnterieurRows, RECOUVREMENT_ANTERIEUR_LABELS))
       setEffectifsFormesGspRows(normalizeEffectifsFormesGspRows(declaration.formationRows?.effectifsFormesGspRows))
       setFormationsDomainesRows(normalizeFormationsDomainesRows(declaration.formationRows?.formationsDomainesRows))
       setBudgetFormationRows(normalizeBudgetFormationRows(declaration.formationRows?.budgetFormationRows))
@@ -1308,7 +1540,14 @@ function SupportPageContent() {
 
   const handleSave = async (tabKey: tableauTabKey) => {
     const saveDirection = effectiveDirection
-    const isAdminEditing = isAdminRole && !!editingDeclarationId
+    if (!isAdminRole && !canManageTabForDirection(tabKey, saveDirection)) {
+      toast({
+        title: "Acces refuse",
+        description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
+        variant: "destructive",
+      })
+      return
+    }
     const currentSupportTabKey = tabKey
     
     if (isSupportTabDisabled(tabKey)) {
@@ -1390,13 +1629,13 @@ function SupportPageContent() {
         }
         break
       case "effectifs_formes_gsp":
-        if (effectifsFormesGspRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
+        if (effectifsFormesGspRows.slice(0, -1).some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Effectifs formes par GSP.", variant: "destructive" })
           validationError = true
         }
         break
       case "formations_domaines":
-        if (formationsDomainesRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
+        if (formationsDomainesRows.slice(0, -1).some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Formations réalisées par domaines.", variant: "destructive" })
           validationError = true
         }
@@ -1408,7 +1647,7 @@ function SupportPageContent() {
         }
         break
       case "creances_contentieuses_anterieur":
-        if (recouvrementAnterieurRows.some((row) => !row.m1Montant || !row.mObjectif || !row.mMontant || !row.mTaux)) {
+        if (recouvrementAnterieurRows.some((row) => !row.m1Montant || !row.mMontant)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Créances Contentieuses Antérieur.", variant: "destructive" })
           validationError = true
         }
@@ -1541,22 +1780,6 @@ function SupportPageContent() {
           },
         })
       }
-
-      await fetch(`${apiBase}/api/step-comment`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          tabKey,
-          mois,
-          annee,
-          direction: saveDirection,
-          comment: tabComment,
-        }),
-      })
 
       const createResponse = await fetch(`${apiBase}/api/fiscal`, {
         method: "POST",
@@ -1728,7 +1951,7 @@ function SupportPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabFraisPersonnel rows={fraisPersonnelRows} setRows={setFraisPersonnelRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabFraisPersonnel rows={fraisPersonnelRows} setRows={setFraisPersonnelRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1742,7 +1965,7 @@ function SupportPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabEffectifGsp rows={effectifGspRows} setRows={setEffectifGspRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabEffectifGsp rows={effectifGspRows} setRows={setEffectifGspRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1756,7 +1979,7 @@ function SupportPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabAbsenteisme rows={absenteismeRows} setRows={setAbsenteismeRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabAbsenteisme rows={absenteismeRows} setRows={setAbsenteismeRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1770,7 +1993,7 @@ function SupportPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabMouvementEffectifs rows={mouvementEffectifsRows} setRows={setMouvementEffectifsRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabMouvementEffectifs rows={mouvementEffectifsRows} setRows={setMouvementEffectifsRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1784,7 +2007,7 @@ function SupportPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabMouvementEffectifsDomaine rows={mouvementEffectifsDomaineRows} setRows={setMouvementEffectifsDomaineRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabMouvementEffectifsDomaine rows={mouvementEffectifsDomaineRows} setRows={setMouvementEffectifsDomaineRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1798,7 +2021,7 @@ function SupportPageContent() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {renderExistingWarning("creances_contentieuses")}
-                <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} />
+                <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} mois={mois} annee={annee} />
                 <SaveButton onSave={() => handleSave("creances_contentieuses")} isSubmitting={isSubmitting} />
               </CardContent>
             </Card>
@@ -1808,7 +2031,7 @@ function SupportPageContent() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {renderExistingWarning("creances_contentieuses_anterieur")}
-                <TabRecouvrement rows={recouvrementAnterieurRows} setRows={setRecouvrementAnterieurRows} />
+                <TabRecouvrementAnterieur rows={recouvrementAnterieurRows} setRows={setRecouvrementAnterieurRows} mois={mois} annee={annee} />
                 <SaveButton onSave={() => handleSave("creances_contentieuses_anterieur")} isSubmitting={isSubmitting} />
               </CardContent>
             </Card>
@@ -1823,7 +2046,7 @@ function SupportPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabEffectifsFormesGsp rows={effectifsFormesGspRows} setRows={setEffectifsFormesGspRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabEffectifsFormesGsp rows={effectifsFormesGspRows} setRows={setEffectifsFormesGspRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1837,7 +2060,7 @@ function SupportPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabFormationsDomaines rows={formationsDomainesRows} setRows={setFormationsDomainesRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabFormationsDomaines rows={formationsDomainesRows} setRows={setFormationsDomainesRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1851,7 +2074,7 @@ function SupportPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabBudgetFormation rows={budgetFormationRows} setRows={setBudgetFormationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabBudgetFormation rows={budgetFormationRows} setRows={setBudgetFormationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>

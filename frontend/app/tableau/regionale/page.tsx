@@ -19,6 +19,10 @@ import { API_BASE } from "@/lib/config"
 import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 import { DomainAccessGuard } from "@/components/domain-access-guard"
+import { getPreviousPeriod, mapMtoM1 } from "@/lib/auto-populate-m1"
+import { isAdmintableauRole, isRegionaltableauRole, isFinancetableauRole, getManageabletableauTabKeysForDirection, istableauTabDisabledByPolicy } from "@/lib/fiscal-tab-access"
+import { getCurrenttableauPeriod, gettableauPeriodLockMessage, istableauPeriodLocked } from "@/lib/fiscal-period-deadline"
+import { synctableauPolicy } from "@/lib/fiscal-policy"
 // ?????????????????????????????????????????????????????????????????????????????
 // 1. CONSTANTES GLOBALES
 // ?????????????????????????????????????????????????????????????????????????????
@@ -26,25 +30,10 @@ const PRIMARY_COLOR = "#2db34b"
 
 
 // ?????????????????????????????????????????????????????????????????????????????
-// 2. STUBS POLITIQUE FISCALE
-// ?????????????????????????????????????????????????????????????????????????????
-const getCurrenttableauPeriod = (now: Date = new Date()) => ({
-  mois: String(now.getMonth() + 1).padStart(2, "0"),
-  annee: String(now.getFullYear()),
-})
-const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
-const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
-const synctableauPolicy = async (_direction?: string | null) => null
-const isAdmintableauRole = (_role?: string | null) => false
-const isRegionaltableauRole = (_role?: string | null) => false
-const isFinancetableauRole = (_role?: string | null) => false
-const getManageabletableauTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
-const istableauTabDisabledByPolicy = (_tabKey?: string) => false
-
-
-// ?????????????????????????????????????????????????????????????????????????????
 // 3. HELPERS DE FORMATAGE DES MONTANTS
 // ?????????????????????????????????????????????????????????????????????????????
+const isTotalRow = (d: string) => /total/i.test(d)
+
 const fmt = (v: number | string) => {
   if (v === "" || isNaN(Number(v))) return ""
   const n = Number(v)
@@ -184,10 +173,15 @@ function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting
 }
 
 // ?? 6d. Commerciale DR ??????????????????????????????????????????????
-interface TabCommercialeDrProps { rows: CommercialeDrRow[]; setRows: React.Dispatch<React.SetStateAction<CommercialeDrRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabCommercialeDr({ rows, setRows, onSave, isSubmitting }: TabCommercialeDrProps) {
+interface TabCommercialeDrProps { rows: CommercialeDrRow[]; setRows: React.Dispatch<React.SetStateAction<CommercialeDrRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabCommercialeDr({ rows, setRows, onSave, isSubmitting, mois }: TabCommercialeDrProps) {
   const update = (index: number, field: "m1Realise" | "m1Objectif" | "mRealise" | "mTaux", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  const calcTaux = (r: (typeof rows)[number]) => {
+    const realise = parseFloat(r.mRealise ?? "0") || 0
+    const objectif = parseFloat(r.m1Objectif ?? "0") || 0
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
 
   return (
     <div className="space-y-3">
@@ -196,12 +190,12 @@ function TabCommercialeDr({ rows, setRows, onSave, isSubmitting }: TabCommercial
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Realisations Commerciales</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
@@ -213,7 +207,7 @@ function TabCommercialeDr({ rows, setRows, onSave, isSubmitting }: TabCommercial
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcTaux(row)} %</td>
               </tr>
             ))}
           </tbody>
@@ -226,8 +220,8 @@ function TabCommercialeDr({ rows, setRows, onSave, isSubmitting }: TabCommercial
 
 
 // ?? 6e. Reseau de Distribution ??????????????????????????????????????
-interface TabReseauDistributionProps { rows: ReseauDistributionRow[]; setRows: React.Dispatch<React.SetStateAction<ReseauDistributionRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabReseauDistribution({ rows, setRows, onSave, isSubmitting }: TabReseauDistributionProps) {
+interface TabReseauDistributionProps { rows: ReseauDistributionRow[]; setRows: React.Dispatch<React.SetStateAction<ReseauDistributionRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabReseauDistribution({ rows, setRows, onSave, isSubmitting, mois }: TabReseauDistributionProps) {
   const update = (index: number, field: keyof ReseauDistributionRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
@@ -238,16 +232,16 @@ function TabReseauDistribution({ rows, setRows, onSave, isSubmitting }: TabResea
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Reseau de Distribution</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, 0)}</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Situation Actuelle</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Recrute</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Recrute</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Recruté</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Résilié</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Recruté</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Résilié</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Écart</th>
             </tr>
           </thead>
           <tbody>
@@ -258,7 +252,7 @@ function TabReseauDistribution({ rows, setRows, onSave, isSubmitting }: TabResea
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mRecrute} onChange={(e) => update(index, "mRecrute", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mEcart} onChange={(e) => update(index, "mEcart", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{fmt((num(row.mRecrute) - num(row.m1Recrute)).toFixed(2))}</td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.situation} onChange={(e) => update(index, "situation", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
               </tr>
             ))}
@@ -272,10 +266,15 @@ function TabReseauDistribution({ rows, setRows, onSave, isSubmitting }: TabResea
 
 
 // ?? 6f. Genie Civil & Environnement ??????????????????????????????????
-interface TabGenieCivilProps { rows: GenieCivilRow[]; setRows: React.Dispatch<React.SetStateAction<GenieCivilRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabGenieCivil({ rows, setRows, onSave, isSubmitting }: TabGenieCivilProps) {
+interface TabGenieCivilProps { rows: GenieCivilRow[]; setRows: React.Dispatch<React.SetStateAction<GenieCivilRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabGenieCivil({ rows, setRows, onSave, isSubmitting, mois }: TabGenieCivilProps) {
   const update = (index: number, field: "m1Realise" | "m1Objectif" | "mRealise" | "mTaux", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  const calcTaux = (r: (typeof rows)[number]) => {
+    const realise = parseFloat(r.mRealise ?? "0") || 0
+    const objectif = parseFloat(r.m1Objectif ?? "0") || 0
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
 
   return (
     <div className="space-y-3">
@@ -284,12 +283,12 @@ function TabGenieCivil({ rows, setRows, onSave, isSubmitting }: TabGenieCivilPro
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Genie Civil & Environnement</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
@@ -301,7 +300,7 @@ function TabGenieCivil({ rows, setRows, onSave, isSubmitting }: TabGenieCivilPro
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcTaux(row)} %</td>
               </tr>
             ))}
           </tbody>
@@ -312,11 +311,17 @@ function TabGenieCivil({ rows, setRows, onSave, isSubmitting }: TabGenieCivilPro
   )
 }
 
+
 // ?? 6g. Maintenance & Equipements ???????????????????????????????????
-interface TabMaintenanceEquipementProps { rows: MaintenanceEquipementRow[]; setRows: React.Dispatch<React.SetStateAction<MaintenanceEquipementRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabMaintenanceEquipement({ rows, setRows, onSave, isSubmitting }: TabMaintenanceEquipementProps) {
+interface TabMaintenanceEquipementProps { rows: MaintenanceEquipementRow[]; setRows: React.Dispatch<React.SetStateAction<MaintenanceEquipementRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabMaintenanceEquipement({ rows, setRows, onSave, isSubmitting, mois }: TabMaintenanceEquipementProps) {
   const update = (index: number, field: "m1Realise" | "m1Objectif" | "mRealise" | "mTaux", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  const calcTaux = (r: (typeof rows)[number]) => {
+    const realise = parseFloat(r.mRealise ?? "0") || 0
+    const objectif = parseFloat(r.m1Objectif ?? "0") || 0
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
 
   return (
     <div className="space-y-3">
@@ -325,12 +330,12 @@ function TabMaintenanceEquipement({ rows, setRows, onSave, isSubmitting }: TabMa
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Maintenance & Equipements</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
@@ -342,7 +347,7 @@ function TabMaintenanceEquipement({ rows, setRows, onSave, isSubmitting }: TabMa
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcTaux(row)} %</td>
               </tr>
             ))}
           </tbody>
@@ -355,10 +360,15 @@ function TabMaintenanceEquipement({ rows, setRows, onSave, isSubmitting }: TabMa
 
 
 // ?? 6h. Nouveaux Sites & Extension Radio ?????????????????????????????
-interface TabNouveauxSitesProps { rows: NouveauxSitesRow[]; setRows: React.Dispatch<React.SetStateAction<NouveauxSitesRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabNouveauxSites({ rows, setRows, onSave, isSubmitting }: TabNouveauxSitesProps) {
+interface TabNouveauxSitesProps { rows: NouveauxSitesRow[]; setRows: React.Dispatch<React.SetStateAction<NouveauxSitesRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabNouveauxSites({ rows, setRows, onSave, isSubmitting, mois }: TabNouveauxSitesProps) {
   const update = (index: number, field: "m1Realise" | "m1Objectif" | "mRealise" | "mTaux", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  const calcTaux = (r: (typeof rows)[number]) => {
+    const realise = parseFloat(r.mRealise ?? "0") || 0
+    const objectif = parseFloat(r.m1Objectif ?? "0") || 0
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
 
   return (
     <div className="space-y-3">
@@ -367,12 +377,12 @@ function TabNouveauxSites({ rows, setRows, onSave, isSubmitting }: TabNouveauxSi
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Nouveaux Sites & Extension Radio</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
+              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Réalisé</th>
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux</th>
             </tr>
@@ -384,7 +394,7 @@ function TabNouveauxSites({ rows, setRows, onSave, isSubmitting }: TabNouveauxSi
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Objectif} onChange={(e) => update(index, "m1Objectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcTaux(row)} %</td>
               </tr>
             ))}
           </tbody>
@@ -433,10 +443,10 @@ function TabMttrDebit({ rows, setRows, onSave, isSubmitting }: TabMttrDebitProps
                 <td className="px-1 py-1 border-b"><Input value={row.wilaya} onChange={(e) => update(index, "wilaya", e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mttrObjectif} onChange={(e) => update(index, "mttrObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mttrRealise}  onChange={(e) => update(index, "mttrRealise",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mttrEcart}    onChange={(e) => update(index, "mttrEcart",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{fmt((num(row.mttrRealise) - num(row.mttrObjectif)).toFixed(2))}</td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.debitObjectif} onChange={(e) => update(index, "debitObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.debitRealise}  onChange={(e) => update(index, "debitRealise",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.debitEcart}    onChange={(e) => update(index, "debitEcart",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{fmt((num(row.debitRealise) - num(row.debitObjectif)).toFixed(2))}</td>
                 <td className="px-1 py-1 border-b text-center">
                   <Button type="button" size="icon" variant="ghost" onClick={() => removeRow(index)} disabled={rows.length <= 1} className="h-7 w-7 text-red-600"><Trash2 size={12} /></Button>
                 </td>
@@ -495,10 +505,15 @@ function TabAcquisitionTerrain({ rows, setRows, onSave, isSubmitting }: TabAcqui
 
 
 // ?? 6k. Recouvrement Contentieux ??????????????????????????????????
-interface TabRecouvrementContentieuxProps { rows: RecouvrementContentieuxRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementContentieuxRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabRecouvrementContentieux({ rows, setRows, onSave, isSubmitting }: TabRecouvrementContentieuxProps) {
+interface TabRecouvrementContentieuxProps { rows: RecouvrementContentieuxRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementContentieuxRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabRecouvrementContentieux({ rows, setRows, onSave, isSubmitting, mois }: TabRecouvrementContentieuxProps) {
   const update = (index: number, field: "m1Realise" | "mObjectif" | "mRealise" | "mTaux", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  const calcTaux = (r: (typeof rows)[number]) => {
+    const realise = parseFloat(r.mRealise ?? "0") || 0
+    const objectif = parseFloat(r.mObjectif ?? "0") || 0
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
 
   return (
     <div className="space-y-3">
@@ -507,8 +522,8 @@ function TabRecouvrementContentieux({ rows, setRows, onSave, isSubmitting }: Tab
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement Contentieux</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
@@ -524,7 +539,7 @@ function TabRecouvrementContentieux({ rows, setRows, onSave, isSubmitting }: Tab
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcTaux(row)} %</td>
               </tr>
             ))}
           </tbody>
@@ -537,10 +552,19 @@ function TabRecouvrementContentieux({ rows, setRows, onSave, isSubmitting }: Tab
 
 
 // ?? 6k. Ressources Humaines ?????????????????????????????????????????
-interface TabRessourcesHumainesProps { rows: RessourcesHumainesRow[]; setRows: React.Dispatch<React.SetStateAction<RessourcesHumainesRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabRessourcesHumaines({ rows, setRows, onSave, isSubmitting }: TabRessourcesHumainesProps) {
+interface TabRessourcesHumainesProps { rows: RessourcesHumainesRow[]; setRows: React.Dispatch<React.SetStateAction<RessourcesHumainesRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabRessourcesHumaines({ rows, setRows, onSave, isSubmitting, mois }: TabRessourcesHumainesProps) {
   const update = (index: number, field: "m1Realise" | "mObjectif" | "mRealise" | "mTaux", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  const calcTaux = (r: (typeof rows)[number]) => {
+    const realise = parseFloat(r.mRealise ?? "0") || 0
+    const objectif = parseFloat(r.mObjectif ?? "0") || 0
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
+  const nonTotalRows = rows.filter((r) => !isTotalRow(r.label))
+  const sumM1 = nonTotalRows.reduce((s, r) => s + num(r.m1Realise), 0)
+  const sumObj = nonTotalRows.reduce((s, r) => s + num(r.mObjectif), 0)
+  const sumM = nonTotalRows.reduce((s, r) => s + num(r.mRealise), 0)
 
   return (
     <div className="space-y-3">
@@ -549,8 +573,8 @@ function TabRessourcesHumaines({ rows, setRows, onSave, isSubmitting }: TabResso
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Ressources Humaines</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
@@ -560,15 +584,27 @@ function TabRessourcesHumaines({ rows, setRows, onSave, isSubmitting }: TabResso
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={row.label} className="bg-white">
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-              </tr>
-            ))}
+            {rows.map((row, index) => {
+              const isTtl = isTotalRow(row.label)
+              const dM1 = isTtl ? fmt(sumM1) : null
+              const dObj = isTtl ? fmt(sumObj) : null
+              const dM = isTtl ? fmt(sumM) : null
+              return (
+                <tr key={row.label} className={isTtl ? "bg-green-100 font-semibold" : "bg-white"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM1}</span> : <AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" />}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dObj}</span> : <AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" />}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM}</span> : <AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" />}
+                  </td>
+                  <td className="px-1 py-1 border-b text-xs text-right font-semibold">{isTtl ? calcTaux({ ...row, mRealise: String(sumM), mObjectif: String(sumObj) }) : calcTaux(row)} %</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -579,10 +615,15 @@ function TabRessourcesHumaines({ rows, setRows, onSave, isSubmitting }: TabResso
 
 
 // ?? 6l. Formation ???????????????????????????????????????????????????
-interface TabFormationProps { rows: FormationRow[]; setRows: React.Dispatch<React.SetStateAction<FormationRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabFormation({ rows, setRows, onSave, isSubmitting }: TabFormationProps) {
+interface TabFormationProps { rows: FormationRow[]; setRows: React.Dispatch<React.SetStateAction<FormationRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabFormation({ rows, setRows, onSave, isSubmitting, mois }: TabFormationProps) {
   const update = (index: number, field: "m1Realise" | "mObjectif" | "mRealise" | "mTaux", value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+  const calcTaux = (r: (typeof rows)[number]) => {
+    const realise = parseFloat(r.mRealise ?? "0") || 0
+    const objectif = parseFloat(r.mObjectif ?? "0") || 0
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
 
   return (
     <div className="space-y-3">
@@ -591,8 +632,8 @@ function TabFormation({ rows, setRows, onSave, isSubmitting }: TabFormationProps
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Formation</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
@@ -608,7 +649,7 @@ function TabFormation({ rows, setRows, onSave, isSubmitting }: TabFormationProps
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcTaux(row)} %</td>
               </tr>
             ))}
           </tbody>
@@ -686,6 +727,15 @@ const MONTHS = [
   { value: "09", label: "Septembre" },{ value: "10", label: "Octobre" },
   { value: "11", label: "Novembre" }, { value: "12", label: "Decembre" },
 ]
+const getMonthLabel = (mois: string, diff: number = 0): string => {
+  const monthNum = Number.parseInt(mois, 10)
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return `M${diff === 0 ? "" : diff}`
+  let targetMonth = monthNum + diff
+  if (targetMonth < 1) targetMonth += 12
+  if (targetMonth > 12) targetMonth -= 12
+  const key = String(targetMonth).padStart(2, "0")
+  return MONTHS.find((m) => m.value === key)?.label ?? key
+}
 const CURRENT_YEAR = new Date().getFullYear()
 const INITIAL_PERIOD = getCurrenttableauPeriod()
 const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
@@ -1022,29 +1072,9 @@ function RegionalePageContent() {
         mTaux: safeString(prev[i]?.mTaux),
       })))
 
-      const acquisitionTerrainLabels = kpiRows["acquisition_terrain"]
-      if (acquisitionTerrainLabels && acquisitionTerrainLabels.length > 0) {
-        setAcquisitionTerrainRows((prev) => acquisitionTerrainLabels.map((wilaya, i) => ({
-          wilaya,
-          terrain: safeString(prev[i]?.terrain),
-          location: safeString(prev[i]?.location),
-        })))
-      }
 
-      const mttrDebitLabels = kpiRows["mttr_debit"]
-      if (mttrDebitLabels && mttrDebitLabels.length > 0) {
-        setMttrDebitRows((prev) => mttrDebitLabels.map((wilaya, i) => ({
-          wilaya,
-          mttrObjectif: safeString(prev[i]?.mttrObjectif),
-          mttrRealise: safeString(prev[i]?.mttrRealise),
-          mttrEcart: safeString(prev[i]?.mttrEcart),
-          debitObjectif: safeString(prev[i]?.debitObjectif),
-          debitRealise: safeString(prev[i]?.debitRealise),
-          debitEcart: safeString(prev[i]?.debitEcart),
-        })))
-      }
     }, [kpiRows])
-  
+
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),
     [adminSelectedDirection, policyRevision, isAdminRole, userRole],
@@ -1112,6 +1142,58 @@ function RegionalePageContent() {
   )
 
   const effectiveDirection = resolveDirectionForRole(safeString(direction).trim() || safeString(user?.direction).trim() || "Siege")
+
+  useEffect(() => {
+    if (!kpiRows || Object.keys(kpiRows).length === 0) return
+    if (!declarations || declarations.length === 0) return
+    if (!effectiveDirection) return
+
+    const prevPeriod = getPreviousPeriod(mois, annee)
+
+    const autoPopulate = <T extends Record<string, string>>(
+      tabKey: string,
+      setter: React.Dispatch<React.SetStateAction<T[]>>,
+    ) => {
+      const hasExisting = declarations.some(
+        (d) => d.tabKey === tabKey && d.mois === mois && d.annee === annee && d.direction === effectiveDirection,
+      )
+      if (hasExisting) return
+
+      const prevDecl = declarations.find(
+        (d) => d.tabKey === tabKey && d.mois === prevPeriod.mois && d.annee === prevPeriod.annee && d.direction === effectiveDirection,
+      )
+      if (!prevDecl) return
+
+      try {
+        const data = JSON.parse(prevDecl.dataJson)
+        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]))
+        if (!arrayKey) return
+        const prevRows: Record<string, string>[] = data[arrayKey]
+
+        setter((prev) =>
+          prev.map((row, i) => {
+            const prevRow = prevRows[i]
+            if (!prevRow) return row
+            const m1Values = mapMtoM1(prevRow)
+            return { ...row, ...m1Values } as unknown as T
+          }),
+        )
+      } catch {
+
+      }
+    }
+
+    autoPopulate("genie_civil", setGenieCivilRows)
+    autoPopulate("maintenance_equipement", setMaintenanceEquipementRows)
+    autoPopulate("nouveaux_sites", setNouveauxSitesRows)
+    autoPopulate("mttr_debit", setMttrDebitRows)
+    autoPopulate("recouvrement_contentieux", setRecouvrementContentieuxRows)
+    autoPopulate("ressources_humaines", setRessourcesHumainesRows)
+    autoPopulate("formation", setFormationRows)
+    autoPopulate("acquisition_terrain", setAcquisitionTerrainRows)
+    autoPopulate("realisations_commerciales", setCommercialeDrRows)
+    autoPopulate("reseau_distribution", setReseauDistributionRows)
+  }, [kpiRows, declarations, mois, annee, effectiveDirection])
 
   useEffect(() => {
     if (!userRole) return
@@ -1318,9 +1400,7 @@ resolveTabKey(declaration)
 
   const handleSave = async (tabKey: TabKey) => {
     const saveDirection = effectiveDirection
-    const isAdminEditing = isAdminRole && !!editingDeclarationId
-    
-    if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
+    if (!isAdminRole && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
         title: "Accès refusé",
         description: "Votre profil n'est pas autorisé à créer ou modifier ce tableau fiscal.",
@@ -1542,22 +1622,6 @@ resolveTabKey(declaration)
         })
       }
 
-      await fetch(`${apiBase}/api/step-comment`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          tabKey,
-          mois,
-          annee,
-          direction: saveDirection,
-          comment: tabComment,
-        }),
-      })
-
       const createResponse = await fetch(`${apiBase}/api/fiscal`, {
         method: "POST",
         credentials: "include",
@@ -1724,6 +1788,7 @@ resolveTabKey(declaration)
                 setRows={setGenieCivilRows}
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
+                mois={mois}
               />
             </CardContent>
           </Card>
@@ -1742,6 +1807,7 @@ resolveTabKey(declaration)
                 setRows={setMaintenanceEquipementRows}
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
+                mois={mois}
               />
             </CardContent>
           </Card>
@@ -1760,6 +1826,7 @@ resolveTabKey(declaration)
                 setRows={setNouveauxSitesRows}
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
+                mois={mois}
               />
             </CardContent>
           </Card>
@@ -1796,6 +1863,7 @@ resolveTabKey(declaration)
                 setRows={setRecouvrementContentieuxRows}
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
+                mois={mois}
               />
             </CardContent>
           </Card>
@@ -1814,6 +1882,7 @@ resolveTabKey(declaration)
                 setRows={setRessourcesHumainesRows}
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
+                mois={mois}
               />
             </CardContent>
           </Card>
@@ -1832,6 +1901,7 @@ resolveTabKey(declaration)
                 setRows={setFormationRows}
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
+                mois={mois}
               />
             </CardContent>
           </Card>
@@ -1868,6 +1938,7 @@ resolveTabKey(declaration)
                   setRows={setCommercialeDrRows}
                   onSave={() => handleSave("realisations_commerciales")}
                   isSubmitting={isSubmitting}
+                  mois={mois}
                 />
               </CardContent>
             </Card>
@@ -1882,6 +1953,7 @@ resolveTabKey(declaration)
                   setRows={setReseauDistributionRows}
                   onSave={() => handleSave("reseau_distribution")}
                   isSubmitting={isSubmitting}
+                  mois={mois}
                 />
               </CardContent>
             </Card>

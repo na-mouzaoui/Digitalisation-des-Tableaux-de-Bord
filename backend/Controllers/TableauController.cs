@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Globalization;
 
 namespace DigitalisationDesTableauxDeBordAPI.Controllers;
 
@@ -34,19 +35,18 @@ public class TableauController : ControllerBase
         _normalizedPersistenceService = normalizedPersistenceService;
     }
 
-    private async Task NotifyTableauChangedAsync(string action, Tableau tableau, int changedByUserId)
+    private async Task NotifyTableauChangedAsync(string action, string tabKey, string mois, string annee, string direction, int changedByUserId)
     {
         try
         {
             await _hubContext.Clients.All.SendAsync("tableauChanged", new
             {
                 action,
-                tableauId = tableau.Id,
-                tableau.TabKey,
-                tableau.Mois,
-                tableau.Annee,
-                tableau.Direction,
-                tableau.UpdatedAt,
+                tabKey,
+                mois,
+                annee,
+                direction,
+                updatedAt = DateTime.UtcNow,
                 changedByUserId,
             });
         }
@@ -120,42 +120,18 @@ public class TableauController : ControllerBase
         return normalizedUserDirection;
     }
 
-    // Liste des 30 tableaux conservés
     private static readonly string[] AllManageableTabOrder =
     {
-        "reclamation",
-        "e_payement",
-        "total_encaissement",
-        "rechargement",
-        "recouvrement",
-        "realisation_technique_reseau",
-        "situation_reseau",
-        "trafic_data",
-        "amelioration_qualite",
-        "couverture_reseau",
-        "action_notable_reseau",
-        "disponibilite_reseau",
-        "mttr",
-        "creances_contentieuses",
-        "creances_contentieuses_anterieur",
-        "frais_personnel",
-        "effectif_gsp",
-        "absenteisme",
-        "mouvement_effectifs",
-        "mouvement_effectifs_domaine",
-        "compte_resultat",
-        "investissement",
-        "avancement_engagement",
-        "tresorerie",
-        "effectifs_formes_gsp",
-        "formations_domaines",
-        "parc_abonnes_gp",
-        "total_parc_abonnes_technologie",
-        "activation",
-        "desactivation",
-        "resiliation",
-        "chiffre_affaires_mda",
-        "reseau_distribution"
+        "reclamation", "e_payement", "total_encaissement", "rechargement",
+        "recouvrement", "suivi_infrastructures_reseau", "situation_reseau", "trafic_data",
+        "action_notable_reseau", "amelioration_qualite_4g", "amelioration_qualite_5g",
+        "disponibilite_reseau", "mttr", "impact_mttr", "creances_contentieuses",
+        "creances_contentieuses_anterieur", "frais_personnel", "effectif_gsp",
+        "absenteisme", "mouvement_effectifs", "mouvement_effectifs_domaine",
+        "compte_resultat", "investissement", "avancement_engagement", "tresorerie",
+        "effectifs_formes_gsp", "formations_domaines", "parc_abonnes_gp",
+        "total_parc_abonnes_technologie", "activation", "desactivation", "resiliation",
+        "chiffre_affaires_mda", "reseau_distribution"
     };
 
     private static readonly HashSet<string> AllManageableTabs = new(AllManageableTabOrder, StringComparer.OrdinalIgnoreCase);
@@ -166,7 +142,6 @@ public class TableauController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(raw))
             return Array.Empty<string>();
-
         try
         {
             var parsed = JsonSerializer.Deserialize<List<string>>(raw) ?? new List<string>();
@@ -186,12 +161,8 @@ public class TableauController : ControllerBase
     {
         var normalizedRole = (role ?? "").Trim().ToLowerInvariant();
         var normalizedTabKey = NormalizeTabKey(tabKey);
-
         if (string.IsNullOrWhiteSpace(normalizedTabKey)) return false;
-
-        if (normalizedRole == "admin")
-            return true;
-
+        if (normalizedRole == "admin") return true;
         return AllManageableTabs.Contains(normalizedTabKey);
     }
 
@@ -205,127 +176,19 @@ public class TableauController : ControllerBase
 
     private static string[] GetManageableTabsForRole(string role)
     {
-        var normalizedRole = (role ?? "").Trim().ToLowerInvariant();
-
-        if (normalizedRole == "admin")
-            return AllManageableTabOrder;
-
         return AllManageableTabOrder;
     }
 
-    private static string[] GetManageableTabsForRoleAndDirection(string role, string? direction)
+    private async Task<int> GetPeriodIdAsync(string? mois, string? annee)
     {
-        return GetManageableTabsForRole(role);
+        var m = int.TryParse((mois ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var mv) ? mv : 0;
+        var y = int.TryParse((annee ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var av) ? av : 0;
+        if (m == 0 || y == 0) return 0;
+        return await _context.Database.SqlQuery<int>(
+            $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[Periode] WHERE [Mois] = {m} AND [Annee] = {y} ORDER BY [Id]")
+            .FirstOrDefaultAsync();
     }
 
-    /// <summary>
-    /// Vérifie si l'utilisateur courant peut accéder é un tableau pour la modifier/consulter/supprimer
-    /// basée sur sa direction et son réle, indépendamment de qui l'a créée.
-    /// </summary>
-    private async Task<bool> CanUserAccessTableauAsync(int userId, Tableau tableau)
-    {
-        var user = await _context.Users
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == userId);
-
-        if (user == null)
-            return false;
-
-        var userRole = (user.Role ?? "").Trim().ToLowerInvariant();
-        var userDirection = (user.Direction ?? "").Trim().ToLowerInvariant();
-        var tableauDirection = (tableau.Direction ?? "").Trim().ToLowerInvariant();
-        var tableauOwnerRole = (tableau.User.Role ?? "").Trim().ToLowerInvariant();
-        var tableauOwnerRegion = (tableau.User.Region ?? "").Trim().ToLowerInvariant();
-
-        // L'admin peut accéder é tout
-        if (userRole == "admin")
-            return true;
-
-        // L'auteur peut toujours accéder é son propre tableau
-        if (userId == tableau.UserId)
-            return true;
-
-        // Vérification par réle et direction
-        if (userRole == "divisionnaire")
-        {
-            if (!string.IsNullOrWhiteSpace(userDirection) && 
-                (
-                    userDirection == tableauDirection
-                    || (string.IsNullOrWhiteSpace(tableauDirection)
-                        && tableauOwnerRole == "divisionnaire"
-                        && tableauOwnerRegion == userDirection)
-                ))
-            {
-                return true;
-            }
-        }
-        else if (userRole == "utilisateur" || userRole == "directeur")
-        {
-            if (IsHeadOfficeDirection(tableauDirection)
-                || (string.IsNullOrWhiteSpace(tableauDirection)
-                    && (tableauOwnerRole == "utilisateur"
-                        || tableauOwnerRole == "directeur"
-                        || tableauOwnerRole == "admin")))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private IActionResult BuildTabAccessDeniedResponse(string role, string? tabKey)
-    {
-        var normalizedRole = (role ?? "").Trim().ToLowerInvariant();
-        var roleLabel = normalizedRole switch
-        {
-            "admin" => "admin",
-            "divisionnaire" => "divisionnaire",
-            "directeur" => "directeur",
-            "utilisateur" => "utilisateur",
-            _ => "inconnu"
-        };
-
-        return StatusCode(403, new
-        {
-            message = $"Le profil {roleLabel} n'est pas autorisé é gérer le tableau '{NormalizeTabKey(tabKey)}'."
-        });
-    }
-
-    private async Task<(bool hasConflict, IActionResult? response)> ValidateTableauUniquenessAsync(TableauRequest request, int? excludedTableauId = null)
-    {
-        // Vérifier qu'il n'existe pas déjé un tableau avec le méme TabKey, Direction et Mois/Année
-        var requestTabKeyLower = (request.TabKey ?? "").Trim().ToLowerInvariant();
-        var requestDirLower = (request.Direction ?? "").Trim().ToLowerInvariant();
-        var requestMonth = (request.Mois ?? "").Trim();
-        var requestYear = (request.Annee ?? "").Trim();
-        
-        var query = _context.Tableaus
-            .AsNoTracking()
-            .Where(d => (d.TabKey ?? "").Trim().ToLower() == requestTabKeyLower
-                && (d.Mois ?? "").Trim() == requestMonth
-                && (d.Annee ?? "").Trim() == requestYear
-                && (d.Direction ?? "").Trim().ToLower() == requestDirLower);
-
-        if (excludedTableauId.HasValue)
-            query = query.Where(d => d.Id != excludedTableauId.Value);
-
-        var existingTableau = await query.FirstOrDefaultAsync();
-
-        if (existingTableau != null)
-        {
-            return (true, Conflict(new
-            {
-                message = $"Un tableau existe déjé pour ce tableau ({request.TabKey}), cette direction et cette période ({request.Mois}/{request.Annee}). Veuillez utiliser le tableau existant ou en supprimer un.",
-                conflictingTableauId = existingTableau.Id,
-                isDoubloon = true
-            }));
-        }
-
-        return (false, null);
-    }
-
-    // ??? GET api/tableau/policy ?????????????????????????????????????????????
     [HttpGet("policy")]
     public async Task<IActionResult> GetPolicy([FromQuery] string? direction)
     {
@@ -336,7 +199,7 @@ public class TableauController : ControllerBase
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == 1);
 
-        var manageableTabKeys = GetManageableTabsForRoleAndDirection(currentUserRole, direction);
+        var manageableTabKeys = GetManageableTabsForRole(currentUserRole);
         var disabledTabKeys = ParseDisabledTabKeys(setting?.DisabledTabKeysJson);
 
         return Ok(new
@@ -349,7 +212,6 @@ public class TableauController : ControllerBase
         });
     }
 
-    // ??? GET api/tableau ???????????????????????????????????????????????????????
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? tabKey, [FromQuery] string? mois, [FromQuery] string? annee)
     {
@@ -357,75 +219,76 @@ public class TableauController : ControllerBase
         var currentUserContext = await GetCurrentUserContextAsync(userId);
         var currentUserRole = (currentUserContext.Role ?? "").Trim().ToLowerInvariant();
 
-        IQueryable<Tableau> query = _context.Tableaus.AsNoTracking();
+        var query = _context.Valeurs
+            .Include(v => v.SousKpi).ThenInclude(sk => sk.Kpi)
+            .Include(v => v.User)
+            .AsNoTracking();
 
-        if (currentUserRole == "admin")
-        {
-            // Admin voit tous les tableaux
-        }
-        else if (currentUserRole == "divisionnaire")
-        {
-            query = query.Where(d => d.UserId == userId);
-        }
-        else if (currentUserRole is "utilisateur" or "directeur")
-        {
-        }
-        else
-        {
-            query = query.Where(d => d.UserId == userId);
-        }
+        if (currentUserRole != "admin")
+            query = query.Where(v => v.UserId == userId);
 
         if (!string.IsNullOrEmpty(tabKey))
-            query = query.Where(d => d.TabKey == tabKey);
-        if (!string.IsNullOrEmpty(mois))
-            query = query.Where(d => d.Mois == mois);
-        if (!string.IsNullOrEmpty(annee))
-            query = query.Where(d => d.Annee == annee);
+            query = query.Where(v => v.SousKpi.Kpi.Nom == NormalizeTabKey(tabKey));
 
-        var tableaux = await query
-            .OrderByDescending(d => d.UpdatedAt)
-            .Select(d => new
-            {
-                d.Id, d.TabKey, d.Mois, d.Annee, d.Direction,
-                d.DataJson, d.CreatedAt, d.UpdatedAt,
-                d.UserId,
-                d.IsApproved,
-                d.ApprovedByUserId,
-                d.ApprovedAt
-            })
-            .ToListAsync();
+        var periodId = await GetPeriodIdAsync(mois, annee);
+        if (periodId > 0)
+            query = query.Where(v => v.Id_Periode == periodId);
 
-        return Ok(tableaux);
-    }
+        var rows = await query.OrderBy(v => v.SousKpi.Kpi.Nom).ThenBy(v => v.User.Direction).ToListAsync();
 
-    // ??? GET api/tableau/{id} ?????????????????????????????????????????????????
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(int id)
-    {
-        var userId = GetCurrentUserId();
-        var decl = await _context.Tableaus
-            .Include(d => d.User)
-            .FirstOrDefaultAsync(d => d.Id == id);
-
-        if (decl == null) return NotFound();
-
-        if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accés refusé. Vous ne pouvez consulter que les tableaux de votre groupe." });
-
-        return Ok(new
+        var periodIds = rows.Select(r => r.Id_Periode).Distinct().ToList();
+        var periodeMois = new Dictionary<int, int>();
+        var periodeAnnee = new Dictionary<int, int>();
+        foreach (var pid in periodIds)
         {
-            decl.Id, decl.TabKey, decl.Mois, decl.Annee, decl.Direction,
-            decl.DataJson, decl.CreatedAt, decl.UpdatedAt,
-            decl.UserId,
-            decl.IsApproved,
-            decl.ApprovedByUserId,
-            decl.ApprovedAt
-        });
+            var m = await _context.Database.SqlQuery<int>($"SELECT [Mois] AS [Value] FROM [dbo].[Periode] WHERE [Id] = {pid}").FirstOrDefaultAsync();
+            var y = await _context.Database.SqlQuery<int>($"SELECT [Annee] AS [Value] FROM [dbo].[Periode] WHERE [Id] = {pid}").FirstOrDefaultAsync();
+            periodeMois[pid] = m;
+            periodeAnnee[pid] = y;
+        }
+
+        var submissions = rows
+            .GroupBy(v => new
+            {
+                v.SousKpi.Kpi.Nom,
+                v.UserId,
+                Direction = v.User.Direction,
+                v.Id_Periode,
+            })
+            .Select(g =>
+            {
+                var latest = g.OrderByDescending(x => x.CreatedAt).First();
+                var isApproved = latest.ApprovedByDirecteurUserId.HasValue && latest.ApprovedByDivisionnaireUserId.HasValue;
+
+                var dataJson = latest.DataJson ?? ReconstructDataJson(g.Key.Nom, g.ToList());
+                var hasPeriode = periodeMois.TryGetValue(g.Key.Id_Periode, out var pMois) & periodeAnnee.TryGetValue(g.Key.Id_Periode, out var pAnnee);
+
+                return new
+                {
+                    id = HashCode.Combine(g.Key.Nom, g.Key.UserId, g.Key.Id_Periode, latest.CreatedAt.Ticks),
+                    tabKey = g.Key.Nom,
+                    userId = g.Key.UserId,
+                    direction = g.Key.Direction,
+                    mois = hasPeriode ? pMois.ToString("00") : "",
+                    annee = hasPeriode ? pAnnee.ToString() : "",
+                    isApproved,
+                    approvedByUserId = latest.ApprovedByUserId,
+                    approvedAt = (DateTime?)null,
+                    approvedByDirecteurUserId = latest.ApprovedByDirecteurUserId,
+                    approvedByDirecteurAt = (DateTime?)null,
+                    approvedByDivisionnaireUserId = latest.ApprovedByDivisionnaireUserId,
+                    approvedByDivisionnaireAt = (DateTime?)null,
+                    createdAt = latest.CreatedAt,
+                    dataJson
+                };
+            })
+            .ToList();
+
+        return Ok(submissions.OrderByDescending(s => s.createdAt).ToList());
     }
 
-    // ??? POST api/tableau ?????????????????????????????????????????????????????
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] TableauRequest request)
+    public async Task<IActionResult> Save([FromBody] SaveValeursRequest request)
     {
         var userId = GetCurrentUserId();
         var currentUserContext = await GetCurrentUserContextAsync(userId);
@@ -433,252 +296,363 @@ public class TableauController : ControllerBase
         var targetDirection = ResolveDirectionForRole(currentUserRole, request.Direction, currentUserContext.Direction, currentUserContext.Region);
 
         if (!CanManageTabForRole(currentUserRole, request.TabKey))
-            return BuildTabAccessDeniedResponse(currentUserRole, request.TabKey);
+            return StatusCode(403, new { message = $"Le profil {currentUserRole} n'est pas autorisé à gérer le tableau '{NormalizeTabKey(request.TabKey)}'." });
 
-        // Vérifier qu'il n'existe pas de doublon
-        var uniquenessRequest = new TableauRequest
-        {
-            TabKey = request.TabKey,
-            Mois = request.Mois,
-            Annee = request.Annee,
-            Direction = targetDirection,
-            DataJson = request.DataJson,
-        };
+        var (kpiId, exists) = await GetKpiIdByTabKeyAsync(request.TabKey);
+        if (!exists)
+            return BadRequest(new { message = $"Le tableau '{request.TabKey}' n'existe pas dans la hiérarchie KPI." });
 
-        var doubloonCheck = await ValidateTableauUniquenessAsync(uniquenessRequest);
-        if (doubloonCheck.hasConflict && doubloonCheck.response != null)
-            return doubloonCheck.response;
-
-        var decl = new Tableau
-        {
-            UserId    = userId,
-            TabKey    = request.TabKey,
-            Mois      = request.Mois,
-            Annee     = request.Annee,
-            Direction = targetDirection,
-            DataJson  = request.DataJson ?? "{}",
-            IsApproved = false,
-            ApprovedByUserId = null,
-            ApprovedAt = null,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-        };
-
-        _context.Tableaus.Add(decl);
-        await _context.SaveChangesAsync();
+        if ((request.Rows == null || request.Rows.Count == 0) && !string.IsNullOrWhiteSpace(request.DataJson))
+            request.Rows = ParseDataJsonToRows(request.DataJson, request.TabKey);
 
         try
         {
-            await _normalizedPersistenceService.PersistAsync(request, targetDirection);
+            await _normalizedPersistenceService.PersistAsync(request, userId, targetDirection);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Normalized persistence failed: {ex.Message}");
+            return StatusCode(500, new { message = $"Erreur lors de la sauvegarde: {ex.Message}" });
         }
 
-        await _auditService.LogAction(userId, "tableau_SAVE", "Tableau", decl.Id,
-            new { decl.TabKey, decl.Mois, decl.Annee, action = "create" });
+        await _auditService.LogAction(userId, "tableau_SAVE", "Valeurs", 0,
+            new { request.TabKey, request.Mois, request.Annee, action = "save" });
 
-        await NotifyTableauChangedAsync("create", decl, userId);
+        await NotifyTableauChangedAsync("save", request.TabKey, request.Mois, request.Annee, targetDirection, userId);
 
-        return CreatedAtAction(nameof(GetById), new { id = decl.Id },
-            new { decl.Id, decl.TabKey, decl.Mois, decl.Annee, decl.CreatedAt });
+        return Ok(new
+        {
+            message = "Tableau sauvegardé avec succès.",
+            request.TabKey,
+            request.Mois,
+            request.Annee,
+            direction = targetDirection,
+        });
     }
 
-    // ??? PUT api/tableau/{id} ?????????????????????????????????????????????????
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] TableauRequest request)
+    [HttpDelete]
+    public async Task<IActionResult> Delete([FromQuery] string tabKey, [FromQuery] string mois, [FromQuery] string annee, [FromQuery] string direction)
     {
         var userId = GetCurrentUserId();
         var currentUserContext = await GetCurrentUserContextAsync(userId);
         var currentUserRole = currentUserContext.Role;
-        
-        var decl = await _context.Tableaus
-            .Include(d => d.User)
-            .FirstOrDefaultAsync(d => d.Id == id);
 
-        if (decl == null) return NotFound();
+        if (!CanManageTabForRole(currentUserRole, tabKey))
+            return StatusCode(403, new { message = "Accès refusé." });
 
-        if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accés refusé. Vous ne pouvez modifier que les tableaux de votre groupe." });
-
-        var targetDirection = ResolveDirectionForRole(currentUserRole, request.Direction, currentUserContext.Direction, currentUserContext.Region, decl.Direction);
-
-        var uniquenessRequest = new TableauRequest
-        {
-            TabKey = request.TabKey,
-            Mois = request.Mois,
-            Annee = request.Annee,
-            Direction = targetDirection,
-            DataJson = request.DataJson,
-        };
-
-        // La modification du méme tableau est autorisée (on exclut son propre id)
-        var doubloonCheck = await ValidateTableauUniquenessAsync(uniquenessRequest, id);
-        if (doubloonCheck.hasConflict && doubloonCheck.response != null)
-            return doubloonCheck.response;
-
-        decl.TabKey = request.TabKey;
-        decl.Mois = request.Mois;
-        decl.Annee = request.Annee;
-        decl.Direction = targetDirection;
-        decl.DataJson = request.DataJson ?? decl.DataJson;
-        decl.IsApproved = false;
-        decl.ApprovedByUserId = null;
-        decl.ApprovedAt = null;
-        decl.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
+        var targetDirection = ResolveDirectionForRole(currentUserRole, direction, currentUserContext.Direction, currentUserContext.Region);
 
         try
         {
-            await _normalizedPersistenceService.PersistAsync(request, targetDirection);
+            await _normalizedPersistenceService.DeleteValeursAsync(tabKey, mois, annee, targetDirection);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Normalized persistence failed: {ex.Message}");
+            return StatusCode(500, new { message = $"Erreur lors de la suppression: {ex.Message}" });
         }
 
-        await _auditService.LogAction(userId, "tableau_SAVE", "Tableau", decl.Id,
-            new { decl.TabKey, decl.Mois, decl.Annee, action = "update", modifiedByUserId = userId });
+        await _auditService.LogAction(userId, "tableau_DELETE", "Valeurs", 0,
+            new { tabKey, mois, annee, deletedByUserId = userId });
 
-        await NotifyTableauChangedAsync("update", decl, userId);
+        await NotifyTableauChangedAsync("delete", tabKey, mois, annee, targetDirection, userId);
 
         return NoContent();
     }
 
-    // ??? POST api/tableau/{id}/approve ???????????????????????????????????????
-    [HttpPost("{id}/approve")]
-    public async Task<IActionResult> Approve(int id)
+    [HttpPost("approve")]
+    public async Task<IActionResult> Approve([FromBody] ApproveRequest request)
     {
         var userId = GetCurrentUserId();
         var currentUserContext = await GetCurrentUserContextAsync(userId);
         var currentUserRole = (currentUserContext.Role ?? "").Trim().ToLowerInvariant();
 
-        var canApproveAsAdmin = currentUserRole == "admin" || currentUserRole == "directeur";
-        var canApproveAsRegional = currentUserRole == "divisionnaire";
-        var canApproveAsFinance = currentUserRole == "utilisateur";
+        var isDirecteur = currentUserRole == "directeur" || currentUserRole == "admin";
+        var isDivisionnaire = currentUserRole == "divisionnaire";
 
-        if (!canApproveAsAdmin && !canApproveAsRegional && !canApproveAsFinance)
-            return StatusCode(403, new { message = "Ce compte n'a pas le droit d'approbation." });
+        if (!isDirecteur && !isDivisionnaire)
+            return StatusCode(403, new { message = "Seuls les directeurs et divisionnaires peuvent approuver." });
 
-        var decl = await _context.Tableaus
-            .Include(d => d.User)
-            .FirstOrDefaultAsync(d => d.Id == id);
+        var normalizedTabKey = NormalizeTabKey(request.TabKey);
+        var targetDirection = ResolveDirectionForRole(currentUserRole, request.Direction, currentUserContext.Direction, currentUserContext.Region);
 
-        if (decl == null)
-            return NotFound();
+        var periodId = await GetPeriodIdAsync(request.Mois, request.Annee);
+        if (periodId == 0)
+            return NotFound(new { message = "Période non trouvée." });
 
-        var isSelfTableau = decl.UserId == userId;
+        var valeurs = await _context.Valeurs
+            .Include(v => v.User)
+            .Where(v => v.SousKpi.Kpi.Nom == normalizedTabKey
+                && v.Id_Periode == periodId
+                && v.User.Direction == targetDirection)
+            .ToListAsync();
 
-        var tableauOwnerRole = (decl.User.Role ?? "").Trim().ToLowerInvariant();
-        var tableauDirection = (decl.Direction ?? "").Trim().ToLowerInvariant();
-        var isSiegeTableau = tableauDirection == "siége"
-            || tableauDirection == "siege"
-            || tableauDirection.Contains("siége")
-            || tableauDirection.Contains("siege")
-            || (string.IsNullOrWhiteSpace(decl.Direction)
-                && (tableauOwnerRole == "utilisateur"
-                    || tableauOwnerRole == "directeur"
-                    || tableauOwnerRole == "admin"));
+        if (valeurs.Count == 0)
+            return NotFound(new { message = "Aucune donnée trouvée pour ce tableau." });
 
-        if (!canApproveAsAdmin && !isSelfTableau && canApproveAsFinance && !isSiegeTableau)
+        var now = DateTime.UtcNow;
+        string approverLabel;
+
+        if (isDirecteur)
         {
-            return StatusCode(403, new
-            {
-                message = "Vous ne pouvez approuver que les tableaux du niveau Siége."
-            });
+            if (valeurs.Any(v => v.ApprovedByDirecteurUserId.HasValue))
+                return Ok(new { message = "Déjà approuvé par le directeur.", status = GetApprovalStatus(valeurs) });
+
+            foreach (var v in valeurs)
+                v.ApprovedByDirecteurUserId = userId;
+
+            approverLabel = "directeur";
+        }
+        else
+        {
+            if (valeurs.Any(v => v.ApprovedByDivisionnaireUserId.HasValue))
+                return Ok(new { message = "Déjà approuvé par le divisionnaire.", status = GetApprovalStatus(valeurs) });
+
+            foreach (var v in valeurs)
+                v.ApprovedByDivisionnaireUserId = userId;
+
+            approverLabel = "divisionnaire";
         }
 
-        if (decl.IsApproved)
+        var bothApproved = valeurs.All(v => v.ApprovedByDirecteurUserId.HasValue) && valeurs.All(v => v.ApprovedByDivisionnaireUserId.HasValue);
+        foreach (var v in valeurs)
         {
-            return Ok(new
-            {
-                message = "Tableau déjé approuvé.",
-                decl.Id,
-                decl.IsApproved,
-                decl.ApprovedByUserId,
-                decl.ApprovedAt
-            });
+            if (bothApproved)
+                v.ApprovedByUserId = userId;
+            v.UpdatedAt = now;
         }
-
-        decl.IsApproved = true;
-        decl.ApprovedByUserId = userId;
-        decl.ApprovedAt = DateTime.UtcNow;
-        decl.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
-        await _auditService.LogAction(userId, "tableau_APPROVE", "Tableau", decl.Id,
-            new { decl.TabKey, decl.Mois, decl.Annee, decl.UserId, approverRole = currentUserRole });
+        await _auditService.LogAction(userId, "tableau_APPROVE", "Valeurs", 0,
+            new { tabKey = normalizedTabKey, request.Mois, request.Annee, approverRole = currentUserRole });
 
-        await NotifyTableauChangedAsync("approve", decl, userId);
+        await NotifyTableauChangedAsync("approve", normalizedTabKey, request.Mois, request.Annee, targetDirection, userId);
 
+        var first = valeurs.First();
         return Ok(new
         {
-            message = "Tableau approuvé avec succés.",
-            decl.Id,
-            decl.IsApproved,
-            decl.ApprovedByUserId,
-            decl.ApprovedAt
+            message = $"{approverLabel} approuvé avec succès.",
+            isApproved = bothApproved,
+            approvedByUserId = first.ApprovedByUserId,
+            approvedByDirecteurUserId = first.ApprovedByDirecteurUserId,
+            approvedByDivisionnaireUserId = first.ApprovedByDivisionnaireUserId,
+            status = GetApprovalStatus(valeurs)
         });
     }
 
-    // ??? DELETE api/tableau/{id} ??????????????????????????????????????????????
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    private static string GetApprovalStatus(List<Valeur> valeurs)
     {
-        var userId = GetCurrentUserId();
-        var currentUserContext = await GetCurrentUserContextAsync(userId);
-        var currentUserRole = currentUserContext.Role;
-        
-        var decl = await _context.Tableaus
-            .Include(d => d.User)
-            .FirstOrDefaultAsync(d => d.Id == id);
-
-        if (decl == null) return NotFound();
-
-        if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accés refusé. Vous ne pouvez supprimer que les tableaux de votre groupe." });
-
-        var info = new { decl.TabKey, decl.Mois, decl.Annee, deletedByUserId = userId };
-        _context.Tableaus.Remove(decl);
-        await _context.SaveChangesAsync();
-
-        await _auditService.LogAction(userId, "tableau_DELETE", "Tableau", id, info);
-
-        await NotifyTableauChangedAsync("delete", decl, userId);
-
-        return NoContent();
+        var directeurOk = valeurs.All(v => v.ApprovedByDirecteurUserId.HasValue);
+        var divisionnaireOk = valeurs.All(v => v.ApprovedByDivisionnaireUserId.HasValue);
+        if (directeurOk && divisionnaireOk) return "valide";
+        if (directeurOk) return "approuve_directeur";
+        if (divisionnaireOk) return "approuve_divisionnaire";
+        return "en_attente";
     }
 
-    // ??? POST api/tableau/{id}/print ??????????????????????????????????????????
-    [HttpPost("{id}/print")]
-    public async Task<IActionResult> LogPrint(int id)
+    [HttpPost("print")]
+    public async Task<IActionResult> LogPrint([FromQuery] string tabKey, [FromQuery] string mois, [FromQuery] string annee, [FromQuery] string direction)
     {
         var userId = GetCurrentUserId();
-        var decl = await _context.Tableaus
-            .Include(d => d.User)
-            .FirstOrDefaultAsync(d => d.Id == id);
+        var ctx = await GetCurrentUserContextAsync(userId);
+        var targetDirection = ResolveDirectionForRole(ctx.Role, direction, ctx.Direction, ctx.Region);
 
-        if (decl == null) return NotFound();
-
-        if (!await CanUserAccessTableauAsync(userId, decl))
-            return StatusCode(403, new { message = "Accés refusé. Vous ne pouvez imprimer que les tableaux de votre groupe." });
-
-        await _auditService.LogAction(userId, "tableau_PRINT", "Tableau", id,
-            new { decl.TabKey, decl.Mois, decl.Annee });
+        await _auditService.LogAction(userId, "tableau_PRINT", "Valeurs", 0,
+            new { tabKey = NormalizeTabKey(tabKey), mois, annee });
 
         return Ok(new { message = "Impression enregistrée dans l'audit." });
     }
+
+    private async Task<(int KpiId, bool exists)> GetKpiIdByTabKeyAsync(string tabKey)
+    {
+        var kpiId = await _context.Database.SqlQuery<int>(
+            $"SELECT TOP 1 [Id] AS [Value] FROM [dbo].[Kpis] WHERE [Nom] = {tabKey} ORDER BY [Id]")
+            .FirstOrDefaultAsync();
+        return (kpiId, kpiId != 0);
+    }
+
+    private static List<ValeurRowData> ParseDataJsonToRows(string dataJson, string? tabKey)
+    {
+        using var doc = JsonDocument.Parse(dataJson);
+        var root = doc.RootElement;
+
+        JsonElement rowsElement = default;
+        var found = false;
+
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (prop.Value.ValueKind == JsonValueKind.Array)
+            {
+                rowsElement = prop.Value;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            return new List<ValeurRowData>();
+
+        var result = new List<ValeurRowData>();
+        foreach (var item in rowsElement.EnumerateArray())
+        {
+            var row = new ValeurRowData
+            {
+                Designation = JsonGetString(item, "designation")
+            };
+
+            switch ((tabKey ?? "").Trim().ToLowerInvariant())
+            {
+                case "compte_resultat":
+                    row.M_Objectif = JsonGetDecimal(item, "mBudget");
+                    row.M_Realise = JsonGetDecimal(item, "mRealise");
+                    row.M_Taux = JsonGetDecimal(item, "mTaux");
+                    row.M_1_Realise = JsonGetDecimal(item, "m1Realise");
+                    break;
+                case "chiffre_affaires_mda":
+                    row.M_Objectif = JsonGetDecimal(item, "mObjectif");
+                    row.M_Realise = JsonGetDecimal(item, "mRealise");
+                    row.M_Taux = JsonGetDecimal(item, "mTaux");
+                    row.M_1_Realise = JsonGetDecimal(item, "m1Realise");
+                    break;
+                case "investissement":
+                case "avancement_engagement":
+                case "tresorerie":
+                    row.M_1 = JsonGetDecimal(item, "m1");
+                    row.M = JsonGetDecimal(item, "m");
+                    row.Evol = JsonGetDecimal(item, "evol");
+                    break;
+                case "creances_contentieuses_anterieur":
+                    row.M_1_Montant_Recouvre = JsonGetDecimal(item, "m1Montant");
+                    row.M_Montant_Recouvre = JsonGetDecimal(item, "mMontant");
+                    row.Evol = JsonGetDecimal(item, "evol");
+                    break;
+                default:
+                    row.M = JsonGetDecimal(item, "m");
+                    row.M_1 = JsonGetDecimal(item, "m1");
+                    break;
+            }
+
+            result.Add(row);
+        }
+
+        return result;
+    }
+
+    private static string ReconstructDataJson(string tabKey, List<Valeur> rows)
+    {
+        var normalizedTabKey = (tabKey ?? "").Trim().ToLowerInvariant();
+
+        switch (normalizedTabKey)
+        {
+            case "compte_resultat":
+                return JsonSerializer.Serialize(new
+                {
+                    compteResultatRows = rows.Select(v => new
+                    {
+                        designation = v.SousKpi?.Designation ?? "",
+                        mBudget = v.M_Objectif?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        mRealise = v.M_Realise?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        mTaux = v.M_Taux?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        m1Realise = v.M_1_Realise?.ToString(CultureInfo.InvariantCulture) ?? ""
+                    })
+                });
+
+            case "chiffre_affaires_mda":
+                return JsonSerializer.Serialize(new
+                {
+                    chiffreAffairesMdaRows = rows.Select(v => new
+                    {
+                        designation = v.SousKpi?.Designation ?? "",
+                        mObjectif = v.M_Objectif?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        mRealise = v.M_Realise?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        mTaux = v.M_Taux?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        m1Realise = v.M_1_Realise?.ToString(CultureInfo.InvariantCulture) ?? ""
+                    })
+                });
+
+            case "investissement":
+                return JsonSerializer.Serialize(new
+                {
+                    investissementRows = rows.Select(v => new
+                    {
+                        designation = v.SousKpi?.Designation ?? "",
+                        m1 = v.M_1?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        m = v.M?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        evol = v.Evol?.ToString(CultureInfo.InvariantCulture) ?? ""
+                    })
+                });
+
+            case "avancement_engagement":
+                return JsonSerializer.Serialize(new
+                {
+                    avancementEngagementRows = rows.Select(v => new
+                    {
+                        designation = v.SousKpi?.Designation ?? "",
+                        m1 = v.M_1?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        m = v.M?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        evol = v.Evol?.ToString(CultureInfo.InvariantCulture) ?? ""
+                    })
+                });
+
+            case "tresorerie":
+                return JsonSerializer.Serialize(new
+                {
+                    tresorerieMobilisRows = rows.Select(v => new
+                    {
+                        designation = v.SousKpi?.Designation ?? "",
+                        m1 = v.M_1?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        m = v.M?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        evol = v.Evol?.ToString(CultureInfo.InvariantCulture) ?? ""
+                    })
+                });
+
+            case "creances_contentieuses_anterieur":
+                return JsonSerializer.Serialize(new
+                {
+                    recouvrementAnterieurRows = rows.Select(v => new
+                    {
+                        designation = v.SousKpi?.Designation ?? "",
+                        m1Montant = v.M_1_Montant_Recouvre?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        mMontant = v.M_Montant_Recouvre?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        evol = v.Evol?.ToString(CultureInfo.InvariantCulture) ?? ""
+                    })
+                });
+            default:
+                return JsonSerializer.Serialize(new
+                {
+                    rows = rows.Select(v => new
+                    {
+                        designation = v.SousKpi?.Designation ?? "",
+                        m1 = v.M_1?.ToString(CultureInfo.InvariantCulture) ?? "",
+                        m = v.M?.ToString(CultureInfo.InvariantCulture) ?? ""
+                    })
+                });
+        }
+    }
+
+    private static string? JsonGetString(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String)
+            return prop.GetString();
+        return null;
+    }
+
+    private static decimal? JsonGetDecimal(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var prop))
+        {
+            if (prop.ValueKind == JsonValueKind.Number)
+                return prop.GetDecimal();
+            if (prop.ValueKind == JsonValueKind.String && decimal.TryParse(prop.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var val))
+                return val;
+        }
+        return null;
+    }
 }
 
-// ??? DTO ?????????????????????????????????????????????????????????????????????
-public class TableauRequest
+public class ApproveRequest
 {
-    public string TabKey    { get; set; } = "";
-    public string Mois      { get; set; } = "";
-    public string Annee     { get; set; } = "";
+    public string TabKey { get; set; } = "";
+    public string Mois { get; set; } = "";
+    public string Annee { get; set; } = "";
     public string? Direction { get; set; }
-    public string? DataJson  { get; set; }
 }

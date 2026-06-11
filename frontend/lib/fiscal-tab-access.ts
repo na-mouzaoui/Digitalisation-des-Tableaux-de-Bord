@@ -67,12 +67,12 @@ export const getManageabletableauTabKeys = (role?: string | null): string[] => {
 }
 
 export const getManageabletableauTabKeysForDirection = (role?: string | null, direction?: string | null): string[] => {
+  if (isAdmintableauRole(role)) {
+    return getManageabletableauTabKeys(role)
+  }
+
   const roleBasedKeys = getManageabletableauTabKeys(role)
   const policy = getPolicyForRole(role)
-
-  if (!isAdmintableauRole(role)) {
-    return roleBasedKeys
-  }
 
   const normalizedDirection = normalizeDirection(direction)
   if (!normalizedDirection) {
@@ -86,6 +86,7 @@ export const getManageabletableauTabKeysForDirection = (role?: string | null, di
 }
 
 export const canManagetableauTab = (role: string | null | undefined, tabKey: string | null | undefined): boolean => {
+  if (isAdmintableauRole(role)) return true
   const normalizedTabKey = normalizeTabKey(tabKey)
   if (!normalizedTabKey) return false
   return getManageabletableauTabKeys(role).includes(normalizedTabKey)

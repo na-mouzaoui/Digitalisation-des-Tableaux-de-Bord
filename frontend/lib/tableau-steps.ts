@@ -22,10 +22,10 @@ export const DOMAIN_STEPS: Record<DomainKey, TableauStep[]> = {
   DVDRS: [
     { key: "suivi_infrastructures_reseau", label: "Suivi Infrastructures Réseau" },
     { key: "evolution_trafic_data", label: "Évolution Trafic Data" },
-    { key: "amelioration_qualite", label: "Amélioration Qualité" },
-    { key: "couverture_reseau", label: "Couverture Réseau" },
     { key: "action_notable_reseau", label: "Action Notable Réseau" },
     { key: "situation_reseaux", label: "Situation Réseaux" },
+    { key: "amelioration_qualite_4g", label: "Amélioration Qualité 4G" },
+    { key: "amelioration_qualite_5g", label: "Amélioration Qualité 5G" },
   ],
   DQRPC: [
     { key: "disponibilite_reseau", label: "Disponibilité Réseau" },

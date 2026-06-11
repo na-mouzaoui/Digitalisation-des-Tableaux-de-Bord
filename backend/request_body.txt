@@ -1,0 +1,1 @@
+﻿{"annee":"2026","mois":"06","direction":"Siege","tabKey":"compte_resultat","dataJson":"{\"compteResultatRows\":[{\"designation\":\"Chiffre Affaires\",\"mBudget\":\"5000\",\"mRealise\":\"4800\",\"mTaux\":\"96\",\"m1Realise\":\"4500\"}]}"}

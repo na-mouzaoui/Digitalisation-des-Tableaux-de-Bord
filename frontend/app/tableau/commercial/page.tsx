@@ -20,31 +20,18 @@ import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 import { useDeclarationAccess } from "@/hooks/use-declaration-access"
 import { DomainAccessGuard } from "@/components/domain-access-guard"
+import { getPreviousPeriod, mapMtoM1 } from "@/lib/auto-populate-m1"
+import { isAdmintableauRole, isRegionaltableauRole, isFinancetableauRole, getManageabletableauTabKeysForDirection, istableauTabDisabledByPolicy } from "@/lib/fiscal-tab-access"
+import { getCurrenttableauPeriod, gettableauPeriodLockMessage, istableauPeriodLocked } from "@/lib/fiscal-period-deadline"
+import { synctableauPolicy } from "@/lib/fiscal-policy"
 // 1. CONSTANTES GLOBALES
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 const PRIMARY_COLOR = "#2db34b"
 
 
-// ?????????????????????????????????????????????????????????????????????????????
-// 2. STUBS POLITIQUE FISCALE
-// ?????????????????????????????????????????????????????????????????????????????
-const getCurrenttableauPeriod = (now: Date = new Date()) => ({
-  mois: String(now.getMonth() + 1).padStart(2, "0"),
-  annee: String(now.getFullYear()),
-})
-const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
-const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
-const synctableauPolicy = async (_direction?: string | null) => null
-const isAdmintableauRole = (_role?: string | null) => false
-const isRegionaltableauRole = (_role?: string | null) => false
-const isFinancetableauRole = (_role?: string | null) => false
-const getManageabletableauTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
-const istableauTabDisabledByPolicy = (_tabKey?: string) => false
-
-
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 // 3. HELPERS DE FORMATAGE DES MONTANTS
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 const fmt = (v: number | string) => {
   if (v === "" || isNaN(Number(v))) return ""
   const n = Number(v)
@@ -83,10 +70,18 @@ const num = (v: string) => {
 const toPercent = (numerator: number, denominator: number) =>
   denominator ? (numerator / denominator) * 100 : 0
 
+const calcSimpleEvol = (m: string, m1: string) => {
+  const mNum = num(m)
+  const m1Num = num(m1)
+  if (m1Num === 0) return "0.00"
+  return ((mNum - m1Num) / m1Num * 100).toFixed(1)
+}
 
-// ?????????????????????????????????????????????????????????????????????????????
+const isTotalRow = (designation: string) => /total/i.test(designation)
+
+// ///////
 // 4. COMPOSANT GéNéRIQUE : AmountInput
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 type AmountInputProps = Omit<React.ComponentProps<typeof Input>, "type" | "value" | "onChange"> & {
   value: string
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
@@ -106,11 +101,11 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 }
 
 
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 // 5. TYPES DE DONNéES (TABLEAUX CONSERVéS UNIQUEMENT)
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 
-// ?? Réclamation ??????????????????????????????????????????????????????????????
+// ?? Réclamation /////???????
 type ReclamationRow = {
   category: "recues" | "traitees"
   type: "GP" | "B2B"
@@ -124,7 +119,7 @@ const DEFAULT_RECLAMATION_ROWS: ReclamationRow[] = [
 ]
 const DEFAULT_RECLAMATION_LABELS = ["Reçues GP", "Reçues B2B", "Traitées GP", "Traitées B2B"] as const
 
-// ?? E-Payement ???????????????????????????????????????????????????????????????
+// ?? E-Payement /////????????
 type EPayementRow = { rechargement: string; m: string; m1: string; evol: string }
 const EPAYEMENT_CHANNELS = ["Baridimob", "webportail", "GAB-Alg Poste", "WINPAY (BNA)"] as const
 const createDefaultEPayementRows = (): EPayementRow[] =>
@@ -143,53 +138,53 @@ const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
   { situation: "Réseau 4G", equipements: "eNodeB (Evolved NodeB) (FDD+TDD)\neNodeB (Evolved NodeB) (FDD)", m: "", m1: "" },
 ]
 
-// ?? Total Encaissement ???????????????????????????????????????????????????????
+// ?? Total Encaissement /////
 type TotalEncaissementRow = { designation: string; m: string; m1: string; evol: string }
 const TOTAL_ENCAISSEMENT_LABELS = ["GP", "B2B", "Total"] as const
 const DEFAULT_TOTAL_ENCAISSEMENT_ROWS: TotalEncaissementRow[] = TOTAL_ENCAISSEMENT_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
-// ?? Recouvrement ?????????????????????????????????????????????????????????????
+// ?? Recouvrement /////??????
 type RecouvrementRow = { designation: string; m1Recouvre: string; mMis: string; mRecouvre: string; mTaux: string }
 const RECOUVREMENT_LABELS = ["GP", "B2B", "Total"] as const
 const DEFAULT_RECOUVREMENT_ROWS: RecouvrementRow[] = RECOUVREMENT_LABELS.map((designation) => ({ designation, m1Recouvre: "", mMis: "", mRecouvre: "", mTaux: "" }))
 
-// ?? Parc Abonnés GP ???????????????????????????????????????????????????????????
+// ?? Parc Abonnés GP /////????
 type ParcAbonnesGpRow = { designation: string; m: string; m1: string; evol: string }
 const PARC_ABONNES_GP_LABELS = ["Parc Abonnés GP", "Parc Abonnés B2B", "TOTAL"] as const
 const DEFAULT_PARC_ABONNES_GP_ROWS: ParcAbonnesGpRow[] = PARC_ABONNES_GP_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
-// ?? Total Parc Abonnés par Technologie ???????????????????????????????????????
+// ?? Total Parc Abonnés par Technologie ///??????
 type TotalParcAbonnesTechnologieRow = { designation: string; m: string; m1: string; evol: string }
 const TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS = ["2G", "3G", "4G", "5G", "TOTAL"] as const
 const DEFAULT_TOTAL_PARC_ABONNES_TECHNOLOGIE_ROWS: TotalParcAbonnesTechnologieRow[] = TOTAL_PARC_ABONNES_TECHNOLOGIE_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
-// ?? Activation ????????????????????????????????????????????????????????????????
+// ?? Activation /////?????????
 type ActivationRow = { designation: string; m: string; m1: string; evol: string }
 const ACTIVATION_LABELS = ["GP", "B2B", "Total"] as const
 const DEFAULT_ACTIVATION_ROWS: ActivationRow[] = ACTIVATION_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
-// ?? Désactivation ?????????????????????????????????????????????????????????????
+// ?? Désactivation /////??????
 type DesactivationRow = { designation: string; m: string; m1: string; evol: string }
 const DESACTIVATION_LABELS = ["GP", "B2B", "Total"] as const
 const DEFAULT_DESACTIVATION_ROWS: DesactivationRow[] = DESACTIVATION_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
-// ?? Résiliation ???????????????????????????????????????????????????????????????
+// ?? Résiliation /////????????
 type ResiliationRow = { designation: string; m: string; m1: string; evol: string }
 const RESILIATION_LABELS = ["GP", "B2B", "Total"] as const
 const DEFAULT_RESILIATION_ROWS: ResiliationRow[] = RESILIATION_LABELS.map((designation) => ({ designation, m: "", m1: "", evol: "" }))
 
-// ?? Chiffre d'Affaires MDA ????????????????????????????????????????????????????
+// ?? Chiffre d'Affaires MDA ////????????
 type ChiffreAffairesMdaRow = { designation: string; mObjectif: string; mRealise: string; mTaux: string; m1Realise: string }
 const CHIFFRE_AFFAIRES_MDA_LABELS = ["Grand Public", "B2B", "Interco & Roaming"] as const
 const DEFAULT_CHIFFRE_AFFAIRES_MDA_ROWS: ChiffreAffairesMdaRow[] = CHIFFRE_AFFAIRES_MDA_LABELS.map((designation) => ({ designation, mObjectif: "", mRealise: "", mTaux: "", m1Realise: "" }))
 
 
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 // 6. COMPOSANTS DE TABLEAUX
 //    Pattern commun : update(index, field, value) + AmountInput + bouton Save
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 
-// ?? Bouton Save réutilisable ??????????????????????????????????????????????????
+// ?? Bouton Save réutilisable ////??????
 function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting: boolean }) {
   return (
     <div className="flex justify-end">
@@ -200,15 +195,16 @@ function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting
   )
 }
 
-// ?? 6a. Réclamation ???????????????????????????????????????????????????????????
+// ?? 6a. Réclamation /////????
 // 6a. Réclamation - VERSION FINALE OPTIMISÉE
 interface TabReclamationProps {
   rows: ReclamationRow[]
   setRows: React.Dispatch<React.SetStateAction<ReclamationRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
-function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationProps) {
+function TabReclamation({ rows, setRows, onSave, isSubmitting, mois }: TabReclamationProps) {
   // Mise à jour pour M (mois actuel) et M-1 (mois précédent)
   const updateM = (index: number, field: "mGp" | "mB2b", value: string) =>
     setRows((prev) => prev.map((row, i) => {
@@ -235,10 +231,19 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
   const traiteesB2B_M = traiteesRows.find(r => r.type === "B2B")?.mB2b || ""
   const traiteesB2B_M1 = traiteesRows.find(r => r.type === "B2B")?.m1B2b || ""
   
-  // États pour les taux de traitement (inputs normaux)
-  const toNumber = (v: string) => parseFloat(v.replace(",", ".")) || 0
-  const [tauxM, setTauxM] = useState("")
-  const [tauxM1, setTauxM1] = useState("")
+    const toNumber = (v: string) => parseFloat(v.replace(",", ".")) || 0
+    const calcEvolStr = (m: string, m1: string) => {
+      const mNum = toNumber(m)
+      const m1Num = toNumber(m1)
+      if (m1Num === 0) return "N/A"
+      return ((mNum - m1Num) / m1Num * 100).toFixed(1) + " %"
+    }
+  const calcTaux = (recuesGP: string, recuesB2B: string, traiteesGP: string, traiteesB2B: string) => {
+    const totalRecues = toNumber(recuesGP) + toNumber(recuesB2B)
+    const totalTraitees = toNumber(traiteesGP) + toNumber(traiteesB2B)
+    if (totalRecues === 0) return "0.00"
+    return ((totalTraitees / totalRecues) * 100).toFixed(2)
+  }
 
   const handleUpdateM = (type: string, category: string, value: string) => {
     const index = rows.findIndex(r => r.type === type && r.category === category)
@@ -270,10 +275,13 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
                 Réclamations
               </th>
               <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">
-                M
+                {getMonthLabel(mois, -1)}
               </th>
               <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">
-                M-1
+                {getMonthLabel(mois, 0)}
+              </th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">
+                Evol
               </th>
             </tr>
           </thead>
@@ -286,32 +294,27 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
               <td className="px-2 py-2 border border-gray-200 text-xs text-center w-12">GP</td>
               <td className="px-1 py-1 border border-gray-200">
                 <AmountInput 
-                  value={recuesGP_M}
-                  onChange={(e) => handleUpdateM("GP", "recues", e.target.value)} 
-                  className="h-7 px-2 text-xs w-full" 
-                  placeholder="0,00" 
-                />
-              </td>
-              <td className="px-1 py-1 border border-gray-200">
-                <AmountInput 
                   value={recuesGP_M1}
                   onChange={(e) => handleUpdateM1("GP", "recues", e.target.value)} 
                   className="h-7 px-2 text-xs w-full" 
                   placeholder="0,00" 
                 />
               </td>
-            </tr>
-            {/* Ligne Réclamations reçues - B2B */}
-            <tr className="bg-white">
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
               <td className="px-1 py-1 border border-gray-200">
                 <AmountInput 
-                  value={recuesB2B_M}
-                  onChange={(e) => handleUpdateM("B2B", "recues", e.target.value)} 
+                  value={recuesGP_M}
+                  onChange={(e) => handleUpdateM("GP", "recues", e.target.value)} 
                   className="h-7 px-2 text-xs w-full" 
                   placeholder="0,00" 
                 />
               </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcEvolStr(recuesGP_M, recuesGP_M1)}
+              </td>
+            </tr>
+            {/* Ligne Réclamations reçues - B2B */}
+            <tr className="bg-white">
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
               <td className="px-1 py-1 border border-gray-200">
                 <AmountInput 
                   value={recuesB2B_M1}
@@ -320,15 +323,32 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
                   placeholder="0,00" 
                 />
               </td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={recuesB2B_M}
+                  onChange={(e) => handleUpdateM("B2B", "recues", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcEvolStr(recuesB2B_M, recuesB2B_M1)}
+              </td>
             </tr>
             {/* Ligne Totale des réclamations reçus */}
             <tr className="bg-green-100 font-semibold">
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">Totale</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">
-                {(toNumber(recuesGP_M) + toNumber(recuesB2B_M)).toFixed(2)}
+                {(toNumber(recuesGP_M1) + toNumber(recuesB2B_M1)).toFixed(2)}
               </td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">
-                {(toNumber(recuesGP_M1) + toNumber(recuesB2B_M1)).toFixed(2)}
+                {(toNumber(recuesGP_M) + toNumber(recuesB2B_M)).toFixed(2)}
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcEvolStr(
+                  (toNumber(recuesGP_M) + toNumber(recuesB2B_M)).toFixed(2),
+                  (toNumber(recuesGP_M1) + toNumber(recuesB2B_M1)).toFixed(2)
+                )}
               </td>
             </tr>
             {/* Ligne Réclamations traitées - GP */}
@@ -339,32 +359,27 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">GP</td>
               <td className="px-1 py-1 border border-gray-200">
                 <AmountInput 
-                  value={traiteesGP_M}
-                  onChange={(e) => handleUpdateM("GP", "traitees", e.target.value)} 
-                  className="h-7 px-2 text-xs w-full" 
-                  placeholder="0,00" 
-                />
-              </td>
-              <td className="px-1 py-1 border border-gray-200">
-                <AmountInput 
                   value={traiteesGP_M1}
                   onChange={(e) => handleUpdateM1("GP", "traitees", e.target.value)} 
                   className="h-7 px-2 text-xs w-full" 
                   placeholder="0,00" 
                 />
               </td>
-            </tr>
-            {/* Ligne Réclamations traitées - B2B */}
-            <tr className="bg-gray-50">
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
               <td className="px-1 py-1 border border-gray-200">
                 <AmountInput 
-                  value={traiteesB2B_M}
-                  onChange={(e) => handleUpdateM("B2B", "traitees", e.target.value)} 
+                  value={traiteesGP_M}
+                  onChange={(e) => handleUpdateM("GP", "traitees", e.target.value)} 
                   className="h-7 px-2 text-xs w-full" 
                   placeholder="0,00" 
                 />
               </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcEvolStr(traiteesGP_M, traiteesGP_M1)}
+              </td>
+            </tr>
+            {/* Ligne Réclamations traitées - B2B */}
+            <tr className="bg-gray-50">
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
               <td className="px-1 py-1 border border-gray-200">
                 <AmountInput 
                   value={traiteesB2B_M1}
@@ -373,15 +388,32 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
                   placeholder="0,00" 
                 />
               </td>
+              <td className="px-1 py-1 border border-gray-200">
+                <AmountInput 
+                  value={traiteesB2B_M}
+                  onChange={(e) => handleUpdateM("B2B", "traitees", e.target.value)} 
+                  className="h-7 px-2 text-xs w-full" 
+                  placeholder="0,00" 
+                />
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcEvolStr(traiteesB2B_M, traiteesB2B_M1)}
+              </td>
             </tr>
             {/* Ligne Totale des réclamations traitées */}
             <tr className="bg-green-100 font-semibold">
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">Totale</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">
-                {(toNumber(traiteesGP_M) + toNumber(traiteesB2B_M)).toFixed(2)}
+                {(toNumber(traiteesGP_M1) + toNumber(traiteesB2B_M1)).toFixed(2)}
               </td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">
-                {(toNumber(traiteesGP_M1) + toNumber(traiteesB2B_M1)).toFixed(2)}
+                {(toNumber(traiteesGP_M) + toNumber(traiteesB2B_M)).toFixed(2)}
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcEvolStr(
+                  (toNumber(traiteesGP_M) + toNumber(traiteesB2B_M)).toFixed(2),
+                  (toNumber(traiteesGP_M1) + toNumber(traiteesB2B_M1)).toFixed(2)
+                )}
               </td>
             </tr>
           </tbody>
@@ -390,21 +422,17 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
               <td colSpan={2} className="px-2 py-2 text-xs text-right border border-gray-200 font-semibold">
                 Taux de traitement (%)
               </td>
-              <td className="px-1 py-1 border border-gray-200">
-                <AmountInput 
-                  value={tauxM}
-                  onChange={(e) => setTauxM(e.target.value)} 
-                  className="h-7 px-2 text-xs w-full" 
-                  placeholder="0,00" 
-                />
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcTaux(recuesGP_M1, recuesB2B_M1, traiteesGP_M1, traiteesB2B_M1)}
               </td>
-              <td className="px-1 py-1 border border-gray-200">
-                <AmountInput 
-                  value={tauxM1}
-                  onChange={(e) => setTauxM1(e.target.value)} 
-                  className="h-7 px-2 text-xs w-full" 
-                  placeholder="0,00" 
-                />
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcTaux(recuesGP_M, recuesB2B_M, traiteesGP_M, traiteesB2B_M)}
+              </td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">
+                {calcEvolStr(
+                  calcTaux(recuesGP_M, recuesB2B_M, traiteesGP_M, traiteesB2B_M),
+                  calcTaux(recuesGP_M1, recuesB2B_M1, traiteesGP_M1, traiteesB2B_M1)
+                )}
               </td>
             </tr>
           </tfoot>
@@ -414,21 +442,20 @@ function TabReclamation({ rows, setRows, onSave, isSubmitting }: TabReclamationP
     </div>
   )
 }
-// ?? 6c. E-Payement (bloc réutilisable + wrapper) ??????????????????????????????
+// ?? 6c. E-Payement (bloc réutilisable + wrapper) //????????
 // ?? 6c. E-Payement (bloc réutilisable + wrapper) avec ligne de total ??????????
 interface EPayementBlockProps {
   title: string
   rows: EPayementRow[]
   setRows: React.Dispatch<React.SetStateAction<EPayementRow[]>>
+  mois: string
 }
-function EPayementBlock({ title, rows, setRows }: EPayementBlockProps) {
-  const update = (index: number, field: "m" | "m1" | "evol", value: string) =>
+function EPayementBlock({ title, rows, setRows, mois }: EPayementBlockProps) {
+  const update = (index: number, field: "m" | "m1", value: string) =>
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
 
-  // Calcul des totaux
   const totalM = rows.reduce((sum, row) => sum + num(row.m), 0)
   const totalM1 = rows.reduce((sum, row) => sum + num(row.m1), 0)
-  const totalEvol = rows.reduce((sum, row) => sum + num(row.evol), 0)
 
   return (
     <div className="space-y-2">
@@ -438,8 +465,8 @@ function EPayementBlock({ title, rows, setRows }: EPayementBlockProps) {
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -447,17 +474,16 @@ function EPayementBlock({ title, rows, setRows }: EPayementBlockProps) {
             {rows.map((row, index) => (
               <tr key={`${title}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{EPAYEMENT_CHANNELS[index] ?? row.rechargement}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" style={{ minWidth: 130 }} /></td>
+                <td className="px-1 py-1 border-b text-xs text-right">{calcSimpleEvol(row.m, row.m1)} %</td>
               </tr>
             ))}
-            {/* Ligne de total */}
             <tr className="bg-green-100 font-semibold">
               <td className="px-3 py-2 border-b text-xs font-semibold text-gray-800">TOTAL</td>
-              <td className="px-1 py-1 border-b text-xs text-right">{fmt(totalM)}</td>
               <td className="px-1 py-1 border-b text-xs text-right">{fmt(totalM1)}</td>
-              <td className="px-1 py-1 border-b text-xs text-right">{fmt(totalEvol)}</td>
+              <td className="px-1 py-1 border-b text-xs text-right">{fmt(totalM)}</td>
+              <td className="px-1 py-1 border-b text-xs text-right">{calcSimpleEvol(String(totalM), String(totalM1))} %</td>
             </tr>
           </tbody>
         </table>
@@ -472,11 +498,12 @@ interface TabEPayementSingleProps {
   setRows: React.Dispatch<React.SetStateAction<EPayementRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
-function TabEPayementSingle({ title, rows, setRows, onSave, isSubmitting }: TabEPayementSingleProps) {
+function TabEPayementSingle({ title, rows, setRows, onSave, isSubmitting, mois }: TabEPayementSingleProps) {
   return (
-    <div className="space-y-4">
-      <EPayementBlock title={title} rows={rows} setRows={setRows} />
+    <div className="space-y-3">
+      <EPayementBlock title={title} rows={rows} setRows={setRows} mois={mois} />
       <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
     </div>
   )
@@ -488,21 +515,38 @@ interface TabRechargementProps {
   setRows: React.Dispatch<React.SetStateAction<RechargementRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
-function TabRechargement({ rows, setRows, onSave, isSubmitting }: TabRechargementProps) {
+function TabRechargement({ rows, setRows, onSave, isSubmitting, mois }: TabRechargementProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) =>
     setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Rechargement" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  const rowsWithEvol = rows.map((r, idx) => {
+    if (r.designation === "Evol" && rows.length >= 2) {
+      const r0m = num(rows[0].m), r0m1 = num(rows[0].m1)
+      const r1m = num(rows[1].m), r1m1 = num(rows[1].m1)
+      const m = r0m === 0 ? "N/A" : fmt((r1m / r0m - 1) * 100)
+      const m1 = r0m1 === 0 ? "N/A" : fmt((r1m1 / r0m1 - 1) * 100)
+      return { ...r, m, m1 }
+    }
+    return r
+  })
+  const evolRechargement = calcSimpleEvol(rows[0].m, rows[0].m1)
+  const evolPrelevements = calcSimpleEvol(rows[1].m, rows[1].m1)
+  const evolOverride = rows.length >= 2 && num(evolRechargement) !== 0
+    ? fmt((num(evolPrelevements) / num(evolRechargement) - 1) * 100)
+    : "N/A"
+  return <SimpleEvolTable colHeader="Rechargement" rows={rowsWithEvol} update={update} onSave={onSave} isSubmitting={isSubmitting} mois={mois} readonlyDesignations={["Evol"]} evolOverrides={{ Evol: evolOverride }} />
 }
 
 // ?? 6e. Situation Reseaux
 interface TabSituationReseauProps {
-  rows: SituationReseauRow[]
-  setRows: React.Dispatch<React.SetStateAction<SituationReseauRow[]>>
-  onSave: () => void
-  isSubmitting: boolean
+rows: SituationReseauRow[]
+setRows: React.Dispatch<React.SetStateAction<SituationReseauRow[]>>
+onSave: () => void
+isSubmitting: boolean
+mois: string
 }
-function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituationReseauProps) {
+function TabSituationReseau({ rows, setRows, onSave, isSubmitting, mois }: TabSituationReseauProps) {
   const update = (index: number, field: "m" | "m1", value: string) =>
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
 
@@ -514,8 +558,8 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Réseaux</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Équipements</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
           </thead>
           <tbody>
@@ -535,24 +579,36 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting }: TabSituatio
   )
 }
 
-// ?? 6d. Total Encaissement ????????????????????????????????????????????????????
+// ?? 6d. Total Encaissement ////????????
 interface TabTotalEncaissementProps {
   rows: TotalEncaissementRow[]
   setRows: React.Dispatch<React.SetStateAction<TotalEncaissementRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
 
-function TabTotalEncaissement({ rows, setRows, onSave, isSubmitting }: TabTotalEncaissementProps) {
+function TabTotalEncaissement({ rows, setRows, onSave, isSubmitting, mois }: TabTotalEncaissementProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) =>
     setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Encaissement (MDA)" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Encaissement (MDA)" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} mois={mois} />
 }
-// ?? 6e. Recouvrement ?????????????????????????????????????????????????????????
-interface TabRecouvrementProps { rows: RecouvrementRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvrementProps) {
+// ?? 6e. Recouvrement /////??
+interface TabRecouvrementProps { rows: RecouvrementRow[]; setRows: React.Dispatch<React.SetStateAction<RecouvrementRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabRecouvrement({ rows, setRows, onSave, isSubmitting, mois }: TabRecouvrementProps) {
   const update = (index: number, field: keyof RecouvrementRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
+
+  const calcTauxRecouvrement = (recouvre: string, mis: string) => {
+    const r = num(recouvre); const m = num(mis)
+    if (m === 0) return "0.00"
+    return ((r / m) * 100).toFixed(2)
+  }
+
+  const nonTotalRows = rows.filter((r) => !isTotalRow(r.designation))
+  const totM1Recouvre = nonTotalRows.reduce((s, r) => s + num(r.m1Recouvre), 0)
+  const totMMis = nonTotalRows.reduce((s, r) => s + num(r.mMis), 0)
+  const totMRecouvre = nonTotalRows.reduce((s, r) => s + num(r.mRecouvre), 0)
 
   return (
     <div className="space-y-3">
@@ -561,8 +617,8 @@ function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvremen
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement (MDA)</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Montant Recouvré</th>
@@ -572,15 +628,22 @@ function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvremen
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${row.designation}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1Recouvre} onChange={(e) => update(index, "m1Recouvre", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mMis}       onChange={(e) => update(index, "mMis",       e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mRecouvre}  onChange={(e) => update(index, "mRecouvre",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.mTaux}      onChange={(e) => update(index, "mTaux",      e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-              </tr>
-            ))}
+            {rows.map((row, index) => {
+              const isTot = isTotalRow(row.designation)
+              const dispM1Recouvre = isTot ? fmt(totM1Recouvre) : null
+              const dispMMis = isTot ? fmt(totMMis) : null
+              const dispMRecouvre = isTot ? fmt(totMRecouvre) : null
+              const dispTaux = isTot ? calcTauxRecouvrement(String(totMRecouvre), String(totMMis)) : calcTauxRecouvrement(row.mRecouvre, row.mMis)
+              return (
+                <tr key={`${row.designation}-${index}`} className={isTot ? "bg-green-100 font-semibold" : "bg-white"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                  <td className="px-1 py-1 border-b">{isTot ? <span className="block px-2 text-xs text-right">{dispM1Recouvre}</span> : <AmountInput value={row.m1Recouvre} onChange={(e) => update(index, "m1Recouvre", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}</td>
+                  <td className="px-1 py-1 border-b">{isTot ? <span className="block px-2 text-xs text-right">{dispMMis}</span> : <AmountInput value={row.mMis} onChange={(e) => update(index, "mMis", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}</td>
+                  <td className="px-1 py-1 border-b">{isTot ? <span className="block px-2 text-xs text-right">{dispMRecouvre}</span> : <AmountInput value={row.mRecouvre} onChange={(e) => update(index, "mRecouvre", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}</td>
+                  <td className="px-1 py-1 border-b text-xs text-right">{dispTaux}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -590,15 +653,21 @@ function TabRecouvrement({ rows, setRows, onSave, isSubmitting }: TabRecouvremen
 }
 
 
-// ?? Composant générique : tableau (designation | m | m1 | evol) ???????????????
+// ?? Composant générique : tableau (designation | m | m1 | evol) /????
 interface SimpleEvolTableProps {
   colHeader: string
   rows: Array<{ designation: string; m: string; m1: string; evol: string }>
   update: (index: number, field: "m" | "m1" | "evol", value: string) => void
   onSave: () => void
   isSubmitting: boolean
+  mois: string
+  readonlyDesignations?: string[]
+  evolOverrides?: Record<string, string>
 }
-function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: SimpleEvolTableProps) {
+function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting, mois, readonlyDesignations, evolOverrides }: SimpleEvolTableProps) {
+  const nonTotalRows = rows.filter((r) => !isTotalRow(r.designation))
+  const totalM1 = nonTotalRows.reduce((s, r) => s + num(r.m1), 0)
+  const totalM = nonTotalRows.reduce((s, r) => s + num(r.m), 0)
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -606,20 +675,31 @@ function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: Simp
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{colHeader}</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${row.designation}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m}    onChange={(e) => update(index, "m",    e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m1}   onChange={(e) => update(index, "m1",   e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.evol} onChange={(e) => update(index, "evol", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-              </tr>
-            ))}
+            {rows.map((row, index) => {
+              const isTot = isTotalRow(row.designation)
+              const isReadonly = readonlyDesignations?.includes(row.designation)
+              const displayM1 = isTot ? fmt(totalM1) : null
+              const displayM = isTot ? fmt(totalM) : null
+              const displayEvol = evolOverrides?.[row.designation] ?? (isTot ? calcSimpleEvol(String(totalM), String(totalM1)) : calcSimpleEvol(row.m, row.m1))
+              return (
+                <tr key={`${row.designation}-${index}`} className={isTot ? "bg-green-100 font-semibold" : "bg-white"}>
+                  <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                  <td className="px-1 py-1 border-b">
+                    {isTot ? <span className="block px-2 text-xs text-right">{displayM1}</span> : isReadonly ? <span className="block px-2 text-xs text-right">{row.m1}</span> : <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b">
+                    {isTot ? <span className="block px-2 text-xs text-right">{displayM}</span> : isReadonly ? <span className="block px-2 text-xs text-right">{row.m}</span> : <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                  </td>
+                  <td className="px-1 py-1 border-b text-xs text-right">{displayEvol} %</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -628,61 +708,65 @@ function SimpleEvolTable({ colHeader, rows, update, onSave, isSubmitting }: Simp
   )
 }
 
-// ?? 6f. Parc Abonnés GP ??????????????????????????????????????????????????????
-interface TabParcAbonnesGpProps { rows: ParcAbonnesGpRow[]; setRows: React.Dispatch<React.SetStateAction<ParcAbonnesGpRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabParcAbonnesGp({ rows, setRows, onSave, isSubmitting }: TabParcAbonnesGpProps) {
+// ?? 6f. Parc Abonnés GP ////??????????
+interface TabParcAbonnesGpProps { rows: ParcAbonnesGpRow[]; setRows: React.Dispatch<React.SetStateAction<ParcAbonnesGpRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabParcAbonnesGp({ rows, setRows, onSave, isSubmitting, mois }: TabParcAbonnesGpProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Parc Abonnés GP" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Parc Abonnés GP" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} mois={mois} />
 }
 
-// ?? 6g. Total Parc Abonnés par Technologie ???????????????????????????????????
-interface TabTotalParcAbonnesTechnologieProps { rows: TotalParcAbonnesTechnologieRow[]; setRows: React.Dispatch<React.SetStateAction<TotalParcAbonnesTechnologieRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabTotalParcAbonnesTechnologie({ rows, setRows, onSave, isSubmitting }: TabTotalParcAbonnesTechnologieProps) {
+// ?? 6g. Total Parc Abonnés par Technologie ///??
+interface TabTotalParcAbonnesTechnologieProps { rows: TotalParcAbonnesTechnologieRow[]; setRows: React.Dispatch<React.SetStateAction<TotalParcAbonnesTechnologieRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabTotalParcAbonnesTechnologie({ rows, setRows, onSave, isSubmitting, mois }: TabTotalParcAbonnesTechnologieProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Total Parc Abonnés par Technologie" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Total Parc Abonnés par Technologie" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} mois={mois} />
 }
 
-// ?? 6j. Activation ???????????????????????????????????????????????????????????
-interface TabActivationProps { rows: ActivationRow[]; setRows: React.Dispatch<React.SetStateAction<ActivationRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabActivation({ rows, setRows, onSave, isSubmitting }: TabActivationProps) {
+// ?? 6j. Activation /////????
+interface TabActivationProps { rows: ActivationRow[]; setRows: React.Dispatch<React.SetStateAction<ActivationRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabActivation({ rows, setRows, onSave, isSubmitting, mois }: TabActivationProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Activation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Activation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} mois={mois} />
 }
 
-// ?? 6k. Désactivation ?????????????????????????????????????????????????????????
-interface TabDesactivationProps { rows: DesactivationRow[]; setRows: React.Dispatch<React.SetStateAction<DesactivationRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabDesactivation({ rows, setRows, onSave, isSubmitting }: TabDesactivationProps) {
+// ?? 6k. Désactivation /////??
+interface TabDesactivationProps { rows: DesactivationRow[]; setRows: React.Dispatch<React.SetStateAction<DesactivationRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabDesactivation({ rows, setRows, onSave, isSubmitting, mois }: TabDesactivationProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Désactivation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Désactivation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} mois={mois} />
 }
 
-// ?? 6l. Résiliation ???????????????????????????????????????????????????????????
-interface TabResiliationProps { rows: ResiliationRow[]; setRows: React.Dispatch<React.SetStateAction<ResiliationRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabResiliation({ rows, setRows, onSave, isSubmitting }: TabResiliationProps) {
+// ?? 6l. Résiliation /////????
+interface TabResiliationProps { rows: ResiliationRow[]; setRows: React.Dispatch<React.SetStateAction<ResiliationRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabResiliation({ rows, setRows, onSave, isSubmitting, mois }: TabResiliationProps) {
   const update = (i: number, f: "m" | "m1" | "evol", v: string) => setRows((p) => p.map((r, idx) => idx === i ? { ...r, [f]: v } : r))
-  return <SimpleEvolTable colHeader="Résiliation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} />
+  return <SimpleEvolTable colHeader="Résiliation" rows={rows} update={update} onSave={onSave} isSubmitting={isSubmitting} mois={mois} />
 }
 
-// ?? 6m. Chiffre d'Affaires MDA ????????????????????????????????????????????????
+// ?? 6m. Chiffre d'Affaires MDA ////????
 interface TabChiffreAffairesMdaProps {
   rows: ChiffreAffairesMdaRow[]
   setRows: React.Dispatch<React.SetStateAction<ChiffreAffairesMdaRow[]>>
   onSave: () => void
   isSubmitting: boolean
+  mois: string
 }
 
-function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiffreAffairesMdaProps) {
+function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting, mois }: TabChiffreAffairesMdaProps) {
   const update = (index: number, field: keyof ChiffreAffairesMdaRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
-  // ✅ fonction pour convertir en nombre
   const toNumber = (val?: string) => parseFloat(val || "0") || 0
 
-  // ✅ calcul des totaux
+  const calcTauxCa = (realise: string, objectif: string) => {
+    const r = num(realise); const o = num(objectif)
+    if (o === 0) return "0.00"
+    return ((r / o) * 100).toFixed(2)
+  }
+
   const totals = {
     mObjectif: rows.reduce((sum, r) => sum + toNumber(r.mObjectif), 0),
     mRealise: rows.reduce((sum, r) => sum + toNumber(r.mRealise), 0),
-    mTaux: rows.reduce((sum, r) => sum + toNumber(r.mTaux), 0),
     m1Realise: rows.reduce((sum, r) => sum + toNumber(r.m1Realise), 0),
   }
 
@@ -696,10 +780,10 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
                 Chiffre d'Affaires (MDA)
               </th>
               <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">
-                M-1
+                {getMonthLabel(mois, -1)}
               </th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">
-                M
+                {getMonthLabel(mois, 0)}
               </th>
             </tr>
             <tr className="bg-gray-50">
@@ -722,32 +806,28 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
                 </td>
 
                 <td className="px-1 py-1 border-b">
+                  <AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" />
+                </td>
+                <td className="px-1 py-1 border-b">
                   <AmountInput value={row.mObjectif} onChange={(e) => update(index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" />
                 </td>
                 <td className="px-1 py-1 border-b">
                   <AmountInput value={row.mRealise} onChange={(e) => update(index, "mRealise", e.target.value)} className="h-7 px-2 text-xs" />
                 </td>
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.mTaux} onChange={(e) => update(index, "mTaux", e.target.value)} className="h-7 px-2 text-xs" />
-                </td>
-
-                <td className="px-1 py-1 border-b">
-                  <AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" />
+                <td className="px-1 py-1 border-b text-xs text-right">
+                  {calcTauxCa(row.mRealise, row.mObjectif)}
                 </td>
               </tr>
             ))}
 
-            {/* ✅ Ligne Totale */}
             <tr className="bg-green-100 font-semibold">
               <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">
                 Totale
               </td>
-
-              <td className="px-3 py-2 border-b text-xs text-right">{totals.mObjectif.toFixed(2)}</td>
-              <td className="px-3 py-2 border-b text-xs text-right">{totals.mRealise.toFixed(2)}</td>
-              <td className="px-3 py-2 border-b text-xs text-right">{totals.mTaux.toFixed(2)}</td>
-
-              <td className="px-3 py-2 border-b text-xs text-right">{totals.m1Realise.toFixed(2)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.m1Realise)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mObjectif)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mRealise)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{calcTauxCa(String(totals.mRealise), String(totals.mObjectif))}</td>
             </tr>
           </tbody>
         </table>
@@ -758,9 +838,9 @@ function TabChiffreAffairesMda({ rows, setRows, onSave, isSubmitting }: TabChiff
   )
 }
 
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 // 7. CONFIGURATION DES ONGLETS (TABLEAUX CONSERVéS UNIQUEMENT)
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 const TABS = [
   { key: "reclamation",                    label: "Reclamation",                           color: PRIMARY_COLOR, title: "TABLEAU RECLAMATION" },
   { key: "e_payement",                 label: "E-PAYEMENT (MDA)",                      color: PRIMARY_COLOR, title: "E-PAYEMENT (MDA)" },
@@ -826,16 +906,26 @@ const MONTHS = [
   { value: "09", label: "Septembre" },{ value: "10", label: "Octobre" },
   { value: "11", label: "Novembre" }, { value: "12", label: "Decembre" },
 ]
+const getMonthLabel = (mois: string, diff: number = 0): string => {
+  const monthNum = Number.parseInt(mois, 10)
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return `M${diff === 0 ? "" : diff}`
+  let targetMonth = monthNum + diff
+  if (targetMonth < 1) targetMonth += 12
+  if (targetMonth > 12) targetMonth -= 12
+  const key = String(targetMonth).padStart(2, "0")
+  return MONTHS.find((m) => m.value === key)?.label ?? key
+}
+
 const CURRENT_YEAR = new Date().getFullYear()
 const INITIAL_tableau_PERIOD = getCurrenttableauPeriod()
 const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
 
 
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 // 8. TYPES & HELPERS D'API / STOCKAGE
-// ?????????????????????????????????????????????????????????????????????????????
+// ///////
 
-// ?? 8a. Type de la déclaration sauvegardée (localStorage + API) ??????????????
+// ?? 8a. Type de la déclaration sauvegardée (localStorage + API) /???
 //    Tableaux conservés uniquement
 interface Savedtableau {
   id: string
@@ -844,6 +934,8 @@ interface Savedtableau {
   mois: string
   annee: string
   reclamationRows?: ReclamationRow[]
+  reclamationTauxM?: string
+  reclamationTauxM1?: string
   ePayementPopRows?: EPayementRow[]
   totalEncaissementRows?: TotalEncaissementRow[]
   rechargementRows?: RechargementRow[]
@@ -856,7 +948,7 @@ interface Savedtableau {
   chiffreAffairesMdaRows?: ChiffreAffairesMdaRow[]
 }
 
-// ?? 8b. Type retourné par l'API (générique, ne change pas) ???????????????????
+// ?? 8b. Type retourné par l'API (générique, ne change pas) /????????
 type Apitableautableau = {
   id: number
   tabKey: string
@@ -866,7 +958,7 @@ type Apitableautableau = {
   dataJson: string
 }
 
-// ?? 8c. Helpers utilitaires ???????????????????????????????????????????????????
+// ?? 8c. Helpers utilitaires ////???????
 const safeString = (value: unknown): string => {
   if (typeof value === "string") return value
   if (value === null || value === undefined) return ""
@@ -890,7 +982,8 @@ const normalizeReclamationRows = (rows?: ReclamationRow[]): ReclamationRow[] => 
     mGp: safeString(row.mGp), mB2b: safeString(row.mB2b),
     m1Gp: safeString(row.m1Gp), m1B2b: safeString(row.m1B2b),
   }))
-  return normalized.length === 4 ? normalized : DEFAULT_RECLAMATION_ROWS.map((r) => ({ ...r }))
+  if (normalized.length >= 4) return normalized.slice(0, 4)
+  return DEFAULT_RECLAMATION_ROWS.map((r) => ({ ...r }))
 }
 
 const normalizeEPayementRows = (rows?: EPayementRow[]): EPayementRow[] => {
@@ -980,7 +1073,7 @@ function CommercialPageContent() {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => r.json())
-      .then((data: { id: number; name: string }[]) => setRegions(data))
+      .then((data: { id: number; nom: string }[]) => setRegions(data))
       .catch(() => {})
   }, [])
 
@@ -1074,7 +1167,7 @@ function CommercialPageContent() {
       return { category, type }
     }
 
-    const reclamationLabels = getLabels("reclamation", DEFAULT_RECLAMATION_LABELS)
+    const reclamationLabels = getLabels("reclamation", DEFAULT_RECLAMATION_LABELS).slice(0, 4)
     setReclamationRows((prev) => reclamationLabels.map((label, i) => {
       const parsed = parseReclamationLabel(label)
       const row = prev[i]
@@ -1164,7 +1257,7 @@ function CommercialPageContent() {
       m1Realise: safeString(prev[i]?.m1Realise),
     })))
   }, [kpiRows])
-  
+
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),
     [adminSelectedDirection, tableauPolicyRevision, isAdminRole, userRole],
@@ -1239,6 +1332,59 @@ function CommercialPageContent() {
   )
 
   const effectiveDirection = resolveDirectionForRole(safeString(direction).trim() || safeString(user?.direction).trim() || "Siege")
+
+  useEffect(() => {
+    if (!kpiRows || Object.keys(kpiRows).length === 0) return
+    if (!tableauDeclarations || tableauDeclarations.length === 0) return
+    if (!effectiveDirection) return
+
+    const prevPeriod = getPreviousPeriod(mois, annee)
+
+    const autoPopulate = <T extends Record<string, string>>(
+      tabKey: string,
+      setter: React.Dispatch<React.SetStateAction<T[]>>,
+    ) => {
+      const hasExisting = tableauDeclarations.some(
+        (d) => d.tabKey === tabKey && d.mois === mois && d.annee === annee && d.direction === effectiveDirection,
+      )
+      if (hasExisting) return
+
+      const prevDecl = tableauDeclarations.find(
+        (d) => d.tabKey === tabKey && d.mois === prevPeriod.mois && d.annee === prevPeriod.annee && d.direction === effectiveDirection,
+      )
+      if (!prevDecl) return
+
+      try {
+        const data = JSON.parse(prevDecl.dataJson)
+        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]))
+        if (!arrayKey) return
+        const prevRows: Record<string, string>[] = data[arrayKey]
+
+        setter((prev) =>
+          prev.map((row, i) => {
+            const prevRow = prevRows[i]
+            if (!prevRow) return row
+            const m1Values = mapMtoM1(prevRow)
+            return { ...row, ...m1Values } as unknown as T
+          }),
+        )
+      } catch {
+
+      }
+    }
+
+    autoPopulate("reclamation", setReclamationRows)
+    autoPopulate("e_payement", setEPayementPopRows)
+    autoPopulate("total_encaissement", setTotalEncaissementRows)
+    autoPopulate("rechargement", setRechargementRows)
+    autoPopulate("recouvrement", setRecouvrementRows)
+    autoPopulate("parc_abonnes_gp", setParcAbonnesGpRows)
+    autoPopulate("total_parc_abonnes_technologie", setTotalParcAbonnesTechnologieRows)
+    autoPopulate("activation", setActivationRows)
+    autoPopulate("desactivation", setDesactivationRows)
+    autoPopulate("resiliation", setResiliationRows)
+    autoPopulate("chiffre_affaires_mda", setChiffreAffairesMdaRows)
+  }, [kpiRows, tableauDeclarations, mois, annee, effectiveDirection])
 
   useEffect(() => {
     if (!userRole) return
@@ -1457,9 +1603,7 @@ function CommercialPageContent() {
 
   const handleSave = async (tabKey: tableauTabKey) => {
     const saveDirection = effectiveDirection
-    const isAdminEditing = isAdminRole && !!editingDeclarationId
-    
-    if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
+    if (!isAdminRole && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
         title: "Acces refuse",
         description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
@@ -1518,67 +1662,67 @@ function CommercialPageContent() {
     let validationError = false
     switch (tabKey) {
       case "reclamation":
-        if (reclamationRows.some((r) => !r.mGp && !r.mB2b && !r.m1Gp && !r.m1B2b)) {
+        if (reclamationRows.slice(0, 4).some((r) => (!r.mGp && !r.mB2b && !r.m1Gp && !r.m1B2b))) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Reclamation.", variant: "destructive" })
           validationError = true
         }
         break
       case "e_payement":
-        if (ePayementPopRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+        if (ePayementPopRows.some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau E-PAYEMENT (MDA).", variant: "destructive" })
           validationError = true
         }
         break
       case "total_encaissement":
-        if (totalEncaissementRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+        if (totalEncaissementRows.filter((r) => !isTotalRow(r.designation)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les valeurs du tableau Encaissement (MDA).", variant: "destructive" })
           validationError = true
         }
         break
       case "rechargement":
-        if (rechargementRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+        if (rechargementRows.filter((r) => !isTotalRow(r.designation)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Rechargement.", variant: "destructive" })
           validationError = true
         }
         break
       case "recouvrement":
-        if (recouvrementRows.some((row) => !row.m1Recouvre || !row.mMis || !row.mRecouvre || !row.mTaux)) {
+        if (recouvrementRows.filter((r) => !isTotalRow(r.designation)).some((row) => !row.m1Recouvre || !row.mMis || !row.mRecouvre)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Recouvrement.", variant: "destructive" })
           validationError = true
         }
         break
       case "parc_abonnes_gp":
-        if (parcAbonnesGpRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+        if (parcAbonnesGpRows.filter((r) => !isTotalRow(r.designation)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Parc Abonnes GP.", variant: "destructive" })
           validationError = true
         }
         break
       case "total_parc_abonnes_technologie":
-        if (totalParcAbonnesTechnologieRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+        if (totalParcAbonnesTechnologieRows.filter((r) => !isTotalRow(r.designation)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Total Parc Abonnes parc technologie.", variant: "destructive" })
           validationError = true
         }
         break
       case "activation":
-        if (activationRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+        if (activationRows.filter((r) => !isTotalRow(r.designation)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Activation.", variant: "destructive" })
           validationError = true
         }
         break
       case "desactivation":
-        if (desactivationRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+        if (desactivationRows.filter((r) => !isTotalRow(r.designation)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Désactivation.", variant: "destructive" })
           validationError = true
         }
         break
       case "resiliation":
-        if (resiliationRows.some((row) => !row.m || !row.m1 || !row.evol)) {
+        if (resiliationRows.filter((r) => !isTotalRow(r.designation)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Résiliation.", variant: "destructive" })
           validationError = true
         }
         break
       case "chiffre_affaires_mda":
-        if (chiffreAffairesMdaRows.some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
+        if (chiffreAffairesMdaRows.some((row) => !row.mObjectif || !row.mRealise || !row.m1Realise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Chiffre d'Affaires (MDA).", variant: "destructive" })
           validationError = true
         }
@@ -1619,39 +1763,70 @@ function CommercialPageContent() {
       chiffreAffairesMdaRows: [],
     }
     
+    const processEvolRows = <T extends { m: string; m1: string; evol: string }>(rows: T[], isTot: (r: T) => boolean): T[] => {
+      const nonTotal = rows.filter((r) => !isTot(r))
+      const totM = nonTotal.reduce((s, r) => s + num(r.m), 0)
+      const totM1 = nonTotal.reduce((s, r) => s + num(r.m1), 0)
+      return rows.map((r) => {
+        if (isTot(r)) return { ...r, m: String(totM), m1: String(totM1), evol: calcSimpleEvol(String(totM), String(totM1)) }
+        return { ...r, evol: calcSimpleEvol(r.m, r.m1) }
+      })
+    }
     switch (tabKey) {
       case "reclamation":
         baseDecl.reclamationRows = reclamationRows
+        {
+          const toN = (v: string) => parseFloat(v.replace(",", ".")) || 0
+          const recM1 = toN(reclamationRows.find(r => r.category === "recues" && r.type === "GP")?.m1Gp ?? "") + toN(reclamationRows.find(r => r.category === "recues" && r.type === "B2B")?.m1B2b ?? "")
+          const recM = toN(reclamationRows.find(r => r.category === "recues" && r.type === "GP")?.mGp ?? "") + toN(reclamationRows.find(r => r.category === "recues" && r.type === "B2B")?.mB2b ?? "")
+          const trM1 = toN(reclamationRows.find(r => r.category === "traitees" && r.type === "GP")?.m1Gp ?? "") + toN(reclamationRows.find(r => r.category === "traitees" && r.type === "B2B")?.m1B2b ?? "")
+          const trM = toN(reclamationRows.find(r => r.category === "traitees" && r.type === "GP")?.mGp ?? "") + toN(reclamationRows.find(r => r.category === "traitees" && r.type === "B2B")?.mB2b ?? "")
+          baseDecl.reclamationTauxM1 = recM1 === 0 ? "0.00" : ((trM1 / recM1) * 100).toFixed(2)
+          baseDecl.reclamationTauxM = recM === 0 ? "0.00" : ((trM / recM) * 100).toFixed(2)
+        }
         break
       case "e_payement":
-        baseDecl.ePayementPopRows = ePayementPopRows
+        baseDecl.ePayementPopRows = ePayementPopRows.map((r) => ({ ...r, evol: calcSimpleEvol(r.m, r.m1) }))
         break
       case "total_encaissement":
-        baseDecl.totalEncaissementRows = totalEncaissementRows
+        baseDecl.totalEncaissementRows = processEvolRows(totalEncaissementRows, (r) => isTotalRow(r.designation))
         break
       case "rechargement":
-        baseDecl.rechargementRows = rechargementRows
+        baseDecl.rechargementRows = processEvolRows(rechargementRows, (r) => isTotalRow(r.designation))
         break
       case "recouvrement":
-        baseDecl.recouvrementRows = recouvrementRows
+        baseDecl.recouvrementRows = recouvrementRows.map((r) => {
+          if (isTotalRow(r.designation)) {
+            const nonTotal = recouvrementRows.filter((x) => !isTotalRow(x.designation))
+            const totM1R = nonTotal.reduce((s, x) => s + num(x.m1Recouvre), 0)
+            const totMM = nonTotal.reduce((s, x) => s + num(x.mMis), 0)
+            const totMR = nonTotal.reduce((s, x) => s + num(x.mRecouvre), 0)
+            return { ...r, m1Recouvre: String(totM1R), mMis: String(totMM), mRecouvre: String(totMR), mTaux: totMM === 0 ? "0.00" : ((totMR / totMM) * 100).toFixed(2) }
+          }
+          const mMis = num(r.mMis); const mRecouvre = num(r.mRecouvre)
+          return { ...r, mTaux: mMis === 0 ? "0.00" : ((mRecouvre / mMis) * 100).toFixed(2) }
+        })
         break
       case "parc_abonnes_gp":
-        baseDecl.parcAbonnesGpRows = parcAbonnesGpRows
+        baseDecl.parcAbonnesGpRows = processEvolRows(parcAbonnesGpRows, (r) => isTotalRow(r.designation))
         break
       case "total_parc_abonnes_technologie":
-        baseDecl.totalParcAbonnesTechnologieRows = totalParcAbonnesTechnologieRows
+        baseDecl.totalParcAbonnesTechnologieRows = processEvolRows(totalParcAbonnesTechnologieRows, (r) => isTotalRow(r.designation))
         break
       case "activation":
-        baseDecl.activationRows = activationRows
+        baseDecl.activationRows = processEvolRows(activationRows, (r) => isTotalRow(r.designation))
         break
       case "desactivation":
-        baseDecl.desactivationRows = desactivationRows
+        baseDecl.desactivationRows = processEvolRows(desactivationRows, (r) => isTotalRow(r.designation))
         break
       case "resiliation":
-        baseDecl.resiliationRows = resiliationRows
+        baseDecl.resiliationRows = processEvolRows(resiliationRows, (r) => isTotalRow(r.designation))
         break
       case "chiffre_affaires_mda":
-        baseDecl.chiffreAffairesMdaRows = chiffreAffairesMdaRows
+        baseDecl.chiffreAffairesMdaRows = chiffreAffairesMdaRows.map((r) => {
+          const obj = num(r.mObjectif); const real = num(r.mRealise)
+          return { ...r, mTaux: obj === 0 ? "0.00" : ((real / obj) * 100).toFixed(2) }
+        })
         break
     }
     
@@ -1672,17 +1847,17 @@ function CommercialPageContent() {
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
       let tabData: unknown = {}
       switch (tabKey) {
-        case "reclamation": tabData = { reclamationRows }; break
-        case "e_payement": tabData = { ePayementPopRows }; break
-        case "total_encaissement": tabData = { totalEncaissementRows }; break
-        case "rechargement": tabData = { rechargementRows }; break
-        case "recouvrement": tabData = { recouvrementRows }; break
-        case "parc_abonnes_gp": tabData = { parcAbonnesGpRows }; break
-        case "total_parc_abonnes_technologie": tabData = { totalParcAbonnesTechnologieRows }; break
-        case "activation": tabData = { activationRows }; break
-        case "desactivation": tabData = { desactivationRows }; break
-        case "resiliation": tabData = { resiliationRows }; break
-        case "chiffre_affaires_mda": tabData = { chiffreAffairesMdaRows }; break
+        case "reclamation": tabData = { reclamationRows, reclamationTauxM: baseDecl.reclamationTauxM, reclamationTauxM1: baseDecl.reclamationTauxM1 }; break
+        case "e_payement": tabData = { ePayementPopRows: baseDecl.ePayementPopRows }; break
+        case "total_encaissement": tabData = { totalEncaissementRows: baseDecl.totalEncaissementRows }; break
+        case "rechargement": tabData = { rechargementRows: baseDecl.rechargementRows }; break
+        case "recouvrement": tabData = { recouvrementRows: baseDecl.recouvrementRows }; break
+        case "parc_abonnes_gp": tabData = { parcAbonnesGpRows: baseDecl.parcAbonnesGpRows }; break
+        case "total_parc_abonnes_technologie": tabData = { totalParcAbonnesTechnologieRows: baseDecl.totalParcAbonnesTechnologieRows }; break
+        case "activation": tabData = { activationRows: baseDecl.activationRows }; break
+        case "desactivation": tabData = { desactivationRows: baseDecl.desactivationRows }; break
+        case "resiliation": tabData = { resiliationRows: baseDecl.resiliationRows }; break
+        case "chiffre_affaires_mda": tabData = { chiffreAffairesMdaRows: baseDecl.chiffreAffairesMdaRows }; break
       }
       const requestPayload = {
         tabKey,
@@ -1702,22 +1877,6 @@ function CommercialPageContent() {
           },
         })
       }
-
-      await fetch(`${apiBase}/api/step-comment`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          tabKey,
-          mois,
-          annee,
-          direction: saveDirection,
-          comment: tabComment,
-        }),
-      })
 
       const createResponse = await fetch(`${apiBase}/api/fiscal`, {
         method: "POST",
@@ -1878,7 +2037,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabReclamation rows={reclamationRows} setRows={setReclamationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabReclamation rows={reclamationRows} setRows={setReclamationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1898,6 +2057,7 @@ function CommercialPageContent() {
                 setRows={setEPayementPopRows}
                 onSave={() => handleSave(tabKey)}
                 isSubmitting={isSubmitting}
+                mois={mois}
               />
 
             </CardContent>
@@ -1912,7 +2072,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabTotalEncaissement rows={totalEncaissementRows} setRows={setTotalEncaissementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabTotalEncaissement rows={totalEncaissementRows} setRows={setTotalEncaissementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1926,7 +2086,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabRechargement rows={rechargementRows} setRows={setRechargementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabRechargement rows={rechargementRows} setRows={setRechargementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1940,7 +2100,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabRecouvrement rows={recouvrementRows} setRows={setRecouvrementRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1954,7 +2114,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabParcAbonnesGp rows={parcAbonnesGpRows} setRows={setParcAbonnesGpRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabParcAbonnesGp rows={parcAbonnesGpRows} setRows={setParcAbonnesGpRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1968,7 +2128,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabTotalParcAbonnesTechnologie rows={totalParcAbonnesTechnologieRows} setRows={setTotalParcAbonnesTechnologieRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabTotalParcAbonnesTechnologie rows={totalParcAbonnesTechnologieRows} setRows={setTotalParcAbonnesTechnologieRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1982,7 +2142,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabActivation rows={activationRows} setRows={setActivationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabActivation rows={activationRows} setRows={setActivationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1996,7 +2156,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabDesactivation rows={desactivationRows} setRows={setDesactivationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabDesactivation rows={desactivationRows} setRows={setDesactivationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -2010,7 +2170,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabResiliation rows={resiliationRows} setRows={setResiliationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabResiliation rows={resiliationRows} setRows={setResiliationRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -2024,7 +2184,7 @@ function CommercialPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabChiffreAffairesMda rows={chiffreAffairesMdaRows} setRows={setChiffreAffairesMdaRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabChiffreAffairesMda rows={chiffreAffairesMdaRows} setRows={setChiffreAffairesMdaRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>

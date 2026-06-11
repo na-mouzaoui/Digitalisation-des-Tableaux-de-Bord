@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { CheckCircle, Trash2, Printer, Filter, ChevronUp, ChevronDown, X, Pencil, Clock3, CalendarDays, Building2, FileSpreadsheet, AlertCircle, FileText, CheckSquare } from "lucide-react"
+import { CheckCircle, CheckCheck, Trash2, Printer, Filter, ChevronUp, ChevronDown, X, Pencil, Clock3, CalendarDays, Building2, FileSpreadsheet, AlertCircle, FileText, CheckSquare } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { API_BASE } from "@/lib/config"
-import { getCurrenttableauPeriod, gettableauPeriodDeadline, formattableauPeriod, formattableauPeriodDeadline } from "@/lib/fiscal-period-deadline"
+import { getCurrenttableauPeriod, gettableauPeriodDeadline, formattableauPeriod, formattableauPeriodDeadline, getMonthLabel } from "@/lib/fiscal-period-deadline"
 import WILAYAS_COMMUNES, { type WilayaCommuneEntry } from "@/lib/wilayas-communes"
 
 type EncRow = { designation: string; ht?: string; ttc?: string }
@@ -96,16 +96,17 @@ const TABLEAU_TITLE_MAP: Record<string, string> = {
   budget_formation: "Budget des formations",
 
   // DVDRS
-  realisation_technique_reseau: "SUIVI DES INFRASTRUCTURES RÉSEAU 2G/3G/4G",
+  suivi_infrastructures_reseau: "SUIVI DES INFRASTRUCTURES RÉSEAU 2G/3G/4G",
   situation_reseau: "SITUATION RÉSEAU",
   trafic_data: "ÉVOLUTION DU TRAFIC DATA",
-  amelioration_qualite: "AMÉLIORATION DE LA QUALITÉ",
-  couverture_reseau: "COUVERTURE RÉSEAU",
   action_notable_reseau: "ACTION NOTABLE SUR LE RÉSEAU",
+  amelioration_qualite_4g: "AMÉLIORATION QUALITÉ 4G",
+  amelioration_qualite_5g: "AMÉLIORATION QUALITÉ 5G",
 
   // DQRPC
   disponibilite_reseau: "DISPONIBILITÉ RÉSEAU",
   mttr: "MTTR / DR",
+  impact_mttr: "IMPACT MTTR / DR",
 
   // Finances
   compte_resultat: "COMPTE DE RÉSULTAT & INVESTISSEMENT (MDA)",
@@ -125,6 +126,10 @@ interface Savedtableau {
   isApproved?: boolean
   approvedByUserId?: number | null
   approvedAt?: string | null
+  approvedByDirecteurUserId?: number | null
+  approvedByDirecteurAt?: string | null
+  approvedByDivisionnaireUserId?: number | null
+  approvedByDivisionnaireAt?: string | null
   dataJson?: string
   // Original Financial Tables
   encRows?: EncRow[]
@@ -149,17 +154,16 @@ interface Savedtableau {
   realisationTechniqueReseauRows?: RealisationTechniqueReseauRow[]
   situationReseauRows?: SituationReseauRow[]
   traficDataRows?: TraficDataRow[]
-  ameliorationQualiteRows?: AmeliorationQualiteRow[]
-  couvertureReseauRows?: CouvertureReseauRow[]
   actionNotableReseauRows?: ActionNotableReseauRow[]
   
   // DQRPC Tables (Qualité Réseau)
   disponibiliteReseauRows?: DisponibiliteReseauRow[]
   mttrRows?: MttrRegionRow[]
+  impactMttrRows?: ImpactMttrRegionRow[]
   
   // Support Tables (RH + Formation + Créances)
   creanceRows?: CreanceRow[]
-  creanceAnterieurRows?: CreanceRow[]
+  creanceAnterieurRows?: CreanceAnterieurRow[]
   fraisPersonnelRows?: { designation: string; m: string; m1: string }[]
   effectifGspRows?: { gsp: string; m: string; m1: string; part: string }[]
   absenteismeRows?: { motif: string; m: string; m1: string; part: string }[]
@@ -203,6 +207,10 @@ interface Apitableautableau {
   isApproved?: boolean
   approvedByUserId?: number | null
   approvedAt?: string | null
+  approvedByDirecteurUserId?: number | null
+  approvedByDirecteurAt?: string | null
+  approvedByDivisionnaireUserId?: number | null
+  approvedByDivisionnaireAt?: string | null
   createdAt: string
 }
 
@@ -262,7 +270,6 @@ const toStringArray = (value: unknown): string[] =>
 
 const TRESORERIE_MOBILIS_DISPLAY_LABELS = [
   "Solde Début de période",
-  "RECETTE (encaissement)",
   "Client",
   "Roaming",
   "Interco",
@@ -277,17 +284,14 @@ const TRESORERIE_MOBILIS_DISPLAY_LABELS = [
 ]
 
 const normalizeTresorerieDisplayRows = (rows: TresorerieMobilisRow[]): TresorerieMobilisRow[] => {
-  if (rows.length === 12) {
-    const map12to13 = [0, -1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    return TRESORERIE_MOBILIS_DISPLAY_LABELS.map((designation, i) => {
-      const j = map12to13[i]
-      return {
-        designation,
-        m1: j >= 0 ? String(rows[j]?.m1 ?? "") : "",
-        m: j >= 0 ? String(rows[j]?.m ?? "") : "",
-        evol: j >= 0 ? String(rows[j]?.evol ?? "") : "",
-      }
-    })
+  if (rows.length === 13) {
+    const srcWithoutRecette = rows.filter((_, i) => i !== 1)
+    return TRESORERIE_MOBILIS_DISPLAY_LABELS.map((designation, i) => ({
+      designation,
+      m1: String(srcWithoutRecette[i]?.m1 ?? ""),
+      m: String(srcWithoutRecette[i]?.m ?? ""),
+      evol: String(srcWithoutRecette[i]?.evol ?? ""),
+    }))
   }
   return TRESORERIE_MOBILIS_DISPLAY_LABELS.map((designation, i) => ({
     designation,
@@ -326,6 +330,10 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     isApproved: !!item.isApproved,
     approvedByUserId: item.approvedByUserId ?? null,
     approvedAt: item.approvedAt ?? null,
+    approvedByDirecteurUserId: item.approvedByDirecteurUserId ?? null,
+    approvedByDirecteurAt: item.approvedByDirecteurAt ?? null,
+    approvedByDivisionnaireUserId: item.approvedByDivisionnaireUserId ?? null,
+    approvedByDivisionnaireAt: item.approvedByDivisionnaireAt ?? null,
     dataJson: item.dataJson,
     encRows: [],
     tvaImmoRows: [],
@@ -347,8 +355,7 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     // DVDRS
     realisationTechniqueReseauRows: [],
     traficDataRows: [],
-    ameliorationQualiteRows: [],
-    couvertureReseauRows: [],
+
     actionNotableReseauRows: [],
     // DQRPC
     disponibiliteReseauRows: [],
@@ -444,14 +451,14 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     case "evolution_trafic_data":
       tableau.traficDataRows = toArray(parsedData.traficDataRows)
       break
-    case "amelioration_qualite":
-      tableau.ameliorationQualiteRows = toArray(parsedData.ameliorationQualiteRows)
-      break
-    case "couverture_reseau":
-      tableau.couvertureReseauRows = toArray(parsedData.couvertureReseauRows)
-      break
     case "action_notable_reseau":
       tableau.actionNotableReseauRows = toArray(parsedData.actionNotableReseauRows)
+      break
+    case "amelioration_qualite_4g":
+    case "amelioration_qualite_5g":
+    case "amelioration_qualite":
+    case "couverture_reseau":
+      // Ces KPIs sont gérés via les tableaux dédiés, on ignore les données legacy
       break
     
     // DQRPC Tables (Qualité Réseau)
@@ -461,11 +468,14 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     case "mttr":
       tableau.mttrRows = toArray<MttrRegionRow>(parsedData.mttrRows)
       break
+    case "impact_mttr":
+      tableau.impactMttrRows = toArray<ImpactMttrRegionRow>(parsedData.impactMttrRows)
+      break
     
     // Support Tables (RH + Formation + Créances)
     case "creance_contentieuses":
       tableau.creanceRows = toArray<CreanceRow>(parsedData.creanceRows)
-      tableau.creanceAnterieurRows = toArray<CreanceRow>(parsedData.creanceAnterieurRows)
+      tableau.creanceAnterieurRows = toArray<CreanceAnterieurRow>(parsedData.creanceAnterieurRows)
       break
     case "frais_personnel":
       tableau.fraisPersonnelRows = toArray(parsedData.fraisPersonnelRows)
@@ -597,14 +607,14 @@ const DASH_TABS = [
   // Tableaux DVDRS (Réseau Technique)
   { key: "suivi_infrastructures_reseau",  label: "17 - Suivi Infra Réseau 2G/3G/4G", color: "#2db34b", title: "SUIVI DES INFRASTRUCTURES RÉSEAU 2G/3G/4G" },
   { key: "evolution_trafic_data",        label: "18 - Évolution Trafic Data",       color: "#1d6fb8", title: "ÉVOLUTION DU TRAFIC DATA" },
-  { key: "amelioration_qualite",        label: "19 - Amélioration qualité",          color: "#7c3aed", title: "AMÉLIORATION QUALITÉ" },
-  { key: "couverture_reseau",           label: "20 - Couverture Réseau",             color: "#0891b2", title: "COUVERTURE RÉSEAU" },
+
   { key: "action_notable_reseau",       label: "21 - Action Notable Réseau",         color: "#ea580c", title: "ACTION NOTABLE SUR LE RÉSEAU" },
   { key: "situation_reseaux",           label: "22 - Situation Réseaux",             color: "#2db34b", title: "SITUATION RESEAUX" },
   
   // Tableaux DQRPC (Qualité Réseau)
-  { key: "disponibilite_reseau",  label: "23 - Disponibilité Réseau", color: "#2db34b", title: "DISPONIBILITÉ RÉSEAU" },
-  { key: "mttr",                label: "24 - MTTR",              color: "#1d6fb8", title: "MTTR / DR" },
+  { key: "disponibilite_reseau",  label: "23 - Disponibilité Réseau",       color: "#2db34b", title: "DISPONIBILITÉ RÉSEAU" },
+  { key: "mttr",                label: "24 - MTTR",                       color: "#1d6fb8", title: "MTTR / DR" },
+  { key: "impact_mttr",         label: "25 - Impact MTTR",                 color: "#7c3aed", title: "IMPACT MTTR / DR" },
   
   // Tableaux Support (RH + Formation + Créances)
   { key: "creances_contentieuses",      label: "25 - Créances contentieuses",    color: "#2db34b", title: "CREANCES CONTENTIEUSES" },
@@ -783,15 +793,16 @@ type ChiffreAffairesMdaRow = { designation: string; mObjectif: string; mRealise:
 type RealisationTechniqueReseauRow = { label: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
 type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
 type TraficDataRow = { label: string; m: string; m1: string }
-type AmeliorationQualiteRow = { wilaya: string; m1Realise: string; mObjectif: string; mRealise: string; ecart: string }
-type CouvertureReseauRow = { wilaya: string; mObjectif: string; mRealise: string; m1Objectif: string; m1Realise: string; ecart: string }
 type ActionNotableReseauRow = { action: string; objectif2025: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
 
 type DisponibiliteReseauRow = { designation: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
 type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; realiseM1: string; ecart: string }
 type MttrRegionRow = { region: string; cities: MttrCityRow[] }
+type ImpactMttrCityRow = { wilayaM: string; differenceTemps: string; impactRevenuSite: string; montantWilayas: string }
+type ImpactMttrRegionRow = { region: string; cities: ImpactMttrCityRow[] }
 
 type CreanceRow = { designation: string; m1Montant: string; mObjectif: string; mMontant: string; mTaux: string }
+type CreanceAnterieurRow = { designation: string; m1Montant: string; mMontant: string; evol: string }
 type MouvementEffectifsRow = { bloc: "arrives" | "departs"; operation: string; mCadresSup: string; mCadres: string; mMaitrise: string; mExecution: string; m1CadresSup: string; m1Cadres: string; m1Maitrise: string; m1Execution: string }
 type MouvementEffectifsDomaineRow = { bloc: "recrutement" | "sortant"; domaine: string; mCdi: string; mCdd: string; mCta: string; m1Cdi: string; m1Cdd: string; m1Cta: string }
 type BudgetFormationRow = { designation: string; m1: string; m: string; evol: string }
@@ -811,8 +822,8 @@ function SimpleEvolTableDisplay({ title, rows }: { title: string; rows: { design
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{title}</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -820,9 +831,9 @@ function SimpleEvolTableDisplay({ title, rows }: { title: string; rows: { design
             {rows.map((row, index) => (
               <tr key={`${row.designation}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.evol)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.evol)} %</td>
               </tr>
             ))}
           </tbody>
@@ -841,8 +852,8 @@ function SimplePartTableDisplay({ title, rows, labelKey }: { title: string; rows
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{title}</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Part %</th>
             </tr>
           </thead>
@@ -850,8 +861,8 @@ function SimplePartTableDisplay({ title, rows, labelKey }: { title: string; rows
             {rows.map((row, index) => (
               <tr key={`${row[labelKey]}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.part)}</td>
               </tr>
             ))}
@@ -862,9 +873,14 @@ function SimplePartTableDisplay({ title, rows, labelKey }: { title: string; rows
   )
 }
 
+function getMoisFromPeriod() {
+  return getCurrenttableauPeriod().mois
+}
+
 function OrtTableDisplay({ title, rows, labelKey, order, m1Simple }: { title: string; rows: Array<Record<string, string>>; labelKey: string; order: "m1-first" | "m-first"; m1Simple?: boolean }) {
-  const firstLabel = order === "m1-first" ? "M-1" : "M"
-  const secondLabel = order === "m1-first" ? "M" : "M-1"
+  const periodMois = getMoisFromPeriod()
+  const firstLabel = order === "m1-first" ? getMonthLabel(periodMois, -1) : getMonthLabel(periodMois, 0)
+  const secondLabel = order === "m1-first" ? getMonthLabel(periodMois, 0) : getMonthLabel(periodMois, -1)
   const firstFields = order === "m1-first"
     ? (m1Simple ? ["m1Realise"] : ["m1Objectif", "m1Realise", "m1Taux"])
     : ["mObjectif", "mRealise", "mTaux"]
@@ -913,7 +929,13 @@ function RechargementBlockDisplay({ rows }: { rows: RechargementRow[] }) {
   return <SimpleEvolTableDisplay title="Rechargement" rows={rows} />
 }
 
-function CreancesContentieusesBlockDisplay({ rows, anterieurRows }: { rows: CreanceRow[]; anterieurRows: CreanceRow[] }) {
+function CreancesContentieusesBlockDisplay({ rows, anterieurRows }: { rows: CreanceRow[]; anterieurRows: CreanceAnterieurRow[] }) {
+  const calcEvol = (m: string, m1: string) => {
+    const mM = num(m)
+    const m1M = num(m1)
+    if (m1M === 0) return "0.0"
+    return ((mM - m1M) / m1M * 100).toFixed(1)
+  }
   const renderTable = (title: string, data: CreanceRow[]) => (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-gray-700">{title}</p>
@@ -922,8 +944,8 @@ function CreancesContentieusesBlockDisplay({ rows, anterieurRows }: { rows: Crea
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 border-b border-r bg-transparent"></th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1<br/>Montant Recouvré (KDA)</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}<br/>Montant Recouvré (KDA)</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 border-b border-r bg-transparent"></th>
@@ -947,11 +969,38 @@ function CreancesContentieusesBlockDisplay({ rows, anterieurRows }: { rows: Crea
       </div>
     </div>
   )
+  const renderAnterieurTable = (data: CreanceAnterieurRow[]) => (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700">Antérieur au 01/01/2024</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 border-b border-r bg-transparent"></th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), -1)} Montant Recouvré (KDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)} Montant Recouvré (KDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, i) => (
+              <tr key={`${row.designation}-${i}`} className="bg-white">
+                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1Montant)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mMontant)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{calcEvol(row.mMontant, row.m1Montant)} %</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
   return (
     <div className="space-y-4">
       <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Recouvrement des Créances Contentieuses</p>
       {renderTable("Montant Recouvré (KDA)", rows)}
-      {renderTable("Antérieur au 01/01/2024", anterieurRows)}
+      {renderAnterieurTable(anterieurRows)}
     </div>
   )
 }
@@ -972,8 +1021,8 @@ function MouvementEffectifsBlockDisplay({ rows }: { rows: MouvementEffectifsRow[
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Type d'operation</th>
-              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={4} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               {["Cadres Sup", "Cadres", "Maitrise", "Execution"].map((h, i) => (
@@ -1029,8 +1078,8 @@ function MouvementEffectifsDomaineBlockDisplay({ rows }: { rows: MouvementEffect
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Mouvement des effectifs par Domaine</th>
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Domaine</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               {["CDI", "CDD", "CTA"].map((h, i) => (
@@ -1095,49 +1144,49 @@ function ReclamationBlockDisplay({ rows }: { rows: ReclamationRow[] }) {
           <thead>
             <tr className="bg-gray-50">
               <th colSpan={2} className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-40">Réclamations</th>
-              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">M</th>
-              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">M-1</th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 border border-gray-200 w-28">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
           </thead>
           <tbody>
             <tr className="bg-white">
               <td rowSpan={3} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle w-28">Reclamations recues</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center w-12">GP</td>
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesGp?.mGp ?? "")}</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesGp?.m1Gp ?? "")}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesGp?.mGp ?? "")}</td>
             </tr>
             <tr className="bg-white">
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesB2b?.mB2b ?? "")}</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesB2b?.m1B2b ?? "")}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(recuesB2b?.mB2b ?? "")}</td>
             </tr>
             <tr className="bg-green-100 font-semibold">
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">Totale</td>
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center">{fmt(totalM)}</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">{fmt(totalM1)}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">{fmt(totalM)}</td>
             </tr>
             <tr className="bg-gray-50">
               <td rowSpan={3} className="px-2 py-2 border border-gray-200 text-xs font-semibold text-gray-800 align-middle">Reclamations traitees</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">GP</td>
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesGp?.mGp ?? "")}</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesGp?.m1Gp ?? "")}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesGp?.mGp ?? "")}</td>
             </tr>
             <tr className="bg-gray-50">
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">B2B</td>
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesB2b?.mB2b ?? "")}</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesB2b?.m1B2b ?? "")}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(traiteesB2b?.mB2b ?? "")}</td>
             </tr>
             <tr className="bg-green-100 font-semibold">
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">Totale</td>
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center">{fmt(totalTraiteesM)}</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center">{fmt(totalTraiteesM1)}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center">{fmt(totalTraiteesM)}</td>
             </tr>
           </tbody>
           <tfoot>
             <tr className="bg-green-100">
               <td colSpan={2} className="px-2 py-2 text-xs text-right border border-gray-200 font-semibold">Taux de traitement (%)</td>
-              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(toPercent(totalTraiteesM, totalM))}</td>
               <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(toPercent(totalTraiteesM1, totalM1))}</td>
+              <td className="px-2 py-2 border border-gray-200 text-xs text-center font-semibold">{fmt(toPercent(totalTraiteesM, totalM))}</td>
             </tr>
           </tfoot>
         </table>
@@ -1158,8 +1207,8 @@ function EPayementBlockDisplay({ title, rows }: { title: string; rows: EPayement
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Rechargement</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -1167,15 +1216,15 @@ function EPayementBlockDisplay({ title, rows }: { title: string; rows: EPayement
             {rows.map((row, index) => (
               <tr key={`${title}-${index}`} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.rechargement}</td>
-                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m)}</td>
                 <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m1)}</td>
+                <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.m)}</td>
                 <td className="px-3 py-2 border-b text-xs text-right font-semibold">{fmt(row.evol)}</td>
               </tr>
             ))}
             <tr className="bg-green-100 font-semibold">
               <td className="px-3 py-2 border-b text-xs font-semibold text-gray-800">TOTAL</td>
-              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totalM)}</td>
               <td className="px-3 py-2 border-b text-xs text-right">{fmt(totalM1)}</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totalM)}</td>
               <td className="px-3 py-2 border-b text-xs text-right">{fmt(totalEvol)}</td>
             </tr>
           </tbody>
@@ -1198,8 +1247,8 @@ function RecouvrementBlockDisplay({ rows }: { rows: RecouvrementRow[] }) {
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Recouvrement (MDA)</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Montant Recouvré</th>
@@ -1240,8 +1289,8 @@ function ChiffreAffairesMdaBlockDisplay({ rows }: { rows: ChiffreAffairesMdaRow[
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Chiffre d'Affaires (MDA)</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
@@ -1254,17 +1303,17 @@ function ChiffreAffairesMdaBlockDisplay({ rows }: { rows: ChiffreAffairesMdaRow[
             {rows.map((row, index) => (
               <tr key={`${row.designation}-${index}`} className="bg-white">
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                {("mObjectif,mRealise,mTaux,m1Realise".split(",") as Array<keyof ChiffreAffairesMdaRow>).map((field) => (
+                {("m1Realise,mObjectif,mRealise,mTaux".split(",") as Array<keyof ChiffreAffairesMdaRow>).map((field) => (
                   <td key={field} className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row[field])}</td>
                 ))}
               </tr>
             ))}
             <tr className="bg-green-100 font-semibold">
               <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">Totale</td>
+              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.m1Realise)}</td>
               <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mObjectif)}</td>
               <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mRealise)}</td>
               <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.mTaux)}</td>
-              <td className="px-3 py-2 border-b text-xs text-right">{fmt(totals.m1Realise)}</td>
             </tr>
           </tbody>
         </table>
@@ -1291,8 +1340,8 @@ function CompteResultatBlockDisplay({ rows }: { rows: CompteResultatRow[] }) {
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Designations</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
@@ -1330,8 +1379,8 @@ function InvestissementBlockDisplay({ rows }: { rows: InvestissementRow[] }) {
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">INVESTISSEMENT (MDA)</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"></th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -1359,7 +1408,7 @@ function AvancementEngagementBlockDisplay({ rows }: { rows: AvancementEngagement
 }
 
 function TresorerieMobilisBlockDisplay({ rows }: { rows: TresorerieMobilisRow[] }) {
-  const TRESO_GREEN_INDICES = new Set([6, 10, 12])
+  const TRESO_GREEN_INDICES = new Set([5, 9, 11])
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Trésorerie Mobilis (MDA)</p>
@@ -1369,8 +1418,8 @@ function TresorerieMobilisBlockDisplay({ rows }: { rows: TresorerieMobilisRow[] 
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Trésorerie Mobilis (MDA)</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r"></th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
               <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Evol</th>
             </tr>
           </thead>
@@ -1378,14 +1427,14 @@ function TresorerieMobilisBlockDisplay({ rows }: { rows: TresorerieMobilisRow[] 
             {rows.map((row, index) => (
               <tr key={`${row.designation}-${index}`} className={TRESO_GREEN_INDICES.has(index) ? "bg-green-100 font-semibold" : "bg-white"}>
                 {index === 1 ? (
-                  <td rowSpan={5} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">RECETTE (encaissement)</td>
-                ) : index === 8 ? (
+                  <td rowSpan={4} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">RECETTE (encaissement)</td>
+                ) : index === 7 ? (
                   <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle">DEPENSE (decaissement)</td>
-                ) : index === 0 || (index >= 6 && index <= 7) || index >= 10 ? (
+                ) : index === 0 || (index >= 5 && index <= 6) || index >= 9 ? (
                   <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
                 ) : null}
                 <td className="px-3 py-2 border-b text-center text-xs font-medium text-gray-600">
-                  {(index >= 2 && index <= 5) ? ["Client", "Roaming", "Interco", "Autre"][index - 2] : index === 8 ? "Investissements" : index === 9 ? "Exploitations" : ""}
+                  {(index >= 1 && index <= 4) ? ["Client", "Roaming", "Interco", "Autre"][index - 1] : index === 7 ? "Investissements" : index === 8 ? "Exploitations" : ""}
                 </td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
@@ -1408,8 +1457,8 @@ function RealisationTechniqueReseauDisplay({ rows }: { rows: RealisationTechniqu
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Realisations techniques</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
@@ -1445,8 +1494,8 @@ function SituationReseauDisplay({ rows }: { rows: SituationReseauRow[] }) {
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Situation Réseaux</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Equipements</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
           </thead>
           <tbody>
@@ -1463,8 +1512,8 @@ function SituationReseauDisplay({ rows }: { rows: SituationReseauRow[] }) {
                     <td rowSpan={rowSpanMap[index]} className="px-3 py-2 border-b text-xs font-medium text-gray-800 align-middle text-center">{row.situation}</td>
                   ) : null}
                   <td className="px-3 py-2 border-b text-xs text-gray-700">{row.equipements}</td>
-                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                   <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                 </tr>
               ))
             })()}
@@ -1484,16 +1533,16 @@ function TraficDataDisplay({ rows }: { rows: TraficDataRow[] }) {
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Trafic Data (TB)</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, index) => (
               <tr key={`${row.label}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
               </tr>
             ))}
           </tbody>
@@ -1512,9 +1561,9 @@ function DynamicWilayaTableDisplay({ title, rows }: { title: string; rows: Array
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{title}</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Écart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
             <tr className="bg-gray-50">
@@ -1543,45 +1592,8 @@ function DynamicWilayaTableDisplay({ title, rows }: { title: string; rows: Array
   )
 }
 
-function AmeliorationQualiteDisplay({ rows }: { rows: AmeliorationQualiteRow[] }) {
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Debit MBPS/Wilaya</p>
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50">
-              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Debit MBPS/Wilaya</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
-            </tr>
-            <tr className="bg-gray-50">
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif</th>
-              <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={index} className="bg-white">
-                <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.wilaya}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1Realise)}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mObjectif)}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mRealise)}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.ecart)}</td>
-                <td className="px-3 py-2 border-b text-center text-xs"></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
 function ActionNotableReseauDisplay({ rows }: { rows: ActionNotableReseauRow[] }) {
+  const currentYear = getCurrenttableauPeriod().annee
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Action notable sur le réseau</p>
@@ -1590,13 +1602,13 @@ function ActionNotableReseauDisplay({ rows }: { rows: ActionNotableReseauRow[] }
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Action</th>
-              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Objectif 2026</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Objectif {currentYear}</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
-              {["Objectif", "Realise", "Taux"].map((h, i) => (
+              {["Objectif", "Réalisé (ON AIR)", "Taux"].map((h, i) => (
                 <th key={i} className={`px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b${i === 2 ? "" : " border-r"}`}>{h}</th>
               ))}
             </tr>
@@ -1628,8 +1640,8 @@ function DisponibiliteReseauDisplay({ rows }: { rows: DisponibiliteReseauRow[] }
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">Designations</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Realise</th>
@@ -1664,9 +1676,9 @@ function MttrBlockDisplay({ rows }: { rows: MttrRegionRow[] }) {
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Écart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
             <tr className="bg-gray-50">
@@ -1691,6 +1703,44 @@ function MttrBlockDisplay({ rows }: { rows: MttrRegionRow[] }) {
                   <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.realiseM)}</td>
                   <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.ecart)}</td>
                   <td className="px-3 py-2 border-b text-center text-xs"></td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ImpactMttrBlockDisplay({ rows }: { rows: ImpactMttrRegionRow[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Impact de l'amélioration/Dégradation du MTTR sur le revenu</p>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Wilaya</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Différence de temps</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Impact sur le revenu par site (DA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Montant par wilayas (DA)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((region, regionIndex) =>
+              region.cities.map((city, cityIndex) => (
+                <tr key={`impact-mttr-${regionIndex}-${cityIndex}`} className="bg-white">
+                  {cityIndex === 0 && (
+                    <td rowSpan={region.cities.length} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">
+                      {region.region}
+                    </td>
+                  )}
+                  <td className="px-3 py-2 border-b text-xs">{city.wilayaM}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.differenceTemps)}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.impactRevenuSite)}</td>
+                  <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(city.montantWilayas)}</td>
                 </tr>
               ))
             )}
@@ -2240,10 +2290,6 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
       return <RealisationTechniqueReseauDisplay rows={decl.realisationTechniqueReseauRows ?? []} />
     case "evolution_trafic_data":
       return <TraficDataDisplay rows={decl.traficDataRows ?? []} />
-    case "amelioration_qualite":
-      return <AmeliorationQualiteDisplay rows={decl.ameliorationQualiteRows ?? []} />
-    case "couverture_reseau":
-      return <DynamicWilayaTableDisplay title="Couverture Réseau/Wilaya" rows={decl.couvertureReseauRows ?? []} />
     case "action_notable_reseau":
       return <ActionNotableReseauDisplay rows={decl.actionNotableReseauRows ?? []} />
     
@@ -2252,6 +2298,8 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
       return <DisponibiliteReseauDisplay rows={decl.disponibiliteReseauRows ?? []} />
     case "mttr":
       return <MttrBlockDisplay rows={decl.mttrRows ?? []} />
+    case "impact_mttr":
+      return <ImpactMttrBlockDisplay rows={decl.impactMttrRows ?? []} />
     
     // Tableaux Support (RH + Formation + Créances)
     case "creance_contentieuses":
@@ -2267,16 +2315,16 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
               <thead>
                 <tr className="bg-gray-50">
                   <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Frais personnel (MDA)</th>
-                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
                 </tr>
               </thead>
               <tbody>
                 {decl.fraisPersonnelRows.map((row, index) => (
                   <tr key={`${row.designation}-${index}`} className="bg-white">
                     <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                    <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                     <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                    <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -2318,16 +2366,16 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
                   <thead>
                     <tr className="bg-gray-50">
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">Frais personnel (MDA)</th>
-                      <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-                      <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
+                      <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {decl.fraisPersonnelRows.map((row, index) => (
                       <tr key={`${row.designation}-${index}`} className="bg-white">
                         <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
-                        <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                         <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
+                        <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2402,7 +2450,7 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     case "creances_contentieuses":
       return <CreancesContentieusesBlockDisplay rows={decl.creanceRows ?? []} anterieurRows={[]} />
     case "creances_contentieuses_anterieur":
-      return <CreancesContentieusesBlockDisplay rows={decl.creanceAnterieurRows ?? []} anterieurRows={[]} />
+      return <CreancesContentieusesBlockDisplay rows={[]} anterieurRows={decl.creanceAnterieurRows ?? []} />
     case "mouvement_effectifs_domaine":
       return <MouvementEffectifsDomaineBlockDisplay rows={decl.mouvementEffectifsDomaineRows ?? []} />
     case "budget_formation":
@@ -2724,7 +2772,7 @@ export default function tableauDashboardPage() {
           ? payload
               .map((item) => ({
                 id: Number((item as { id?: unknown }).id ?? 0),
-                name: String((item as { name?: unknown }).name ?? "").trim(),
+                name: String((item as { nom?: unknown }).nom ?? "").trim(),
               }))
               .filter((item) => item.name.length > 0)
           : []
@@ -2793,13 +2841,14 @@ export default function tableauDashboardPage() {
 
   const handleDelete = async (decl: Savedtableau) => {
     try {
-      const tableauId = Number(decl.id)
-      if (!Number.isFinite(tableauId)) {
-        throw new Error("ID de tableau invalide")
-      }
-
       const token = typeof localStorage !== "undefined" ? localStorage.getItem("jwt") : null
-      const response = await fetch(`${API_BASE}/api/tableau/${tableauId}`, {
+      const params = new URLSearchParams({
+        tabKey: decl.tabKey ?? "",
+        mois: decl.mois,
+        annee: decl.annee,
+        direction: decl.direction,
+      })
+      const response = await fetch(`${API_BASE}/api/tableau?${params.toString()}`, {
         method: "DELETE",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -3330,8 +3379,8 @@ export default function tableauDashboardPage() {
   const gettableauEditRoute = (tabKey: string): string => {
     const key = tabKey.trim().toLowerCase()
     if (["encaissement","tva_immo","tva_biens","droits_timbre","ca_tap","etat_tap","ca_siege","irg","taxe2","taxe_masters","taxe_vehicule","taxe_formation","acompte","ibs","taxe_domicil","tva_autoliq","finances_autres","avancement_engagement","compte_resultat","investissement","tresorerie"].includes(key)) return "finances"
-    if (["suivi_infrastructures_reseau","situation_reseaux","evolution_trafic_data","amelioration_qualite","couverture_reseau","action_notable_reseau","realisation_technique_reseau","situation_reseau","trafic_data"].includes(key)) return "DVDRS"
-    if (["disponibilite_reseau","mttr"].includes(key)) return "DQRPC"
+    if (["suivi_infrastructures_reseau","situation_reseaux","evolution_trafic_data","action_notable_reseau","suivi_infrastructures_reseau","situation_reseau","trafic_data","amelioration_qualite_4g","amelioration_qualite_5g","amelioration_qualite","couverture_reseau"].includes(key)) return "DVDRS"
+    if (["disponibilite_reseau","mttr","impact_mttr"].includes(key)) return "DQRPC"
     if (["creance_contentieuses","frais_personnel","effectif_gsp","absenteisme","mouvement_effectifs","mouvement_effectifs_domaine","effectifs_formes_gsp","formations_domaines","budget_formation","rh","formation","creances_contentieuses","creances_contentieuses_anterieur"].includes(key)) return "Support"
     if (["reclamation","e_payement","total_encaissement","rechargement","recouvrement","parc_abonnes_gp","total_parc_abonnes_technologie","activation","desactivation","resiliation","chiffre_affaires_mda","encaissement_c","parc_abonnes","chiffre_affaires_c","commercial_autres"].includes(key)) return "commercial"
     if (key === "regionale" || key === "reseau_distribution") return "regionale"
@@ -3393,9 +3442,13 @@ export default function tableauDashboardPage() {
         item.id === decl.id
           ? {
               ...item,
-              isApproved: true,
-              approvedAt: typeof payload?.approvedAt === "string" ? payload.approvedAt : nowIso,
-              approvedByUserId: typeof payload?.approvedByUserId === "number" ? payload.approvedByUserId : Number(user.id),
+              isApproved: payload?.isApproved ?? item.isApproved,
+              approvedAt: payload?.approvedAt ?? item.approvedAt,
+              approvedByUserId: payload?.approvedByUserId ?? item.approvedByUserId,
+              approvedByDirecteurUserId: payload?.approvedByDirecteurUserId ?? item.approvedByDirecteurUserId,
+              approvedByDirecteurAt: payload?.approvedByDirecteurAt ?? item.approvedByDirecteurAt,
+              approvedByDivisionnaireUserId: payload?.approvedByDivisionnaireUserId ?? item.approvedByDivisionnaireUserId,
+              approvedByDivisionnaireAt: payload?.approvedByDivisionnaireAt ?? item.approvedByDivisionnaireAt,
             }
           : item,
       )
@@ -3443,8 +3496,7 @@ export default function tableauDashboardPage() {
       // DVDRS
       suivi_infrastructures_reseau: "Suivi Infrastructures Réseau 2G/3G/4G",
       evolution_trafic_data: "Évolution Trafic Data",
-      amelioration_qualite: "Amélioration Qualité",
-      couverture_reseau: "Couverture Réseau",
+
       action_notable_reseau: "Action Notable Réseau",
       situation_reseaux: "Situation Réseaux",
       // DQRPC
@@ -3515,10 +3567,10 @@ export default function tableauDashboardPage() {
     if (["encaissement", "tva_immo", "tva_biens", "droits_timbre", "ca_tap", "etat_tap", "ca_siege", "irg", "taxe2", "taxe_masters", "taxe_vehicule", "taxe_formation", "acompte", "ibs", "taxe_domicil", "tva_autoliq", "finances_autres", "avancement_engagement"].includes(key)) return "Finance"
     
     // DVDRS: 6 tableaux (including situation_reseaux)
-    if (["suivi_infrastructures_reseau", "situation_reseaux", "evolution_trafic_data", "amelioration_qualite", "couverture_reseau", "action_notable_reseau"].includes(key)) return "DVDRS"
+    if (["suivi_infrastructures_reseau", "situation_reseaux", "evolution_trafic_data", "action_notable_reseau", "amelioration_qualite_4g", "amelioration_qualite_5g", "amelioration_qualite", "couverture_reseau"].includes(key)) return "DVDRS"
     
-    // DQRPC: 2 tableaux
-    if (["disponibilite_reseau", "mttr"].includes(key)) return "DQRPC"
+    // DQRPC: 3 tableaux
+    if (["disponibilite_reseau", "mttr", "impact_mttr"].includes(key)) return "DQRPC"
     
     // Support: 9 sub-tab keys (creance + 5 RH + 3 Formation)
     if (["creance_contentieuses", "frais_personnel", "effectif_gsp", "absenteisme", "mouvement_effectifs", "mouvement_effectifs_domaine", "effectifs_formes_gsp", "formations_domaines", "budget_formation", "rh", "formation"].includes(key)) return "Support"
@@ -3540,8 +3592,10 @@ export default function tableauDashboardPage() {
     if (filterMois && decl.mois !== filterMois) return false
     if (filterAnnee && decl.annee !== filterAnnee) return false
     if (filterDirection && gettableauDomain(decl) !== filterDirection) return false
-    if (filterStatus === "approved" && !decl.isApproved) return false
-    if (filterStatus === "pending" && !!decl.isApproved) return false
+    if (filterStatus === "valide" && !decl.isApproved) return false
+    if (filterStatus === "en_attente" && (decl.approvedByDirecteurUserId || decl.approvedByDivisionnaireUserId)) return false
+    if (filterStatus === "approuve_directeur" && !decl.approvedByDirecteurUserId) return false
+    if (filterStatus === "approuve_divisionnaire" && !decl.approvedByDivisionnaireUserId) return false
     if (filterDateFrom && new Date(decl.createdAt) < new Date(filterDateFrom)) return false
     if (filterDateTo && new Date(decl.createdAt) > new Date(filterDateTo + "T23:59:59")) return false
     return true
@@ -4068,14 +4122,9 @@ export default function tableauDashboardPage() {
                         || tableauDirection.includes("siége")
                         || tableauDirection.includes("siege")
                       const isOwntableau = String(decl.userId ?? "") === String(user.id)
-                      const canApproveAsDirector = isDirectorRole && !decl.isApproved
-                      const canApproveAsRegional = canApproveRegionaltableaux
-                        && !decl.isApproved
-                      const canApproveAsFinance = canApproveFinancetableaux
-                        && !decl.isApproved
-                        && (isOwntableau || isSiegetableau)
-                      const canApproveAsAdmin = isAdminRole && !decl.isApproved
-                      const canApproveThistableau = canApproveAsAdmin || canApproveAsDirector || canApproveAsRegional || canApproveAsFinance
+                      const canApproveAsDirector = (isDirectorRole || isAdminRole) && !decl.approvedByDirecteurUserId
+                      const canApproveAsRegional = canApproveRegionaltableaux && !decl.approvedByDivisionnaireUserId
+                      const canApproveThistableau = canApproveAsDirector || canApproveAsRegional
                       return (
                         <TableRow
                           key={decl.id}
@@ -4104,20 +4153,30 @@ export default function tableauDashboardPage() {
                           </TableCell>
                           <TableCell className="w-20 p-0 align-middle">
                             <div className="flex items-center justify-center">
-                              {decl.isApproved ? (
-                                <span className="inline-flex" title="Approuvée" aria-label="Approuvée">
-                                  <CheckCircle className="h-4 w-4 text-emerald-600" />
-                                </span>
-                              ) : (
-                                <span className="inline-flex" title="En attente" aria-label="En attente">
-                                  <Clock3 className="h-4 w-4 text-amber-600" />
-                                </span>
-                              )}
+                              {(() => {
+                                const dirOk = decl.approvedByDirecteurUserId
+                                const divOk = decl.approvedByDivisionnaireUserId
+                                if (dirOk && divOk) return (
+                                  <span className="inline-flex" title="Validé (Directeur + Divisionnaire)" aria-label="Validé">
+                                    <CheckCheck className="h-4 w-4 text-emerald-600" />
+                                  </span>
+                                )
+                                if (dirOk || divOk) return (
+                                  <span className="inline-flex" title={dirOk ? "Approuvé par le Directeur" : "Approuvé par le Divisionnaire"} aria-label="Approuvé">
+                                    <CheckCircle className="h-4 w-4 text-yellow-500" />
+                                  </span>
+                                )
+                                return (
+                                  <span className="inline-flex" title="En attente" aria-label="En attente">
+                                    <Clock3 className="h-4 w-4 text-amber-600" />
+                                  </span>
+                                )
+                              })()}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center gap-2">
-                              {(isAdminRole || isDirectorRole || canApproveRegionaltableaux || canApproveFinancetableaux) && (
+                              {(isAdminRole || isDirectorRole || canApproveRegionaltableaux) && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -4127,7 +4186,13 @@ export default function tableauDashboardPage() {
                                     event.stopPropagation()
                                     handleApprove(decl)
                                   }}
-                                  title={decl.isApproved ? "tableau déjé approuvée" : !canApproveThistableau ? "Action non autorisée pour cette tableau" : "Approuver"}
+                                  title={
+                                    decl.isApproved ? "Tableau validé" :
+                                    (isDirectorRole || isAdminRole) && decl.approvedByDirecteurUserId ? "Vous avez déjà approuvé" :
+                                    canApproveRegionaltableaux && decl.approvedByDivisionnaireUserId ? "Vous avez déjà approuvé" :
+                                    !canApproveThistableau ? "Action non autorisée" :
+                                    "Approuver"
+                                  }
                                 >
                                   <CheckCircle size={16} />
                                 </Button>

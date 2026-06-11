@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { authFetch } from "@/lib/auth-fetch"
 import { Save } from "lucide-react"
+import { getMonthLabel } from "@/lib/fiscal-period-deadline"
 
 type KpiData = {
   id: number
@@ -266,8 +267,8 @@ export default function DynamicKpiTabs({ domain, excludeKeys, mois, annee, direc
                             <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b">
                               {kpi.name.replace(/_/g, " ")}
                             </th>
-                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M-1</th>
-                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, -1)}</th>
+                            <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
                           </tr>
                         </thead>
                         <tbody>

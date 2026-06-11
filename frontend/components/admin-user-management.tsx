@@ -143,8 +143,8 @@ interface User {
 
 interface Region {
   id: number;
-  name: string;
-  villes: string[];
+  nom: string;
+  wilayas: string[];
   createdAt: string;
 }
 

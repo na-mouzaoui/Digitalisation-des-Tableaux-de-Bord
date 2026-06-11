@@ -19,33 +19,20 @@ import { fetchKpiRowsMap } from "@/lib/kpi-rows"
 import DynamicKpiTabs from "@/components/dynamic-kpi-tabs"
 import { useDeclarationAccess } from "@/hooks/use-declaration-access"
 import { DomainAccessGuard } from "@/components/domain-access-guard"
+import { getPreviousPeriod, mapMtoM1 } from "@/lib/auto-populate-m1"
+import { isAdmintableauRole, isRegionaltableauRole, isFinancetableauRole, getManageabletableauTabKeysForDirection, istableauTabDisabledByPolicy } from "@/lib/fiscal-tab-access"
+import { getCurrenttableauPeriod, gettableauPeriodLockMessage, istableauPeriodLocked } from "@/lib/fiscal-period-deadline"
+import { synctableauPolicy } from "@/lib/fiscal-policy"
 
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 // 1. CONSTANTES GLOBALES
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 const PRIMARY_COLOR = "#2db34b"
 
 
-// ?????????????????????????????????????????????????????????????????????????????
-// 2. STUBS POLITIQUE FISCALE
-// ?????????????????????????????????????????????????????????????????????????????
-const getCurrenttableauPeriod = (now: Date = new Date()) => ({
-  mois: String(now.getMonth() + 1).padStart(2, "0"),
-  annee: String(now.getFullYear()),
-})
-const gettableauPeriodLockMessage = (mois: string, annee: string, _role?: string | null) => `Période ${mois}/${annee}.`
-const istableauPeriodLocked = (_mois: string, _annee: string, _role?: string | null) => false
-const synctableauPolicy = async (_direction?: string | null) => null
-const isAdmintableauRole = (_role?: string | null) => false
-const isRegionaltableauRole = (_role?: string | null) => false
-const isFinancetableauRole = (_role?: string | null) => false
-const getManageabletableauTabKeysForDirection = (_role?: string | null, _direction?: string | null) => TABS.map((tab) => tab.key)
-const istableauTabDisabledByPolicy = (_tabKey?: string) => false
-
-
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 // 3. HELPERS DE FORMATAGE DES MONTANTS
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 const fmt = (v: number | string) => {
   if (v === "" || isNaN(Number(v))) return ""
   const n = Number(v)
@@ -85,9 +72,9 @@ const toPercent = (numerator: number, denominator: number) =>
   denominator ? (numerator / denominator) * 100 : 0
 
 
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 // 4. COMPOSANT GéNéRIQUE : AmountInput
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 type AmountInputProps = Omit<React.ComponentProps<typeof Input>, "type" | "value" | "onChange"> & {
   value: string
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
@@ -107,25 +94,32 @@ function AmountInput({ value, onChange, ...props }: AmountInputProps) {
 }
 
 
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 // 5. TYPES DE DONNéES
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 
-// ?? Disponibilité Réseau ??????????????????????????????????????????????????????
+// ?? Disponibilité Réseau //////??????
 type DisponibiliteReseauRow = { designation: string; m1Realise: string; mObjectif: string; mRealise: string; mTaux: string }
 const DISPONIBILITE_RESEAU_LABELS = ["Disponibilité des Services", "Disponibilité Cœur Réseau", "Disponibilité Accès Radio 2G", "Disponibilité Accès Radio 3G", "Disponibilité Accès Radio 4G", "Drop call 2G", "RAB Voice Drop 3G", "ERAB Drop 4G", "MTTR", "2G Congestion Rate", "Disponibilité Globale réseau"] as const
 const DEFAULT_DISPONIBILITE_RESEAU_ROWS: DisponibiliteReseauRow[] = DISPONIBILITE_RESEAU_LABELS.map((designation) => ({ designation, m1Realise: "", mObjectif: "", mRealise: "", mTaux: "" }))
 
-// ?? MTTR ??????????????????????????????????????????????????????????????????????
+// ?? MTTR ////////??????
 type MttrCityRow = { wilayaM: string; objectifM: string; realiseM: string; realiseM1: string; ecart: string }
 type MttrRegionRow = { region: string; cities: MttrCityRow[] }
 const MTTR_REGIONS = ["DR Alger", "DR Oran", "DR Constantine", "DR Setif", "DR Ouargla", "DR Bechar", "DR Annaba", "DR Chlef"] as const
 const EMPTY_MTTR_CITY_ROW: MttrCityRow = { wilayaM: "", objectifM: "", realiseM: "", realiseM1: "", ecart: "" }
 const DEFAULT_MTTR_ROWS: MttrRegionRow[] = MTTR_REGIONS.map((region) => ({ region, cities: [{ ...EMPTY_MTTR_CITY_ROW }] }))
 
+// ?? Impact MTTR ///////??????
+type ImpactMttrCityRow = { wilayaM: string; differenceTemps: string; impactRevenuSite: string; montantWilayas: string }
+type ImpactMttrRegionRow = { region: string; cities: ImpactMttrCityRow[] }
+const IMPACT_MTTR_REGIONS = MTTR_REGIONS
+const EMPTY_IMPACT_MTTR_CITY_ROW: ImpactMttrCityRow = { wilayaM: "", differenceTemps: "", impactRevenuSite: "", montantWilayas: "" }
+const DEFAULT_IMPACT_MTTR_ROWS: ImpactMttrRegionRow[] = IMPACT_MTTR_REGIONS.map((region) => ({ region, cities: [{ ...EMPTY_IMPACT_MTTR_CITY_ROW }] }))
 
 
-// ?? Situation Reseaux ????????????????????????????????????????????????????
+
+// ?? Situation Reseaux //////????
 type SituationReseauRow = { situation: string; equipements: string; m: string; m1: string }
 const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
   { situation: "Réseau 2G", equipements: "BTS 900/1800 Mhz", m: "", m1: "" },
@@ -134,11 +128,11 @@ const DEFAULT_SITUATION_RESEAU_ROWS: SituationReseauRow[] = [
 ]
 
 
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 // 6. COMPOSANTS DE TABLEAUX
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 
-// ?? Bouton Save réutilisable ??????????????????????????????????????????????????
+// ?? Bouton Save réutilisable //////??
 function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting: boolean }) {
   return (
     <div className="flex justify-end">
@@ -149,7 +143,7 @@ function SaveButton({ onSave, isSubmitting }: { onSave: () => void; isSubmitting
   )
 }
 
-// ?? Composant générique : tableau Objectif / Réalisé / Taux (M-1 + M) ?????????
+// ?? Composant générique : tableau Objectif / Réalisé / Taux (M-1 + M) /?
 interface OrtTableProps {
   colHeader: string
   rows: Array<Record<string, string>>
@@ -157,9 +151,15 @@ interface OrtTableProps {
   onSave: () => void
   isSubmitting: boolean
   update: (index: number, field: string, value: string) => void
+  mois: string
 }
-function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: OrtTableProps) {
-  const fields = ["m1Realise", "mObjectif", "mRealise", "mTaux"]
+function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update, mois }: OrtTableProps) {
+  const fields = ["m1Realise", "mObjectif", "mRealise"]
+  const calcTaux = (r: Record<string, string>) => {
+    const realise = parseFloat(r.mRealise ?? "0") || 0
+    const objectif = parseFloat(r.mObjectif ?? "0") || 0
+    return objectif ? ((realise / objectif) * 100).toFixed(1) : "0.0"
+  }
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
@@ -167,8 +167,8 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{colHeader}</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">M</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
@@ -179,13 +179,14 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={index} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+              <tr key={index} className="bg-white">
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
                 {fields.map((field) => (
                   <td key={field} className="px-1 py-1 border-b">
                     <AmountInput value={row[field] ?? ""} onChange={(e) => update(index, field, e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
                   </td>
                 ))}
+                <td className="px-1 py-1 border-b text-xs text-right font-semibold">{calcTaux(row)} %</td>
               </tr>
             ))}
           </tbody>
@@ -196,17 +197,21 @@ function OrtTable({ colHeader, rows, labelKey, onSave, isSubmitting, update }: O
   )
 }
 
-// ?? Disponibilité Réseau ??????????????????????????????????????????????????
-interface TabDisponibiliteReseauProps { rows: DisponibiliteReseauRow[]; setRows: React.Dispatch<React.SetStateAction<DisponibiliteReseauRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabDisponibiliteReseau({ rows, setRows, onSave, isSubmitting }: TabDisponibiliteReseauProps) {
+// ?? Disponibilité Réseau //////??
+interface TabDisponibiliteReseauProps { rows: DisponibiliteReseauRow[]; setRows: React.Dispatch<React.SetStateAction<DisponibiliteReseauRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabDisponibiliteReseau({ rows, setRows, onSave, isSubmitting, mois }: TabDisponibiliteReseauProps) {
   const update = (index: number, field: keyof DisponibiliteReseauRow, value: string) =>
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
-  return <OrtTable colHeader="Designations" rows={rows as any} labelKey="designation" update={(i, f, v) => update(i, f as keyof DisponibiliteReseauRow, v)} onSave={onSave} isSubmitting={isSubmitting} />
+  const filteredRows = rows.filter((r) => !/DR (Alger|Oran)/i.test(r.designation))
+  return <OrtTable colHeader="Designations" rows={filteredRows as any} labelKey="designation" update={(i, f, v) => {
+    const realIdx = rows.indexOf(filteredRows[i])
+    if (realIdx >= 0) update(realIdx, f as keyof DisponibiliteReseauRow, v)
+  }} onSave={onSave} isSubmitting={isSubmitting} mois={mois} />
 }
 
-// ?? MTTR ?????????????????????????????????????????????????????????????????
-interface TabMttrProps { rows: MttrRegionRow[]; setRows: React.Dispatch<React.SetStateAction<MttrRegionRow[]>>; onSave: () => void; isSubmitting: boolean }
-function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
+// ?? MTTR ////////?
+interface TabMttrProps { rows: MttrRegionRow[]; setRows: React.Dispatch<React.SetStateAction<MttrRegionRow[]>>; onSave: () => void; isSubmitting: boolean; mois: string }
+function TabMttr({ rows, setRows, onSave, isSubmitting, mois }: TabMttrProps) {
   const updateCity = (regionIndex: number, cityIndex: number, field: keyof MttrCityRow, value: string) =>
     setRows((prev) => prev.map((region, rIdx) => rIdx !== regionIndex ? region : {
       ...region,
@@ -227,9 +232,9 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
           <thead>
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
-              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M-1</th>
-              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">M</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Ecart</th>
+              <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
+              <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, 0)}</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Écart</th>
               <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
             </tr>
             <tr className="bg-gray-50">
@@ -255,7 +260,7 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
                   <td className="px-1 py-1 border-b"><Input value={city.wilayaM}  onChange={(e) => updateCity(regionIndex, cityIndex, "wilayaM",  e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
                   <td className="px-1 py-1 border-b"><AmountInput value={city.objectifM} onChange={(e) => updateCity(regionIndex, cityIndex, "objectifM", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
                   <td className="px-1 py-1 border-b"><AmountInput value={city.realiseM}  onChange={(e) => updateCity(regionIndex, cityIndex, "realiseM",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-                  <td className="px-1 py-1 border-b"><AmountInput value={city.ecart}      onChange={(e) => updateCity(regionIndex, cityIndex, "ecart",      e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b text-xs text-right font-semibold">{fmt((num(city.realiseM) - num(city.objectifM)).toFixed(2))}</td>
                   <td className="px-1 py-1 border-b text-center">
                     <Button type="button" size="icon" variant="ghost" onClick={() => removeCity(regionIndex, cityIndex)} disabled={region.cities.length <= 1} className="h-7 w-7 text-red-600"><Trash2 size={12} /></Button>
                   </td>
@@ -271,27 +276,90 @@ function TabMttr({ rows, setRows, onSave, isSubmitting }: TabMttrProps) {
 }
 
 
-// ?????????????????????????????????????????????????????????????????????????????
+// ?? Impact MTTR ///////??
+interface TabImpactMttrProps { rows: ImpactMttrRegionRow[]; setRows: React.Dispatch<React.SetStateAction<ImpactMttrRegionRow[]>>; onSave: () => void; isSubmitting: boolean }
+function TabImpactMttr({ rows, setRows, onSave, isSubmitting }: TabImpactMttrProps) {
+  const updateCity = (regionIndex: number, cityIndex: number, field: keyof ImpactMttrCityRow, value: string) =>
+    setRows((prev) => prev.map((region, rIdx) => rIdx !== regionIndex ? region : {
+      ...region,
+      cities: region.cities.map((city, cIdx) => (cIdx === cityIndex ? { ...city, [field]: value } : city)),
+    }))
+  const addCity = (regionIndex: number) =>
+    setRows((prev) => prev.map((region, rIdx) => rIdx === regionIndex ? { ...region, cities: [...region.cities, { ...EMPTY_IMPACT_MTTR_CITY_ROW }] } : region))
+  const removeCity = (regionIndex: number, cityIndex: number) =>
+    setRows((prev) => prev.map((region, rIdx) => {
+      if (rIdx !== regionIndex || region.cities.length <= 1) return region
+      return { ...region, cities: region.cities.filter((_, cIdx) => cIdx !== cityIndex) }
+    }))
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50">
+              <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">MTTR / DR</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Wilaya</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Différence de temps</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Impact sur le revenu par site (DA)</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">Montant par wilayas (DA)</th>
+              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+            </tr>
+            <tr className="bg-gray-50"></tr>
+          </thead>
+          <tbody>
+            {rows.map((region, regionIndex) =>
+              region.cities.map((city, cityIndex) => (
+                <tr key={`impact-mttr-${regionIndex}-${cityIndex}`} className="bg-white">
+                  {cityIndex === 0 && (
+                    <td rowSpan={region.cities.length} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-top">
+                      <div className="flex items-center justify-between gap-2">
+                        <span>{region.region}</span>
+                        <Button type="button" size="icon" variant="ghost" onClick={() => addCity(regionIndex)} className="h-6 w-6 text-green-700"><Plus size={11} /></Button>
+                      </div>
+                    </td>
+                  )}
+                  <td className="px-1 py-1 border-b"><Input value={city.wilayaM}  onChange={(e) => updateCity(regionIndex, cityIndex, "wilayaM",  e.target.value)} className="h-7 px-2 text-xs" placeholder="Wilaya" /></td>
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.differenceTemps} onChange={(e) => updateCity(regionIndex, cityIndex, "differenceTemps", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.impactRevenuSite} onChange={(e) => updateCity(regionIndex, cityIndex, "impactRevenuSite", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b"><AmountInput value={city.montantWilayas}  onChange={(e) => updateCity(regionIndex, cityIndex, "montantWilayas",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
+                  <td className="px-1 py-1 border-b text-center">
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeCity(regionIndex, cityIndex)} disabled={region.cities.length <= 1} className="h-7 w-7 text-red-600"><Trash2 size={12} /></Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      <SaveButton onSave={onSave} isSubmitting={isSubmitting} />
+    </div>
+  )
+}
+
+// /////////?????
 // 7. CONFIGURATION DES ONGLETS
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 const TABS = [
   { key: "disponibilite_reseau",           label: "Disponibilité réseau",                  color: PRIMARY_COLOR, title: "DISPONIBILITÉ RÉSEAU" },
   { key: "mttr",                           label: "MTTR",                                  color: PRIMARY_COLOR, title: "MTTR / DR" },
+  { key: "impact_mttr",                    label: "Impact de l'amélioration/Dégradation du MTTR", color: PRIMARY_COLOR, title: "IMPACT MTTR / DR" },
 ]
 
 const KPI_TAB_KEYS = [
   "disponibilite_reseau",
   "mttr",
+  "impact_mttr",
 ]
 
 const CUSTOM_tableau_TAB_KEYS = new Set(TABS.map((tab) => tab.key))
 
-type tableauTabKey = "disponibilite_reseau" | "mttr"
+type tableauTabKey = "disponibilite_reseau" | "mttr" | "impact_mttr"
 
 type tableauCategoryKey = "all"
 
 const tableau_CATEGORY_OPTIONS: Array<{ key: tableauCategoryKey; label: string; tabKeys: tableauTabKey[] }> = [
-  { key: "all", label: "Toutes les categories", tabKeys: ["disponibilite_reseau", "mttr"] },
+  { key: "all", label: "Toutes les categories", tabKeys: ["disponibilite_reseau", "mttr", "impact_mttr"] },
 ]
 
 const findtableauCategoryKeyForTab = (_tabKey: string): tableauCategoryKey => "all"
@@ -307,16 +375,25 @@ const MONTHS = [
   { value: "09", label: "Septembre" },{ value: "10", label: "Octobre" },
   { value: "11", label: "Novembre" }, { value: "12", label: "Decembre" },
 ]
+const getMonthLabel = (mois: string, diff: number = 0): string => {
+  const monthNum = Number.parseInt(mois, 10)
+  if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) return `M${diff === 0 ? "" : diff}`
+  let targetMonth = monthNum + diff
+  if (targetMonth < 1) targetMonth += 12
+  if (targetMonth > 12) targetMonth -= 12
+  const key = String(targetMonth).padStart(2, "0")
+  return MONTHS.find((m) => m.value === key)?.label ?? key
+}
 const CURRENT_YEAR = new Date().getFullYear()
 const INITIAL_tableau_PERIOD = getCurrenttableauPeriod()
 const YEARS = Array.from({ length: 101 }, (_, i) => (2000 + i).toString())
 
 
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 // 8. TYPES & HELPERS D'API / STOCKAGE
-// ?????????????????????????????????????????????????????????????????????????????
+// /////////?????
 
-// ?? 8a. Type de la déclaration sauvegardée ??????????????????????????????
+// ?? 8a. Type de la déclaration sauvegardée ///??????
 interface Savedtableau {
   id: string
   createdAt: string
@@ -325,9 +402,10 @@ interface Savedtableau {
   annee: string
   disponibiliteReseauRows?: DisponibiliteReseauRow[]
   mttrRows?: MttrRegionRow[]
+  impactMttrRows?: ImpactMttrRegionRow[]
 }
 
-// ?? 8b. Type retourné par l'API ???????????????????????????????????????
+// ?? 8b. Type retourné par l'API ////???????
 type Apitableautableau = {
   id: number
   tabKey: string
@@ -337,7 +415,7 @@ type Apitableautableau = {
   dataJson: string
 }
 
-// ?? 8c. Helpers utilitaires ???????????????????????????????????????????
+// ?? 8c. Helpers utilitaires /////???
 const safeString = (value: unknown): string => {
   if (typeof value === "string") return value
   if (value === null || value === undefined) return ""
@@ -350,7 +428,7 @@ const normalizeMonthValue = (value: string) =>
 const normalizeYearValue = (value: string) =>
   YEARS.includes(value) ? value : String(CURRENT_YEAR)
 
-// ?? 8d. Fonctions de normalisation par tableau ????????????????????????
+// ?? 8d. Fonctions de normalisation par tableau ///
 
 const normalizeDisponibiliteReseauRows = (rows?: DisponibiliteReseauRow[]): DisponibiliteReseauRow[] => {
   const src = Array.isArray(rows) ? rows : []
@@ -370,9 +448,23 @@ const normalizeMttrRows = (rows?: MttrRegionRow[]): MttrRegionRow[] => {
   })
 }
 
+const normalizeImpactMttrRows = (rows?: ImpactMttrRegionRow[]): ImpactMttrRegionRow[] => {
+  const src = Array.isArray(rows) ? rows : []
+  return IMPACT_MTTR_REGIONS.map((regionName, i) => {
+    const sourceCities = Array.isArray(src[i]?.cities) ? src[i].cities : []
+    return {
+      region: regionName,
+      cities: sourceCities.length > 0
+        ? sourceCities.map((city) => ({ wilayaM: safeString(city.wilayaM), differenceTemps: safeString(city.differenceTemps), impactRevenuSite: safeString(city.impactRevenuSite), montantWilayas: safeString(city.montantWilayas) }))
+        : [{ ...EMPTY_IMPACT_MTTR_CITY_ROW }],
+    }
+  })
+}
+
 const resolveDeclarationTabKey = (decl: Savedtableau): tableauTabKey => {
   if ((decl.disponibiliteReseauRows?.length ?? 0) > 0) return "disponibilite_reseau"
   if ((decl.mttrRows?.length ?? 0) > 0) return "mttr"
+  if ((decl.impactMttrRows?.length ?? 0) > 0) return "impact_mttr"
   return "disponibilite_reseau"
 }
 
@@ -395,7 +487,7 @@ function DQRPCPageContent() {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => r.json())
-      .then((data: { id: number; name: string }[]) => setRegions(data))
+      .then((data: { id: number; nom: string }[]) => setRegions(data.map((r) => ({ id: r.id, name: r.nom }))))
       .catch(() => {})
   }, [])
 
@@ -442,6 +534,7 @@ function DQRPCPageContent() {
   // Tab data
   const [disponibiliteReseauRows, setDisponibiliteReseauRows] = useState<DisponibiliteReseauRow[]>(DEFAULT_DISPONIBILITE_RESEAU_ROWS.map((row) => ({ ...row })))
   const [mttrRows, setMttrRows] = useState<MttrRegionRow[]>(DEFAULT_MTTR_ROWS.map((row) => ({ ...row, cities: row.cities.map((city) => ({ ...city })) })))
+  const [impactMttrRows, setImpactMttrRows] = useState<ImpactMttrRegionRow[]>(DEFAULT_IMPACT_MTTR_ROWS.map((row) => ({ ...row, cities: row.cities.map((city) => ({ ...city })) })))
   const [tableauDeclarations, settableauDeclarations] = useState<Apitableautableau[]>([])
   const [tabComment, setTabComment] = useState("")
   const [isEditingComment, setIsEditingComment] = useState(false)
@@ -497,8 +590,24 @@ function DQRPCPageContent() {
           : [{ ...EMPTY_MTTR_CITY_ROW }],
       }
     }))
+
+    const impactMttrLabels = getLabels("impact_mttr", IMPACT_MTTR_REGIONS)
+    setImpactMttrRows((prev) => impactMttrLabels.map((regionName, i) => {
+      const sourceCities = Array.isArray(prev[i]?.cities) ? prev[i].cities : []
+      return {
+        region: regionName,
+        cities: sourceCities.length > 0
+          ? sourceCities.map((city) => ({
+              wilayaM: safeString(city.wilayaM),
+              differenceTemps: safeString(city.differenceTemps),
+              impactRevenuSite: safeString(city.impactRevenuSite),
+              montantWilayas: safeString(city.montantWilayas),
+            }))
+          : [{ ...EMPTY_IMPACT_MTTR_CITY_ROW }],
+      }
+    }))
   }, [kpiRows])
-  
+
   const manageableTabKeys = useMemo(
     () => new Set(getManageabletableauTabKeysForDirection(userRole, isAdminRole ? adminSelectedDirection : undefined)),
     [adminSelectedDirection, tableauPolicyRevision, isAdminRole, userRole],
@@ -574,6 +683,51 @@ function DQRPCPageContent() {
   )
 
   const effectiveDirection = resolveDirectionForRole(safeString(direction).trim() || safeString(user?.direction).trim() || "Siege")
+
+  useEffect(() => {
+    if (!kpiRows || Object.keys(kpiRows).length === 0) return
+    if (!tableauDeclarations || tableauDeclarations.length === 0) return
+    if (!effectiveDirection) return
+
+    const prevPeriod = getPreviousPeriod(mois, annee)
+
+    const autoPopulate = <T extends Record<string, unknown>>(
+      tabKey: string,
+      setter: React.Dispatch<React.SetStateAction<T[]>>,
+    ) => {
+      const hasExisting = tableauDeclarations.some(
+        (d) => d.tabKey === tabKey && d.mois === mois && d.annee === annee && d.direction === effectiveDirection,
+      )
+      if (hasExisting) return
+
+      const prevDecl = tableauDeclarations.find(
+        (d) => d.tabKey === tabKey && d.mois === prevPeriod.mois && d.annee === prevPeriod.annee && d.direction === effectiveDirection,
+      )
+      if (!prevDecl) return
+
+      try {
+        const data = JSON.parse(prevDecl.dataJson)
+        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]))
+        if (!arrayKey) return
+        const prevRows: Record<string, string>[] = data[arrayKey]
+
+        setter((prev) =>
+          prev.map((row, i) => {
+            const prevRow = prevRows[i]
+            if (!prevRow) return row
+            const m1Values = mapMtoM1(prevRow)
+            return { ...row, ...m1Values } as unknown as T
+          }),
+        )
+      } catch {
+
+      }
+    }
+
+    autoPopulate("disponibilite_reseau", setDisponibiliteReseauRows)
+    autoPopulate("mttr", setMttrRows)
+    autoPopulate("impact_mttr", setImpactMttrRows)
+  }, [kpiRows, tableauDeclarations, mois, annee, effectiveDirection])
 
   useEffect(() => {
     if (!userRole) return
@@ -706,6 +860,7 @@ function DQRPCPageContent() {
       setEditingSourceAnnee(loadedAnnee)
       setDisponibiliteReseauRows(normalizeDisponibiliteReseauRows(declaration.disponibiliteReseauRows))
       setMttrRows(normalizeMttrRows(declaration.mttrRows))
+      setImpactMttrRows(normalizeImpactMttrRows(declaration.impactMttrRows))
     } catch {
       toast({
         title: "Erreur de chargement",
@@ -767,9 +922,7 @@ function DQRPCPageContent() {
 
   const handleSave = async (tabKey: tableauTabKey) => {
     const saveDirection = effectiveDirection
-    const isAdminEditing = isAdminRole && !!editingDeclarationId
-    
-    if (!isAdminEditing && !canManageTabForDirection(tabKey, saveDirection)) {
+    if (!isAdminRole && !canManageTabForDirection(tabKey, saveDirection)) {
       toast({
         title: "Acces refuse",
         description: "Votre profil n'est pas autorise a creer ou modifier ce tableau fiscal.",
@@ -839,6 +992,12 @@ function DQRPCPageContent() {
           validationError = true
         }
         break
+      case "impact_mttr":
+        if (impactMttrRows.some((region) => region.cities.some((city) => !city.wilayaM || !city.differenceTemps || !city.impactRevenuSite || !city.montantWilayas))) {
+          toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Impact MTTR.", variant: "destructive" })
+          validationError = true
+        }
+        break
 
     }
     if (validationError) return
@@ -865,6 +1024,7 @@ function DQRPCPageContent() {
       annee,
       disponibiliteReseauRows: [],
       mttrRows: [],
+      impactMttrRows: [],
     }
     
     switch (tabKey) {
@@ -873,6 +1033,9 @@ function DQRPCPageContent() {
         break
       case "mttr":
         baseDecl.mttrRows = mttrRows
+        break
+      case "impact_mttr":
+        baseDecl.impactMttrRows = impactMttrRows
         break
     }
     
@@ -895,6 +1058,7 @@ function DQRPCPageContent() {
       switch (tabKey) {
         case "disponibilite_reseau": tabData = { disponibiliteReseauRows }; break
         case "mttr": tabData = { mttrRows }; break
+        case "impact_mttr": tabData = { impactMttrRows }; break
       }
       const requestPayload = {
         tabKey,
@@ -914,22 +1078,6 @@ function DQRPCPageContent() {
           },
         })
       }
-
-      await fetch(`${apiBase}/api/step-comment`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          tabKey,
-          mois,
-          annee,
-          direction: saveDirection,
-          comment: tabComment,
-        }),
-      })
 
       const createResponse = await fetch(`${apiBase}/api/fiscal`, {
         method: "POST",
@@ -1090,7 +1238,7 @@ function DQRPCPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabDisponibiliteReseau rows={disponibiliteReseauRows} setRows={setDisponibiliteReseauRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabDisponibiliteReseau rows={disponibiliteReseauRows} setRows={setDisponibiliteReseauRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
 
             </CardContent>
           </Card>
@@ -1104,7 +1252,21 @@ function DQRPCPageContent() {
             <CardContent>
               {renderDisabledNotice(tabKey)}
               {renderExistingWarning(tabKey)}
-              <TabMttr rows={mttrRows} setRows={setMttrRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
+              <TabMttr rows={mttrRows} setRows={setMttrRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} mois={mois} />
+
+            </CardContent>
+          </Card>
+        )
+      case "impact_mttr":
+        return (
+          <Card key={tabKey}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold" style={{ color: PRIMARY_COLOR }}>Impact de l'amélioration/Dégradation du MTTR sur le revenu</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderDisabledNotice(tabKey)}
+              {renderExistingWarning(tabKey)}
+              <TabImpactMttr rows={impactMttrRows} setRows={setImpactMttrRows} onSave={() => handleSave(tabKey)} isSubmitting={isSubmitting} />
 
             </CardContent>
           </Card>

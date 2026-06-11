@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,254 +10,115 @@ import { useToast } from "@/hooks/use-toast"
 import { authFetch } from "@/lib/auth-fetch"
 import { Plus, Trash2, Save } from "lucide-react"
 
-type TabDef = { key: string; label: string }
-
-type SubdomainDef = {
-  key: string
-  label: string
-  tabs: TabDef[]
+type SousDomaine = {
+  id: number
+  designation: string
 }
 
-type DomainDef = {
-  key: string
-  label: string
-  domain: string
-  subdomains: SubdomainDef[]
+type Domaine = {
+  id: number
+  designation: string
+  sousDomaines: SousDomaine[]
 }
 
-const DOMAIN_OPTIONS: DomainDef[] = [
-  {
-    key: "commerciale",
-    label: "Commerciale",
-    domain: "Commerciale",
-    subdomains: [
-      {
-        key: "reclamation",
-        label: "Reclamation",
-        tabs: [{ key: "reclamation", label: "Reclamation" }],
-      },
-      {
-        key: "paiement",
-        label: "Paiement",
-        tabs: [{ key: "e_payement", label: "E-PAYEMENT" }],
-      },
-      {
-        key: "encaissement",
-        label: "Encaissement",
-        tabs: [{ key: "total_encaissement", label: "Totale des encaissements" }],
-      },
-      {
-        key: "rechargement",
-        label: "Rechargement",
-        tabs: [{ key: "rechargement", label: "Rechargement" }],
-      },
-      {
-        key: "recouvrement",
-        label: "Recouvrement",
-        tabs: [{ key: "recouvrement", label: "Recouvrement" }],
-      },
-      {
-        key: "parc_abonne",
-        label: "Parc abonné",
-        tabs: [
-          { key: "parc_abonnes_gp", label: "Parc Abonnés GP" },
-          { key: "total_parc_abonnes_technologie", label: "Total Parc Abonnés par technologie" },
-        ],
-      },
-      {
-        key: "activation_desactivation",
-        label: "Activation / Désactivation / Résiliation",
-        tabs: [
-          { key: "activation", label: "Activation" },
-          { key: "desactivation", label: "Désactivation" },
-          { key: "resiliation", label: "Résiliation" },
-        ],
-      },
-      {
-        key: "chiffre_affaires",
-        label: "Chiffre d'affaires",
-        tabs: [{ key: "chiffre_affaires_mda", label: "Chiffre d'Affaires (MDA)" }],
-      },
-    ],
-  },
-  {
-    key: "dvdrs",
-    label: "DVDRS",
-    domain: "DVDRS",
-    subdomains: [
-      { key: "suivi_infrastructures_reseau", label: "Suivi des infrastructures reseau 2G/3G/4G/5G", tabs: [{ key: "suivi_infrastructures_reseau", label: "Suivi des infrastructures reseau 2G/3G/4G/5G" }] },
-      { key: "evolution_trafic_data", label: "Évolution du Trafic Data", tabs: [{ key: "evolution_trafic_data", label: "Évolution du Trafic Data" }] },
-      { key: "amelioration_qualite", label: "Amélioration qualité", tabs: [{ key: "amelioration_qualite", label: "Amélioration qualité" }] },
-      { key: "couverture_reseau", label: "Couverture Réseau", tabs: [{ key: "couverture_reseau", label: "Couverture Réseau" }] },
-      { key: "action_notable_reseau", label: "Action notable sur le Réseau", tabs: [{ key: "action_notable_reseau", label: "Action notable sur le Réseau" }] },
-      { key: "situation_reseaux", label: "Situation Réseaux", tabs: [{ key: "situation_reseaux", label: "Situation Réseaux" }] },
-    ],
-  },
-  {
-    key: "dqrpc",
-    label: "DQRPC",
-    domain: "DQRPC",
-    subdomains: [
-      { key: "realisation_technique_reseau", label: "Réalisation technique Réseau", tabs: [{ key: "realisation_technique_reseau", label: "Réalisation technique Réseau" }] },
-      { key: "amelioration_qualite", label: "Amélioration qualité", tabs: [{ key: "amelioration_qualite", label: "Amélioration qualité" }] },
-      { key: "mttr", label: "MTTR", tabs: [{ key: "mttr", label: "MTTR" }] },
-    ],
-  },
-  {
-    key: "support",
-    label: "Support",
-    domain: "Support",
-    subdomains: [
-      {
-        key: "creances",
-        label: "Créances",
-        tabs: [
-          { key: "creance_contentieuses", label: "Créance contentieuses" },
-          { key: "creances_contentieuses_anterieur", label: "Créance contentieuses antérieur" },
-        ],
-      },
-      { key: "rh", label: "RH", tabs: [{ key: "rh", label: "RH" }] },
-      { key: "formation", label: "Formation", tabs: [{ key: "formation", label: "Formation" }] },
-      { key: "frais_personnel", label: "Frais personnel", tabs: [{ key: "frais_personnel", label: "Frais personnel" }] },
-      { key: "effectif_gsp", label: "Effectif GSP", tabs: [{ key: "effectif_gsp", label: "Effectif GSP" }] },
-      { key: "absenteisme", label: "Absentéisme", tabs: [{ key: "absenteisme", label: "Absentéisme" }] },
-      { key: "mouvement_effectifs", label: "Mouvement effectifs", tabs: [{ key: "mouvement_effectifs", label: "Mouvement effectifs" }] },
-      { key: "mouvement_effectifs_domaine", label: "Mouvement effectifs domaine", tabs: [{ key: "mouvement_effectifs_domaine", label: "Mouvement effectifs domaine" }] },
-      { key: "effectifs_formes_gsp", label: "Effectifs formés GSP", tabs: [{ key: "effectifs_formes_gsp", label: "Effectifs formés GSP" }] },
-      { key: "formations_domaines", label: "Formations domaines", tabs: [{ key: "formations_domaines", label: "Formations domaines" }] },
-    ],
-  },
-  {
-    key: "finance",
-    label: "Finance",
-    domain: "Finances",
-    subdomains: [
-      { key: "compte_resultat", label: "Compte de résultat", tabs: [{ key: "compte_resultat", label: "Compte de résultat" }] },
-    ],
-  },
-  {
-    key: "regionale",
-    label: "Régionale",
-    domain: "Régionale",
-    subdomains: [
-      { key: "realisation_technique_reseau", label: "Réalisation technique Réseau", tabs: [{ key: "realisation_technique_reseau", label: "Réalisation technique Réseau" }] },
-      { key: "amelioration_qualite", label: "Amélioration qualité", tabs: [{ key: "amelioration_qualite", label: "Amélioration qualité" }] },
-      { key: "mttr", label: "MTTR", tabs: [{ key: "mttr", label: "MTTR" }] },
-    ],
-  },
-]
+type HierarchieKpi = {
+  id: number
+  name: string
+  rows: { id: number; designation: string; order: number }[]
+}
 
-type DomainKey = (typeof DOMAIN_OPTIONS)[number]["key"]
+type HierarchieSousDomaine = {
+  id: number
+  designation: string
+  kpis: HierarchieKpi[]
+}
+
+type HierarchieDomaine = {
+  id: number
+  designation: string
+  sousDomaines: HierarchieSousDomaine[]
+}
 
 export default function AdminTableauRows() {
   const { toast } = useToast()
-  const [domainKey, setDomainKey] = useState<DomainKey>("commerciale")
-  const [subdomainKey, setSubdomainKey] = useState<string>("")
-  const [tabKey, setTabKey] = useState<string>("")
+  const [domaines, setDomaines] = useState<Domaine[]>([])
+  const [hierarchy, setHierarchy] = useState<HierarchieDomaine[]>([])
+  const [domaineId, setDomaineId] = useState<string>("")
+  const [sousDomaineId, setSousDomaineId] = useState<string>("")
+  const [kpiName, setKpiName] = useState<string>("")
   const [rows, setRows] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [disabledTabKeys, setDisabledTabKeys] = useState<Set<string>>(new Set())
   const [togglingKey, setTogglingKey] = useState<string | null>(null)
 
-  const subdomains = useMemo(() => {
-    return DOMAIN_OPTIONS.find((item) => item.key === domainKey)?.subdomains ?? []
-  }, [domainKey])
-
-  const selectedSubdomain = useMemo(() => {
-    return subdomains.find((sd) => sd.key === subdomainKey) ?? null
-  }, [subdomains, subdomainKey])
-
-  const tabs = useMemo(() => {
-    return selectedSubdomain?.tabs ?? []
-  }, [selectedSubdomain])
-
-  const domain = useMemo(() => DOMAIN_OPTIONS.find((item) => item.key === domainKey)?.domain ?? "", [domainKey])
-
-  useEffect(() => {
-    if (subdomains.length > 0) {
-      const first = subdomains[0].key
-      if (subdomainKey !== first) {
-        setSubdomainKey(first)
-      }
-    } else {
-      setSubdomainKey("")
-      setTabKey("")
-      setRows([])
-    }
-  }, [subdomains])
-
-  useEffect(() => {
-    if (tabs.length > 0) {
-      setTabKey(tabs[0].key)
-    } else {
-      setTabKey("")
-      setRows([])
-    }
-  }, [tabs])
+  const currentDomaine = domaines.find((d) => String(d.id) === domaineId)
+  const sousDomaines = currentDomaine?.sousDomaines ?? []
+  const currentHierarchyDomaine = hierarchy.find((d) => String(d.id) === domaineId)
+  const currentHierarchySousDomaine = currentHierarchyDomaine?.sousDomaines.find((sd) => String(sd.id) === sousDomaineId)
+  const kpis = currentHierarchySousDomaine?.kpis ?? []
 
   useEffect(() => {
     let cancelled = false
 
-    const loadDisabled = async () => {
+    const load = async () => {
       try {
-        const response = await authFetch("/api/admin/tableau-settings", { cache: "no-store" })
-        if (!response.ok) return
-        const payload = (await response.json().catch(() => null)) as { disabledTabKeys?: string[] } | null
-        if (!cancelled && payload?.disabledTabKeys) {
-          setDisabledTabKeys(new Set(payload.disabledTabKeys.map((k) => k.trim().toLowerCase())))
+        const [domRes, hierRes, settingsRes] = await Promise.all([
+          authFetch("/api/admin/domaines", { cache: "no-store" }),
+          authFetch("/api/admin/hierarchy", { cache: "no-store" }),
+          authFetch("/api/admin/tableau-settings", { cache: "no-store" }),
+        ])
+
+        if (!cancelled) {
+          if (domRes.ok) {
+            setDomaines(await domRes.json())
+          }
+          if (hierRes.ok) {
+            setHierarchy(await hierRes.json())
+          }
+          if (settingsRes.ok) {
+            const payload = (await settingsRes.json().catch(() => null)) as { disabledTabKeys?: string[] } | null
+            if (payload?.disabledTabKeys) {
+              setDisabledTabKeys(new Set(payload.disabledTabKeys.map((k) => k.trim().toLowerCase())))
+            }
+          }
         }
       } catch {
         // ignore
       }
     }
 
-    loadDisabled()
+    load()
     return () => { cancelled = true }
-  }, [toast])
+  }, [])
 
   useEffect(() => {
-    if (!tabKey) {
-      setRows([])
-      return
-    }
+    setSousDomaineId("")
+    setKpiName("")
+    setRows([])
+  }, [domaineId])
 
-    let cancelled = false
+  useEffect(() => {
+    setKpiName("")
+    setRows([])
+  }, [sousDomaineId])
 
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const response = await authFetch(`/api/admin/kpis/by-name/${encodeURIComponent(tabKey)}${domain ? `?domain=${encodeURIComponent(domain)}` : ""}`, { cache: "no-store" })
-        if (!response.ok) {
-          throw new Error("Chargement impossible")
-        }
+  useEffect(() => {
+    const kpi = kpis.find((k) => k.name === kpiName)
+    setRows(kpi ? kpi.rows.map((r) => r.designation) : [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kpiName])
 
-        const payload = (await response.json().catch(() => null)) as { rows?: string[] } | null
-        if (!cancelled) {
-          setRows(Array.isArray(payload?.rows) ? payload!.rows : [])
-        }
-      } catch (error) {
-        if (!cancelled) {
-          toast({
-            title: "Erreur",
-            description: error instanceof Error ? error.message : "Chargement impossible.",
-            variant: "destructive",
-          })
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
+  const refreshHierarchy = async () => {
+    try {
+      const response = await authFetch("/api/admin/hierarchy", { cache: "no-store" })
+      if (response.ok) {
+        setHierarchy(await response.json())
       }
+    } catch {
+      // ignore
     }
-
-    load()
-
-    return () => {
-      cancelled = true
-    }
-  }, [domain, tabKey, toast])
+  }
 
   const updateRow = (index: number, value: string) => {
     setRows((prev) => prev.map((row, i) => (i === index ? value : row)))
@@ -298,15 +159,18 @@ export default function AdminTableauRows() {
   }
 
   const handleSave = async () => {
-    if (!tabKey) return
+    if (!kpiName || !sousDomaineId) return
     setIsSaving(true)
 
     try {
-      const response = await authFetch(`/api/admin/kpis/by-name/${encodeURIComponent(tabKey)}${domain ? `?domain=${encodeURIComponent(domain)}` : ""}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ designations: rows }),
-      })
+      const response = await authFetch(
+        `/api/admin/kpis/by-name/${encodeURIComponent(kpiName)}?sousDomaineId=${sousDomaineId}&domain=${encodeURIComponent(currentDomaine?.designation ?? "")}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ designations: rows }),
+        }
+      )
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null)
@@ -320,6 +184,8 @@ export default function AdminTableauRows() {
         title: "Enregistre",
         description: "Structure du tableau mise a jour.",
       })
+
+      await refreshHierarchy()
     } catch (error) {
       toast({
         title: "Erreur",
@@ -366,19 +232,21 @@ export default function AdminTableauRows() {
     }
   }
 
+  const kpiLabel = (name: string) => name.replace(/_/g, " ")
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-4">
         <div className="space-y-2">
           <Label>Domaine</Label>
-          <Select value={domainKey} onValueChange={(value) => setDomainKey(value as DomainKey)}>
+          <Select value={domaineId} onValueChange={setDomaineId}>
             <SelectTrigger>
               <SelectValue placeholder="Choisir un domaine" />
             </SelectTrigger>
             <SelectContent>
-              {DOMAIN_OPTIONS.map((item) => (
-                <SelectItem key={item.key} value={item.key}>
-                  {item.label}
+              {domaines.map((item) => (
+                <SelectItem key={item.id} value={String(item.id)}>
+                  {item.designation}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -387,14 +255,14 @@ export default function AdminTableauRows() {
 
         <div className="space-y-2">
           <Label>Sous-domaine</Label>
-          <Select value={subdomainKey} onValueChange={setSubdomainKey}>
+          <Select value={sousDomaineId} onValueChange={setSousDomaineId} disabled={!domaineId}>
             <SelectTrigger>
               <SelectValue placeholder="Choisir un sous-domaine" />
             </SelectTrigger>
             <SelectContent>
-              {subdomains.map((sd) => (
-                <SelectItem key={sd.key} value={sd.key}>
-                  {sd.label}
+              {sousDomaines.map((sd) => (
+                <SelectItem key={sd.id} value={String(sd.id)}>
+                  {sd.designation}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -402,15 +270,15 @@ export default function AdminTableauRows() {
         </div>
 
         <div className="space-y-2">
-          <Label>Tableau</Label>
-          <Select value={tabKey} onValueChange={setTabKey}>
+          <Label>Tableau (KPI)</Label>
+          <Select value={kpiName} onValueChange={setKpiName} disabled={!sousDomaineId || kpis.length === 0}>
             <SelectTrigger>
               <SelectValue placeholder="Choisir un tableau" />
             </SelectTrigger>
             <SelectContent>
-              {tabs.map((tab) => (
-                <SelectItem key={tab.key} value={tab.key}>
-                  {tab.label}
+              {kpis.map((kpi) => (
+                <SelectItem key={kpi.id} value={kpi.name}>
+                  {kpiLabel(kpi.name)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -422,25 +290,24 @@ export default function AdminTableauRows() {
           <div className="flex h-10 items-center gap-3 rounded-md border border-slate-200 bg-white px-3">
             <Checkbox
               id="tableau-status"
-              checked={tabKey ? !disabledTabKeys.has(tabKey.trim().toLowerCase()) : false}
-              disabled={!tabKey || togglingKey !== null}
+              checked={kpiName ? !disabledTabKeys.has(kpiName.trim().toLowerCase()) : false}
+              disabled={!kpiName || togglingKey !== null}
               onCheckedChange={(checked) => {
-                if (tabKey) toggleActivation(tabKey, Boolean(checked))
+                if (kpiName) toggleActivation(kpiName, Boolean(checked))
               }}
             />
             <Label htmlFor="tableau-status" className="text-sm cursor-pointer">
-              {tabKey && disabledTabKeys.has(tabKey.trim().toLowerCase()) ? "Desactive" : "Actif"}
-              {togglingKey === tabKey?.trim().toLowerCase() ? " ..." : ""}
+              {kpiName && disabledTabKeys.has(kpiName.trim().toLowerCase()) ? "Desactive" : "Actif"}
+              {togglingKey === kpiName?.trim().toLowerCase() ? " ..." : ""}
             </Label>
           </div>
         </div>
       </div>
 
-
       <div className="space-y-2">
         {rows.map((row, index) => (
           <div
-            key={`${index}-${tabKey}`}
+            key={`${index}-${kpiName}`}
             className={`flex items-center gap-2 rounded-md border border-transparent px-1 py-1 ${dragIndex === index ? "bg-slate-100" : ""}`}
             draggable
             onDragStart={handleDragStart(index)}
@@ -454,14 +321,14 @@ export default function AdminTableauRows() {
               onChange={(event) => updateRow(index, event.target.value)}
               placeholder={`Ligne ${index + 1}`}
               className="h-9"
-              disabled={isLoading || isSaving}
+              disabled={isSaving}
             />
             <Button
               type="button"
               variant="ghost"
               size="icon"
               onClick={() => removeRow(index)}
-              disabled={isLoading || isSaving}
+              disabled={isSaving}
               className="text-red-600"
             >
               <Trash2 size={16} />
@@ -469,21 +336,17 @@ export default function AdminTableauRows() {
           </div>
         ))}
 
-        {rows.length === 0 && !isLoading && (
+        {rows.length === 0 && (
           <p className="text-xs text-muted-foreground">Aucune ligne definie pour ce tableau.</p>
-        )}
-
-        {isLoading && (
-          <p className="text-xs text-muted-foreground">Chargement...</p>
         )}
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <Button type="button" variant="outline" onClick={addRow} disabled={isLoading || isSaving} className="gap-2">
+        <Button type="button" variant="outline" onClick={addRow} disabled={isSaving} className="gap-2">
           <Plus size={14} /> Ajouter une ligne
         </Button>
 
-        <Button type="button" onClick={handleSave} disabled={isLoading || isSaving || !tabKey} className="gap-2">
+        <Button type="button" onClick={handleSave} disabled={isSaving || !kpiName} className="gap-2">
           <Save size={14} /> {isSaving ? "Enregistrement..." : "Enregistrer"}
         </Button>
       </div>

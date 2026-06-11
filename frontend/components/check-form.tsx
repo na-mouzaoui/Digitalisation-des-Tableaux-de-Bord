@@ -203,8 +203,8 @@ interface Checkbook {
 
 interface RegionData {
   id: number
-  name: string
-  villes: string[]
+  nom: string
+  wilayas: string[]
 }
 
 export function CheckForm({ user }: CheckFormProps) {
@@ -303,11 +303,11 @@ export function CheckForm({ user }: CheckFormProps) {
           const response = await requestWithAuth(`${API_BASE}/api/regions`)
           if (response.ok) {
             const regions: RegionData[] = await response.json()
-            const userRegion = regions.find(r => r.name === user.region)
-            if (userRegion && userRegion.villes && userRegion.villes.length > 0) {
-              setRegionCities(userRegion.villes)
+            const userRegion = regions.find(r => r.nom === user.region)
+            if (userRegion && userRegion.wilayas && userRegion.wilayas.length > 0) {
+              setRegionCities(userRegion.wilayas)
               // Set default city to first city in region for regional users
-              setCity(userRegion.villes[0])
+              setCity(userRegion.wilayas[0])
             } else {
               setCity("Alger") // Fallback
             }

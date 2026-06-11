@@ -29,6 +29,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface WilayaOption {
+  id: number;
+  name: string;
+}
+
 interface Region {
   id: number;
   name: string;
@@ -38,14 +43,14 @@ interface Region {
 
 export default function AdminRegionConfig() {
   const [regions, setRegions] = useState<Region[]>([]);
-  const [wilayas, setWilayas] = useState<string[]>([]);
+  const [wilayas, setWilayas] = useState<WilayaOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingRegion, setEditingRegion] = useState<number | null>(null);
-  const [selectedVilles, setSelectedVilles] = useState<string[]>([]);
+  const [selectedVilleIds, setSelectedVilleIds] = useState<number[]>([]);
   const [editedName, setEditedName] = useState<string>("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newRegionName, setNewRegionName] = useState("");
-  const [newRegionVilles, setNewRegionVilles] = useState<string[]>([]);
+  const [newRegionVilleIds, setNewRegionVilleIds] = useState<number[]>([]);
   const [regionToDelete, setRegionToDelete] = useState<Region | null>(null);
   const { toast } = useToast();
 
@@ -64,8 +69,8 @@ export default function AdminRegionConfig() {
 
       if (!response.ok) throw new Error("Erreur de chargement des wilayas");
 
-      const data = (await response.json()) as Array<{ id: number; code: string; name: string }>;
-      setWilayas(data.map((item) => item.name));
+      const data = (await response.json()) as Array<{ id: number; name: string }>;
+      setWilayas(data.map((item) => ({ id: item.id, name: item.name })).sort((a, b) => a.id - b.id));
     } catch {
       toast({
         title: "Erreur",
@@ -89,7 +94,7 @@ export default function AdminRegionConfig() {
       const mapped = Array.isArray(data)
         ? data.map((item: any) => ({
             id: Number(item.id),
-            name: String(item.name ?? "").trim(),
+            name: String(item.nom ?? "").trim(),
             villes: Array.isArray(item.wilayas)
               ? item.wilayas
               : Array.isArray(item.villes)
@@ -121,25 +126,31 @@ export default function AdminRegionConfig() {
     return assigned;
   };
 
+  const getWilayaIdsFromNames = (names: string[]): number[] => {
+    return names
+      .map(name => wilayas.find(w => w.name === name)?.id)
+      .filter((id): id is number => id != null);
+  };
+
   const handleEdit = (region: Region) => {
     setEditingRegion(region.id);
-    setSelectedVilles([...region.villes]);
+    setSelectedVilleIds(getWilayaIdsFromNames(region.villes));
     setEditedName(region.name);
   };
 
-  const handleVilleToggle = (villeName: string) => {
-    setSelectedVilles(prev => {
-      if (prev.includes(villeName)) {
-        return prev.filter(v => v !== villeName);
+  const handleVilleToggle = (wilayaId: number) => {
+    setSelectedVilleIds(prev => {
+      if (prev.includes(wilayaId)) {
+        return prev.filter(v => v !== wilayaId);
       } else {
-        return [...prev, villeName];
+        return [...prev, wilayaId];
       }
     });
   };
 
   const handleSave = async (regionId: number) => {
     try {
-      const body: { wilayas: string[]; name?: string } = { wilayas: selectedVilles };
+      const body: { wilayaIds: number[]; name?: string } = { wilayaIds: selectedVilleIds };
       
       // Ajouter le nom s'il a été modifié
       if (editedName.trim() && editedName !== regions.find(r => r.id === regionId)?.name) {
@@ -162,18 +173,18 @@ export default function AdminRegionConfig() {
       }
 
       toast({
-        title: "Succés",
-        description: "Région mise é jour avec succés",
+        title: "Succès",
+        description: "Région mise à jour avec succès",
       });
 
       setEditingRegion(null);
-      setSelectedVilles([]);
+      setSelectedVilleIds([]);
       setEditedName("");
       fetchRegions();
     } catch (error) {
       toast({
         title: "Erreur",
-        description: "??chec de la modification",
+        description: "Échec de la modification",
         variant: "destructive",
       });
     }
@@ -206,7 +217,7 @@ export default function AdminRegionConfig() {
         credentials: "include",
         body: JSON.stringify({
           name: newRegionName.trim(),
-          wilayas: newRegionVilles,
+          wilayaIds: newRegionVilleIds,
         }),
       });
 
@@ -216,13 +227,13 @@ export default function AdminRegionConfig() {
       }
 
       toast({
-        title: "Succés",
-        description: "Région créée avec succés",
+        title: "Succès",
+        description: "Région créée avec succès",
       });
 
       setShowCreateDialog(false);
       setNewRegionName("");
-      setNewRegionVilles([]);
+      setNewRegionVilleIds([]);
       fetchRegions();
     } catch (error: any) {
       toast({
@@ -265,12 +276,12 @@ export default function AdminRegionConfig() {
     }
   };
 
-  const handleNewRegionVilleToggle = (villeName: string) => {
-    setNewRegionVilles(prev => {
-      if (prev.includes(villeName)) {
-        return prev.filter(v => v !== villeName);
+  const handleNewRegionVilleToggle = (wilayaId: number) => {
+    setNewRegionVilleIds(prev => {
+      if (prev.includes(wilayaId)) {
+        return prev.filter(v => v !== wilayaId);
       } else {
-        return [...prev, villeName];
+        return [...prev, wilayaId];
       }
     });
   };
@@ -349,30 +360,30 @@ export default function AdminRegionConfig() {
                 </div>
               )}
             </div>
-            <CardDescription>{editingRegion === region.id ? selectedVilles.length : region.villes.length} wilayas</CardDescription>
+            <CardDescription>{editingRegion === region.id ? selectedVilleIds.length : region.villes.length} wilayas</CardDescription>
           </CardHeader>
           <CardContent>
             {editingRegion === region.id ? (
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {wilayas.map((wilaya) => {
-                  const isAssigned = assignedVilles.has(wilaya);
-                  const isSelected = selectedVilles.includes(wilaya);
+                  const isAssigned = assignedVilles.has(wilaya.name);
+                  const isSelected = selectedVilleIds.includes(wilaya.id);
                   
                   return (
-                    <div key={`${region.id}-${wilaya}`} className="flex items-center space-x-2">
+                    <div key={`${region.id}-${wilaya.id}`} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`wilaya-${region.id}-${wilaya}`}
+                        id={`wilaya-${region.id}-${wilaya.id}`}
                         checked={isSelected}
                         disabled={isAssigned && !isSelected}
-                        onCheckedChange={() => handleVilleToggle(wilaya)}
+                        onCheckedChange={() => handleVilleToggle(wilaya.id)}
                       />
                       <Label
-                        htmlFor={`wilaya-${region.id}-${wilaya}`}
+                        htmlFor={`wilaya-${region.id}-${wilaya.id}`}
                         className={`text-sm font-normal cursor-pointer ${
                           isAssigned && !isSelected ? "text-muted-foreground" : ""
                         }`}
                       >
-                        {wilaya}
+                        {wilaya.name}
                         {isAssigned && !isSelected && " (assignée)"}
                       </Label>
                     </div>
@@ -413,28 +424,28 @@ export default function AdminRegionConfig() {
               />
             </div>
             <div>
-              <Label>Wilayas ({newRegionVilles.length} sélectionnées)</Label>
+              <Label>Wilayas ({newRegionVilleIds.length} sélectionnées)</Label>
               <div className="mt-2 space-y-2 max-h-96 overflow-y-auto border rounded-md p-4">
                 {wilayas.map((wilaya) => {
-                  const isAssigned = assignedVilles.has(wilaya);
-                  const isSelected = newRegionVilles.includes(wilaya);
+                  const isAssigned = assignedVilles.has(wilaya.name);
+                  const isSelected = newRegionVilleIds.includes(wilaya.id);
                   
                   return (
-                    <div key={`new-${wilaya}`} className="flex items-center space-x-2">
+                    <div key={`new-${wilaya.id}`} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`new-wilaya-${wilaya}`}
+                        id={`new-wilaya-${wilaya.id}`}
                         checked={isSelected}
                         disabled={isAssigned}
-                        onCheckedChange={() => handleNewRegionVilleToggle(wilaya)}
+                        onCheckedChange={() => handleNewRegionVilleToggle(wilaya.id)}
                       />
                       <Label
-                        htmlFor={`new-wilaya-${wilaya}`}
+                        htmlFor={`new-wilaya-${wilaya.id}`}
                         className={`text-sm font-normal cursor-pointer ${
                           isAssigned ? "text-muted-foreground" : ""
                         }`}
                       >
-                        {wilaya}
-                        {isAssigned && " (déjé assignée)"}
+                        {wilaya.name}
+                        {isAssigned && " (déjà assignée)"}
                       </Label>
                     </div>
                   );
@@ -446,7 +457,7 @@ export default function AdminRegionConfig() {
             <Button variant="outline" onClick={() => {
               setShowCreateDialog(false);
               setNewRegionName("");
-              setNewRegionVilles([]);
+              setNewRegionVilleIds([]);
             }}>
               Annuler
             </Button>

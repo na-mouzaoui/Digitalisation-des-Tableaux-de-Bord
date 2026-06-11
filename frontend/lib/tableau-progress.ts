@@ -35,11 +35,10 @@ export const DOMAIN_PROGRESS_STEPS: Record<DomainKey, TableauProgressStep[]> = {
       key: "reseau",
       label: "Réseau technique",
       points: [
-        { key: "realisation_technique_reseau", label: "Suivi Infrastructures Réseau 2G/3G/4G" },
+        { key: "suivi_infrastructures_reseau", label: "Suivi Infrastructures Réseau 2G/3G/4G/5G" },
         { key: "situation_reseau", label: "Situation Réseau" },
         { key: "trafic_data", label: "Évolution Trafic Data" },
-        { key: "amelioration_qualite", label: "Amélioration Qualité" },
-        { key: "couverture_reseau", label: "Couverture Réseau" },
+
         { key: "action_notable_reseau", label: "Action Notable sur le Réseau" },
       ],
     },

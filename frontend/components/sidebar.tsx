@@ -41,9 +41,7 @@ export function Sidebar({ user }: SidebarProps) {
 
   const hastableau = modules.includes("tableau")
 
-  const [opentableau, setOpentableau] = useState(
-    pathname.startsWith("/tableau")
-  )
+  const [opentableau, setOpentableau] = useState(true)
   const isTableauSectionActive = pathname.startsWith("/tableau")
 
   const handleLogout = async () => {
