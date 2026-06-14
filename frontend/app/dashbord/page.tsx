@@ -448,8 +448,12 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     case "suivi_infrastructures_reseau":
       tableau.realisationTechniqueReseauRows = toArray(parsedData.realisationTechniqueReseauRows)
       break
+    case "trafic_data":
     case "evolution_trafic_data":
       tableau.traficDataRows = toArray(parsedData.traficDataRows)
+      break
+    case "situation_reseau":
+      tableau.situationReseauRows = toArray<SituationReseauRow>(parsedData.situationReseauRows)
       break
     case "action_notable_reseau":
       tableau.actionNotableReseauRows = toArray(parsedData.actionNotableReseauRows)
@@ -476,6 +480,13 @@ const mapApitableauToSaved = (item: Apitableautableau): Savedtableau => {
     case "creance_contentieuses":
       tableau.creanceRows = toArray<CreanceRow>(parsedData.creanceRows)
       tableau.creanceAnterieurRows = toArray<CreanceAnterieurRow>(parsedData.creanceAnterieurRows)
+      break
+    case "creances_contentieuses":
+      tableau.creanceRows = toArray<CreanceRow>(parsedData.recouvrementRows)
+      tableau.creanceAnterieurRows = toArray<CreanceAnterieurRow>(parsedData.recouvrementAnterieurRows)
+      break
+    case "creances_contentieuses_anterieur":
+      tableau.creanceAnterieurRows = toArray<CreanceAnterieurRow>(parsedData.recouvrementAnterieurRows)
       break
     case "frais_personnel":
       tableau.fraisPersonnelRows = toArray(parsedData.fraisPersonnelRows)
@@ -618,6 +629,7 @@ const DASH_TABS = [
   
   // Tableaux Support (RH + Formation + Créances)
   { key: "creances_contentieuses",      label: "25 - Créances contentieuses",    color: "#2db34b", title: "CREANCES CONTENTIEUSES" },
+  { key: "creances_contentieuses_anterieur", label: "25b - Créances contentieuses Antérieur", color: "#2db34b", title: "CREANCES CONTENTIEUSES ANTÉRIEUR" },
   { key: "rh",                      label: "26 - RH",                    color: "#1d6fb8", title: "RESSOURCES HUMAINES" },
   { key: "formation",               label: "27 - Formation",             color: "#7c3aed", title: "FORMATION" },
   
@@ -844,6 +856,13 @@ function SimpleEvolTableDisplay({ title, rows }: { title: string; rows: { design
 }
 
 function SimplePartTableDisplay({ title, rows, labelKey }: { title: string; rows: Array<Record<string, string>>; labelKey: string }) {
+  const nonTotalRows = rows.filter((r) => !/total/i.test(r[labelKey] ?? ""))
+  const sumM1 = nonTotalRows.reduce((s, r) => s + num(r.m1), 0)
+  const calcPart = (r: Record<string, string>) => {
+    if (r.part) return fmt(r.part)
+    const mVal = num(r.m1)
+    return sumM1 ? ((mVal / sumM1) * 100).toFixed(1) : "0.0"
+  }
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{title}</p>
@@ -863,7 +882,7 @@ function SimplePartTableDisplay({ title, rows, labelKey }: { title: string; rows
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row[labelKey]}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m)}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.part)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{calcPart(row)}</td>
               </tr>
             ))}
           </tbody>
@@ -944,26 +963,35 @@ function CreancesContentieusesBlockDisplay({ rows, anterieurRows }: { rows: Crea
           <thead>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 border-b border-r bg-transparent"></th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}<br/>Montant Recouvré (KDA)</th>
+              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(getMoisFromPeriod(), -1)}</th>
               <th colSpan={3} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(getMoisFromPeriod(), 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-2 border-b border-r bg-transparent"></th>
-              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Objectif recouvrement (KDA)</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Montant Recouvré (KDA)</th>
+              <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Objectif recouvrement (KDA)</th>
               <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Montant Recouvré (KDA)</th>
               <th className="px-2 py-1 text-center text-xs font-semibold text-gray-700 border-b">Taux de recouvrement</th>
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => (
+            {data.map((row, i) => {
+              const calcTaux = (r: CreanceRow) => {
+                if (r.mTaux) return fmt(r.mTaux)
+                const montant = num(r.mMontant)
+                const objectif = num(r.mObjectif)
+                return objectif ? ((montant / objectif) * 100).toFixed(1) : "0.0"
+              }
+              return (
               <tr key={`${row.designation}-${i}`} className="bg-white">
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1Montant)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mObjectif)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mMontant)}</td>
-                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mTaux)}</td>
+                <td className="px-3 py-2 border-b text-center text-xs font-semibold">{calcTaux(row)}</td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -1632,6 +1660,7 @@ function ActionNotableReseauDisplay({ rows }: { rows: ActionNotableReseauRow[] }
 }
 
 function DisponibiliteReseauDisplay({ rows }: { rows: DisponibiliteReseauRow[] }) {
+  const filteredRows = rows.filter((r) => !/DR (Alger|Oran)/i.test(r.designation))
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Disponibilite réseau</p>
@@ -1651,8 +1680,8 @@ function DisponibiliteReseauDisplay({ rows }: { rows: DisponibiliteReseauRow[] }
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${row.designation}-${index}`} className={index === rows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
+            {filteredRows.map((row, index) => (
+              <tr key={`${row.designation}-${index}`} className={index === filteredRows.length - 1 ? "bg-green-100 font-semibold" : "bg-white"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.m1Realise)}</td>
                 <td className="px-3 py-2 border-b text-center text-xs font-semibold">{fmt(row.mObjectif)}</td>
@@ -2288,8 +2317,12 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     // Tableaux DVDRS (Réseau Technique)
     case "suivi_infrastructures_reseau":
       return <RealisationTechniqueReseauDisplay rows={decl.realisationTechniqueReseauRows ?? []} />
+    case "trafic_data":
     case "evolution_trafic_data":
       return <TraficDataDisplay rows={decl.traficDataRows ?? []} />
+    case "situation_reseau":
+    case "situation_reseaux":
+      return <SituationReseauDisplay rows={decl.situationReseauRows ?? []} />
     case "action_notable_reseau":
       return <ActionNotableReseauDisplay rows={decl.actionNotableReseauRows ?? []} />
     
@@ -2303,7 +2336,7 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     
     // Tableaux Support (RH + Formation + Créances)
     case "creance_contentieuses":
-      return <CreancesContentieusesBlockDisplay rows={decl.creanceRows ?? []} anterieurRows={decl.creanceAnterieurRows ?? []} />
+      return <CreancesContentieusesBlockDisplay rows={decl.creanceRows ?? (decl as any).recouvrementRows ?? []} anterieurRows={decl.creanceAnterieurRows ?? (decl as any).recouvrementAnterieurRows ?? []} />
     
     // Support RH Sub-tabs
     case "frais_personnel":
@@ -2448,9 +2481,9 @@ function TabDataView({ tabKey, decl, color }: { tabKey: string; decl: Savedtable
     
     // Tableaux Support (Nouveaux)
     case "creances_contentieuses":
-      return <CreancesContentieusesBlockDisplay rows={decl.creanceRows ?? []} anterieurRows={[]} />
+      return <CreancesContentieusesBlockDisplay rows={decl.creanceRows ?? (decl as any).recouvrementRows ?? []} anterieurRows={[]} />
     case "creances_contentieuses_anterieur":
-      return <CreancesContentieusesBlockDisplay rows={[]} anterieurRows={decl.creanceAnterieurRows ?? []} />
+      return <CreancesContentieusesBlockDisplay rows={[]} anterieurRows={decl.creanceAnterieurRows ?? (decl as any).recouvrementAnterieurRows ?? []} />
     case "mouvement_effectifs_domaine":
       return <MouvementEffectifsDomaineBlockDisplay rows={decl.mouvementEffectifsDomaineRows ?? []} />
     case "budget_formation":
@@ -3557,6 +3590,7 @@ export default function tableauDashboardPage() {
     if ((decl.taxe15Rows?.length ?? 0) > 0) return { key: "taxe_domicil", label: "Taxe Domiciliation", color: "#134e4a" }
     if ((decl.tva16Rows?.length ?? 0) > 0) return { key: "tva_autoliq", label: "TVA Auto Liquidation", color: "#312e81" }
     if ((decl.avancementEngagementRows?.length ?? 0) > 0) return { key: "avancement_engagement", label: "Finance DFC", color: "#2db34b" }
+    if ((decl.creanceAnterieurRows?.length ?? 0) > 0) return { key: "creances_contentieuses_anterieur", label: "Créances contentieuses Antérieur", color: "#2db34b" }
     return { key: "encaissement", label: "Non défini", color: "#6b7280" }
   }
 
@@ -3573,7 +3607,7 @@ export default function tableauDashboardPage() {
     if (["disponibilite_reseau", "mttr", "impact_mttr"].includes(key)) return "DQRPC"
     
     // Support: 9 sub-tab keys (creance + 5 RH + 3 Formation)
-    if (["creance_contentieuses", "frais_personnel", "effectif_gsp", "absenteisme", "mouvement_effectifs", "mouvement_effectifs_domaine", "effectifs_formes_gsp", "formations_domaines", "budget_formation", "rh", "formation"].includes(key)) return "Support"
+    if (["creance_contentieuses", "creances_contentieuses", "creances_contentieuses_anterieur", "frais_personnel", "effectif_gsp", "absenteisme", "mouvement_effectifs", "mouvement_effectifs_domaine", "effectifs_formes_gsp", "formations_domaines", "budget_formation", "rh", "formation"].includes(key)) return "Support"
     
     // Commerciale: 14 tableaux (14 commercial sub-tabs)
     if (["reclamation", "e_payement", "total_encaissement", "rechargement", "recouvrement", "parc_abonnes_gp", "total_parc_abonnes_technologie", "activation", "chiffre_affaires_mda", "encaissement_c", "parc_abonnes", "chiffre_affaires_c", "commercial_autres"].includes(key)) return "Commerciale"

@@ -228,8 +228,8 @@ function TabSituationReseau({ rows, setRows, onSave, isSubmitting, mois }: TabSi
                   <td rowSpan={rowSpanMap[index]} className="px-3 py-2 border-b text-xs font-medium text-gray-800 align-middle text-center">{row.situation}</td>
                 ) : null}
                 <td className="px-3 py-2 border-b text-xs text-gray-700">{row.equipements}</td>
-                <td className="px-1 py-1 border-b"><AmountInput value={row.m}  onChange={(e) => update(index, "m",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
                 <td className="px-1 py-1 border-b"><AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
+                <td className="px-1 py-1 border-b"><AmountInput value={row.m}  onChange={(e) => update(index, "m",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0" /></td>
               </tr>
             ))}
           </tbody>
@@ -247,8 +247,8 @@ function TabTraficData({ rows, setRows, onSave, isSubmitting, mois }: TabTraficD
     setRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, [field]: value } : row)))
 
   const nonTotalRows = rows.filter((r) => !isTotalRow(r.label))
-  const sumM = nonTotalRows.reduce((s, r) => s + num(r.m), 0)
   const sumM1 = nonTotalRows.reduce((s, r) => s + num(r.m1), 0)
+  const sumM = nonTotalRows.reduce((s, r) => s + num(r.m), 0)
 
   return (
     <div className="space-y-3">
@@ -264,16 +264,16 @@ function TabTraficData({ rows, setRows, onSave, isSubmitting, mois }: TabTraficD
           <tbody>
             {rows.map((row, index) => {
               const isTtl = isTotalRow(row.label)
-              const dM = isTtl ? fmt(sumM) : null
               const dM1 = isTtl ? fmt(sumM1) : null
+              const dM = isTtl ? fmt(sumM) : null
               return (
                 <tr key={row.label} className={isTtl ? "bg-green-100 font-semibold" : "bg-white"}>
                   <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.label}</td>
                   <td className="px-1 py-1 border-b">
-                    {isTtl ? <span className="block px-2 text-xs text-right">{dM}</span> : <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM1}</span> : <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
                   </td>
                   <td className="px-1 py-1 border-b">
-                    {isTtl ? <span className="block px-2 text-xs text-right">{dM1}</span> : <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
+                    {isTtl ? <span className="block px-2 text-xs text-right">{dM}</span> : <AmountInput value={row.m} onChange={(e) => update(index, "m", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />}
                   </td>
                 </tr>
               )
@@ -465,7 +465,7 @@ function TabAmeliorationQualite({ tech, debitRows, setDebitRows, couvertureRows,
       <>
         {showHeader && (
           <tr className="bg-gray-50">
-            <td colSpan={5} className="px-3 py-2 text-xs font-semibold text-gray-700 border-b">{title}</td>
+            <td colSpan={4} className="px-3 py-2 text-xs font-semibold text-gray-700 border-b">{title}</td>
           </tr>
         )}
         {rows.map((row, index) => (
@@ -474,7 +474,6 @@ function TabAmeliorationQualite({ tech, debitRows, setDebitRows, couvertureRows,
             <td className="px-1 py-1 border-b"><AmountInput value={row.m1Realise} onChange={(e) => updateRow(setter, index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
             <td className="px-1 py-1 border-b"><AmountInput value={row.mObjectif} onChange={(e) => updateRow(setter, index, "mObjectif", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
             <td className="px-1 py-1 border-b"><AmountInput value={row.mRealise}  onChange={(e) => updateRow(setter, index, "mRealise",  e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" /></td>
-            <td className="px-1 py-1 border-b"></td>
           </tr>
         ))}
       </>
@@ -489,8 +488,7 @@ function TabAmeliorationQualite({ tech, debitRows, setDebitRows, couvertureRows,
             <tr className="bg-gray-50">
               <th rowSpan={2} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 border-b border-r">{debitTitle}</th>
               <th colSpan={1} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, -1)}</th>
-              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b border-r">{getMonthLabel(mois, 0)}</th>
-              <th rowSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">Action</th>
+              <th colSpan={2} className="px-3 py-2 text-center text-xs font-semibold text-gray-700 border-b">{getMonthLabel(mois, 0)}</th>
             </tr>
             <tr className="bg-gray-50">
               <th className="px-3 py-1 text-center text-xs font-semibold text-gray-700 border-b border-r">Réalisé</th>
@@ -794,7 +792,9 @@ function DVDRSPageContent() {
       m1Realise: safeString(prev[i]?.m1Realise),
     })))
 
-    const drList = regions.length > 0 ? regions.map((r) => r.name) : FALLBACK_DR_LIST
+    const drList = regions.length > 0
+      ? regions.map((r) => r.name.startsWith("DR ") ? r.name : `DR ${r.name}`)
+      : FALLBACK_DR_LIST
     setDebitQualite4GRows((prev) => drList.map((dr, i) => ({
       dr,
       m1Realise: safeString(prev[i]?.m1Realise),
@@ -907,6 +907,7 @@ function DVDRSPageContent() {
     const autoPopulate = <T extends Record<string, string>>(
       tabKey: string,
       setter: React.Dispatch<React.SetStateAction<T[]>>,
+      dataKey?: string,
     ) => {
       const hasExisting = tableauDeclarations.some(
         (d) => d.tabKey === tabKey && d.mois === mois && d.annee === annee && d.direction === effectiveDirection,
@@ -920,7 +921,7 @@ function DVDRSPageContent() {
 
       try {
         const data = JSON.parse(prevDecl.dataJson)
-        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]))
+        const arrayKey = dataKey ?? Object.keys(data).find((k) => Array.isArray(data[k]))
         if (!arrayKey) return
         const prevRows: Record<string, string>[] = data[arrayKey]
 
@@ -941,6 +942,10 @@ function DVDRSPageContent() {
     autoPopulate("situation_reseau", setSituationReseauRows)
     autoPopulate("trafic_data", setTraficDataRows)
     autoPopulate("action_notable_reseau", setActionNotableReseauRows)
+    autoPopulate("amelioration_qualite_4g", setDebitQualite4GRows, "debitQualite4GRows")
+    autoPopulate("amelioration_qualite_4g", setCouvertureQualite4GRows, "couvertureQualite4GRows")
+    autoPopulate("amelioration_qualite_5g", setDebitQualite5GRows, "debitQualite5GRows")
+    autoPopulate("amelioration_qualite_5g", setCouvertureQualite5GRows, "couvertureQualite5GRows")
   }, [kpiRows, tableauDeclarations, mois, annee, effectiveDirection])
 
   useEffect(() => {
@@ -1201,13 +1206,13 @@ function DVDRSPageContent() {
     let validationError = false
     switch (tabKey) {
       case "suivi_infrastructures_reseau":
-        if (realisationTechniqueReseauRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
+        if (realisationTechniqueReseauRows.filter((r) => !isTotalRow(r.label)).some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Suivi des infrastructures Reseau.", variant: "destructive" })
           validationError = true
         }
         break
       case "trafic_data":
-        if (traficDataRows.some((row) => !row.m || !row.m1)) {
+        if (traficDataRows.filter((r) => !isTotalRow(r.label)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Evolution du Trafic Data.", variant: "destructive" })
           validationError = true
         }

@@ -1268,9 +1268,23 @@ function SupportPageContent() {
 
     const prevPeriod = getPreviousPeriod(mois, annee)
 
+    const mapM1toM = (row: Record<string, string>): Record<string, string> => {
+      const result: Record<string, string> = {}
+      for (const [key, value] of Object.entries(row)) {
+        if (key === "m1") {
+          result.m = value
+        } else if (/^m1[A-Z]/.test(key)) {
+          result["m" + key.slice(2)] = value
+        }
+      }
+      return result
+    }
+
     const autoPopulate = <T extends Record<string, string>>(
       tabKey: string,
       setter: React.Dispatch<React.SetStateAction<T[]>>,
+      mapper?: (row: Record<string, string>) => Record<string, string>,
+      dataKey?: string,
     ) => {
       const hasExisting = tableauDeclarations.some(
         (d) => d.tabKey === tabKey && d.mois === mois && d.annee === annee && d.direction === effectiveDirection,
@@ -1283,16 +1297,19 @@ function SupportPageContent() {
       if (!prevDecl) return
 
       try {
-        const data = JSON.parse(prevDecl.dataJson)
-        const arrayKey = Object.keys(data).find((k) => Array.isArray(data[k]))
+        const raw = JSON.parse(prevDecl.dataJson)
+        const arrayKey = dataKey ?? Object.keys(raw).find((k) => Array.isArray(raw[k]))
         if (!arrayKey) return
-        const prevRows: Record<string, string>[] = data[arrayKey]
+        const prevRows: Record<string, string>[] = dataKey
+          ? dataKey.split(".").reduce((o, k) => (o as Record<string, unknown>)?.[k], raw) as Record<string, string>[]
+          : raw[arrayKey]
+        if (!Array.isArray(prevRows)) return
 
         setter((prev) =>
           prev.map((row, i) => {
             const prevRow = prevRows[i]
             if (!prevRow) return row
-            const m1Values = mapMtoM1(prevRow)
+            const m1Values = (mapper ?? mapMtoM1)(prevRow)
             return { ...row, ...m1Values } as unknown as T
           }),
         )
@@ -1301,16 +1318,16 @@ function SupportPageContent() {
       }
     }
 
-    autoPopulate("frais_personnel", setFraisPersonnelRows)
-    autoPopulate("effectif_gsp", setEffectifGspRows)
-    autoPopulate("absenteisme", setAbsenteismeRows)
-    autoPopulate("mouvement_effectifs", setMouvementEffectifsRows)
-    autoPopulate("mouvement_effectifs_domaine", setMouvementEffectifsDomaineRows)
+    autoPopulate("frais_personnel", setFraisPersonnelRows, mapM1toM)
+    autoPopulate("effectif_gsp", setEffectifGspRows, mapM1toM)
+    autoPopulate("absenteisme", setAbsenteismeRows, mapM1toM)
+    autoPopulate("mouvement_effectifs", setMouvementEffectifsRows, mapM1toM)
+    autoPopulate("mouvement_effectifs_domaine", setMouvementEffectifsDomaineRows, mapM1toM)
     autoPopulate("creances_contentieuses", setRecouvrementRows)
     autoPopulate("creances_contentieuses_anterieur", setRecouvrementAnterieurRows)
-    autoPopulate("effectifs_formes_gsp", setEffectifsFormesGspRows)
-    autoPopulate("formations_domaines", setFormationsDomainesRows)
-    autoPopulate("budget_formation", setBudgetFormationRows)
+    autoPopulate("effectifs_formes_gsp", setEffectifsFormesGspRows, undefined, "formationRows.effectifsFormesGspRows")
+    autoPopulate("formations_domaines", setFormationsDomainesRows, undefined, "formationRows.formationsDomainesRows")
+    autoPopulate("budget_formation", setBudgetFormationRows, undefined, "formationRows.budgetFormationRows")
   }, [kpiRows, tableauDeclarations, mois, annee, effectiveDirection])
 
   useEffect(() => {
@@ -1599,49 +1616,49 @@ function SupportPageContent() {
     let validationError = false
     switch (tabKey) {
       case "frais_personnel":
-        if (fraisPersonnelRows.some((row) => !row.m || !row.m1)) {
+        if (fraisPersonnelRows.filter((r) => r.designation !== "Taux d'atteinte").some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Frais Personnel.", variant: "destructive" })
           validationError = true
         }
         break
       case "effectif_gsp":
-        if (effectifGspRows.some((row) => !row.m || !row.m1 || !row.part)) {
+        if (effectifGspRows.filter((r) => !isTotalRow(r.gsp)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Effectif par GSP.", variant: "destructive" })
           validationError = true
         }
         break
       case "absenteisme":
-        if (absenteismeRows.some((row) => !row.m || !row.m1 || !row.part)) {
+        if (absenteismeRows.filter((r) => !isTotalRow(r.motif)).some((row) => !row.m || !row.m1)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Absenteisme.", variant: "destructive" })
           validationError = true
         }
         break
       case "mouvement_effectifs":
-        if (mouvementEffectifsRows.some((row) => !row.mCadresSup || !row.mCadres || !row.mMaitrise || !row.mExecution || !row.m1CadresSup || !row.m1Cadres || !row.m1Maitrise || !row.m1Execution)) {
+        if (mouvementEffectifsRows.filter((r) => !isTotalRow(r.operation)).some((row) => !row.mCadresSup || !row.mCadres || !row.mMaitrise || !row.mExecution || !row.m1CadresSup || !row.m1Cadres || !row.m1Maitrise || !row.m1Execution)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Mouvement des Effectifs.", variant: "destructive" })
           validationError = true
         }
         break
       case "mouvement_effectifs_domaine":
-        if (mouvementEffectifsDomaineRows.some((row) => !row.mCdi || !row.mCdd || !row.mCta || !row.m1Cdi || !row.m1Cdd || !row.m1Cta)) {
+        if (mouvementEffectifsDomaineRows.filter((r) => !isTotalRow(r.domaine)).some((row) => !row.mCdi || !row.mCdd || !row.mCta || !row.m1Cdi || !row.m1Cdd || !row.m1Cta)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Mouvement des Effectifs par Domaine.", variant: "destructive" })
           validationError = true
         }
         break
       case "effectifs_formes_gsp":
-        if (effectifsFormesGspRows.slice(0, -1).some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
+        if (effectifsFormesGspRows.slice(0, -1).some((row) => !row.mObjectif || !row.mRealise || !row.m1Realise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Effectifs formes par GSP.", variant: "destructive" })
           validationError = true
         }
         break
       case "formations_domaines":
-        if (formationsDomainesRows.slice(0, -1).some((row) => !row.mObjectif || !row.mRealise || !row.mTaux || !row.m1Realise)) {
+        if (formationsDomainesRows.slice(0, -1).some((row) => !row.mObjectif || !row.mRealise || !row.m1Realise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Formations réalisées par domaines.", variant: "destructive" })
           validationError = true
         }
         break
       case "budget_formation":
-        if (budgetFormationRows.some((row) => !row.m1 || !row.m || !row.evol)) {
+        if (budgetFormationRows.filter((r) => !isTotalRow(r.designation) && r.designation !== "Reste à réaliser" && r.designation !== "Taux de Réalisation").some((row) => !row.m1 || !row.m)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Budget des Formations.", variant: "destructive" })
           validationError = true
         }
@@ -1702,7 +1719,11 @@ function SupportPageContent() {
         baseDecl.mouvementEffectifsDomaineRows = mouvementEffectifsDomaineRows
         break
       case "creances_contentieuses":
-        baseDecl.recouvrementRows = recouvrementRows
+        baseDecl.recouvrementRows = recouvrementRows.map((row) => {
+          const montant = parseFloat(row.mMontant ?? "0") || 0
+          const objectif = parseFloat(row.mObjectif ?? "0") || 0
+          return { ...row, mTaux: objectif ? ((montant / objectif) * 100).toFixed(1) : "0.0" }
+        })
         break
       case "creances_contentieuses_anterieur":
         baseDecl.recouvrementAnterieurRows = recouvrementAnterieurRows
@@ -1751,7 +1772,11 @@ function SupportPageContent() {
           tabData = { mouvementEffectifsDomaineRows: mouvementEffectifsDomaineRows }
           break
         case "creances_contentieuses":
-          tabData = { recouvrementRows }
+          tabData = { recouvrementRows: recouvrementRows.map((row) => {
+            const montant = parseFloat(row.mMontant ?? "0") || 0
+            const objectif = parseFloat(row.mObjectif ?? "0") || 0
+            return { ...row, mTaux: objectif ? ((montant / objectif) * 100).toFixed(1) : "0.0" }
+          }) }
           break
         case "creances_contentieuses_anterieur":
           tabData = { recouvrementAnterieurRows }

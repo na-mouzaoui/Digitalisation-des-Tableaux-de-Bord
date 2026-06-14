@@ -203,7 +203,7 @@ function TabCompteResultat({ rows, setRows, onSave, isSubmitting, mois }: TabCom
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={row.designation} className={COMPTE_RESULTAT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
+              <tr key={`${row.designation}-${index}`} className={COMPTE_RESULTAT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
                 <td className="px-1 py-1 border-b">
                   <AmountInput value={row.m1Realise} onChange={(e) => update(index, "m1Realise", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
@@ -341,7 +341,7 @@ function TabInvestissement({ rows, setRows, onSave, isSubmitting, mois }: TabInv
               const dM = isTtl ? fmt(tM) : null
               const dEvol = isTtl ? calcEvol(String(tM), String(tM1)) : calcEvol(row.m, row.m1)
               return (
-                <tr key={row.designation} className={INVESTISSEMENT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
+                <tr key={`${row.designation}-${index}`} className={INVESTISSEMENT_GREEN_ROWS.has(row.designation) ? "bg-green-100 font-semibold" : "bg-white"}>
                   {index === 0 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Fonctionement</td>}
                   {index === 2 && <td rowSpan={2} className="px-3 py-2 border-b text-xs font-semibold text-gray-800 align-middle text-center">Technique</td>}
                   {index > 3 && <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>}
@@ -395,7 +395,7 @@ function TabAvancementEngagement({ rows, setRows, onSave, isSubmitting, mois }: 
           </thead>
           <tbody>
             {rows.map((row, index) => (
-              <tr key={row.designation} className="bg-white">
+              <tr key={`${row.designation}-${index}`} className="bg-white">
                 <td className="px-3 py-2 border-b text-xs font-medium text-gray-800">{row.designation}</td>
                 <td className="px-1 py-1 border-b">
                   <AmountInput value={row.m1} onChange={(e) => update(index, "m1", e.target.value)} className="h-7 px-2 text-xs" placeholder="0.00" />
@@ -1134,19 +1134,19 @@ function FinancesPageContent() {
     }
 
     let validationError = false
-    if (tabKey === "compte_resultat" && compteResultatRows.some((row) => !row.mBudget || !row.mRealise || !row.mTaux || !row.m1Realise)) {
+    if (tabKey === "compte_resultat" && compteResultatRows.some((row) => !row.mBudget || !row.mRealise || !row.m1Realise)) {
       toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Compte de resultat.", variant: "destructive" })
       validationError = true
     }
-    if (tabKey === "investissement" && investissementRows.some((row) => !row.m1 || !row.m)) {
+    if (tabKey === "investissement" && investissementRows.filter((r) => r.designation !== "Totale Prevu" && r.designation !== "Totale Engage" && r.designation !== "Taux").some((row) => !row.m1 || !row.m)) {
       toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Investissement.", variant: "destructive" })
       validationError = true
     }
-    if (tabKey === "avancement_engagement" && avancementEngagementRows.some((row) => !row.m1 || !row.m || !row.evol)) {
+    if (tabKey === "avancement_engagement" && avancementEngagementRows.some((row) => !row.m1 || !row.m)) {
       toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Etat d'avancement des engagements.", variant: "destructive" })
       validationError = true
     }
-    if (tabKey === "tresorerie" && tresorerieMobilisRows.some((row) => !row.m1 || !row.m || !row.evol)) {
+    if (tabKey === "tresorerie" && tresorerieMobilisRows.filter((r) => r.designation !== "Totale Mois" && r.designation !== "Solde Fin de Période").some((row) => !row.m1 || !row.m)) {
       toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Trésorerie Mobilis.", variant: "destructive" })
       validationError = true
     }

@@ -725,8 +725,39 @@ function DQRPCPageContent() {
     }
 
     autoPopulate("disponibilite_reseau", setDisponibiliteReseauRows)
-    autoPopulate("mttr", setMttrRows)
     autoPopulate("impact_mttr", setImpactMttrRows)
+
+    // MTTR : structure imbriquée (regions > cities), besoin d'un traitement spécifique
+    {
+      const hasExisting = tableauDeclarations.some(
+        (d) => d.tabKey === "mttr" && d.mois === mois && d.annee === annee && d.direction === effectiveDirection,
+      )
+      if (!hasExisting) {
+        const prevDecl = tableauDeclarations.find(
+          (d) => d.tabKey === "mttr" && d.mois === prevPeriod.mois && d.annee === prevPeriod.annee && d.direction === effectiveDirection,
+        )
+        if (prevDecl) {
+          try {
+            const data = JSON.parse(prevDecl.dataJson)
+            const prevMttrRows: MttrRegionRow[] = Array.isArray(data.mttrRows) ? data.mttrRows : []
+            if (prevMttrRows.length > 0) {
+              setMttrRows((prev) => prev.map((region, i) => {
+                const prevRegion = prevMttrRows[i]
+                if (!prevRegion) return region
+                return {
+                  ...region,
+                  cities: region.cities.map((city, cIdx) => {
+                    const prevCity = prevRegion.cities[cIdx]
+                    if (!prevCity) return city
+                    return { ...city, realiseM1: prevCity.realiseM }
+                  }),
+                }
+              }))
+            }
+          } catch { /* ignore */ }
+        }
+      }
+    }
   }, [kpiRows, tableauDeclarations, mois, annee, effectiveDirection])
 
   useEffect(() => {
@@ -981,13 +1012,13 @@ function DQRPCPageContent() {
     let validationError = false
     switch (tabKey) {
       case "disponibilite_reseau":
-        if (disponibiliteReseauRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
+        if (disponibiliteReseauRows.filter((r) => !/DR (Alger|Oran)/i.test(r.designation)).some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Disponibilite reseau.", variant: "destructive" })
           validationError = true
         }
         break
       case "mttr":
-        if (mttrRows.some((region) => region.cities.some((city) => !city.wilayaM || !city.objectifM || !city.realiseM || !city.realiseM1 || !city.ecart))) {
+        if (mttrRows.some((region) => region.cities.some((city) => !city.wilayaM || !city.objectifM || !city.realiseM || !city.realiseM1))) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau MTTR.", variant: "destructive" })
           validationError = true
         }

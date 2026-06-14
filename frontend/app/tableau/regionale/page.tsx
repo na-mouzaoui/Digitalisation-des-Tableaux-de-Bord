@@ -1458,43 +1458,43 @@ resolveTabKey(declaration)
     let validationError = false
     switch (tabKey) {
       case "genie_civil":
-        if (genieCivilRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
+        if (genieCivilRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Genie Civil.", variant: "destructive" })
           validationError = true
         }
         break
       case "maintenance_equipement":
-        if (maintenanceEquipementRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
+        if (maintenanceEquipementRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Maintenance & Equipements.", variant: "destructive" })
           validationError = true
         }
         break
       case "nouveaux_sites":
-        if (nouveauxSitesRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
+        if (nouveauxSitesRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Nouveaux Sites & Extension Radio.", variant: "destructive" })
           validationError = true
         }
         break
       case "mttr_debit":
-        if (mttrDebitRows.some((row) => !row.wilaya || !row.mttrObjectif || !row.mttrRealise || !row.mttrEcart || !row.debitObjectif || !row.debitRealise || !row.debitEcart)) {
+        if (mttrDebitRows.some((row) => !row.wilaya || !row.mttrObjectif || !row.mttrRealise || !row.debitObjectif || !row.debitRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau MTTR & Debit Internet.", variant: "destructive" })
           validationError = true
         }
         break
       case "recouvrement_contentieux":
-        if (recouvrementContentieuxRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
+        if (recouvrementContentieuxRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Recouvrement Contentieux.", variant: "destructive" })
           validationError = true
         }
         break
       case "ressources_humaines":
-        if (ressourcesHumainesRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
+        if (ressourcesHumainesRows.filter((r) => !isTotalRow(r.label)).some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Ressources Humaines.", variant: "destructive" })
           validationError = true
         }
         break
       case "formation":
-        if (formationRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise || !row.mTaux)) {
+        if (formationRows.some((row) => !row.m1Realise || !row.mObjectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Formation.", variant: "destructive" })
           validationError = true
         }
@@ -1506,13 +1506,13 @@ resolveTabKey(declaration)
         }
         break
       case "realisations_commerciales":
-        if (commercialeDrRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise || !row.mTaux)) {
+        if (commercialeDrRows.some((row) => !row.m1Realise || !row.m1Objectif || !row.mRealise)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Realisations Commerciales.", variant: "destructive" })
           validationError = true
         }
         break
       case "reseau_distribution":
-        if (reseauDistributionRows.some((row) => !row.m1Recrute || !row.m1Realise || !row.mRecrute || !row.mRealise || !row.mEcart || !row.situation)) {
+        if (reseauDistributionRows.some((row) => !row.m1Recrute || !row.m1Realise || !row.mRecrute || !row.mRealise || !row.situation)) {
           toast({ title: "Champs incomplets", description: "Veuillez renseigner toutes les lignes du tableau Reseau de Distribution.", variant: "destructive" })
           validationError = true
         }
